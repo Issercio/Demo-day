@@ -1,0 +1,15 @@
+TEST DATABASE
+
+#1 python3 -m app.setup_db
+#2 python3 -m app.db_setup
+
+Install :
+
+# Installation des dépendances Python
+pip3 install psycopg2-binary python-dotenv
+
+# Installation de PostgreSQL si ce n'est pas déjà fait
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+
+sudo service postgresql start
