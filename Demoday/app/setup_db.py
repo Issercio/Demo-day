@@ -1,14 +1,15 @@
-import os
 import psycopg2
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+import os
 from dotenv import load_dotenv
 
 def setup_database():
     load_dotenv()
     
-    print("🔄 Initialisation de la base de données...")
+    print("🔄 Initialisation/Mise à jour de la base de données...")
     
     try:
-        # Connexion à la base de données
+        # Connexion à PostgreSQL
         conn = psycopg2.connect(
             dbname=os.getenv('DB_NAME'),
             user=os.getenv('DB_USER'),
@@ -18,18 +19,34 @@ def setup_database():
         )
         conn.autocommit = True
         cur = conn.cursor()
-        
-        # Lecture et exécution du script de création des tables
-        print("📊 Création des tables...")
+
+        # Sauvegarde des données existantes si nécessaire
+        print("📦 Sauvegarde des données existantes...")
+        try:
+            cur.execute("SELECT * FROM products")
+            products_backup = cur.fetchall()
+            cur.execute("SELECT * FROM categories")
+            categories_backup = cur.fetchall()
+        except:
+            products_backup = []
+            categories_backup = []
+
+        # Suppression et recréation des tables
+        print("🔨 Mise à jour du schéma de la base de données...")
         with open('sql/create_tables.sql', 'r') as file:
+            # Supprimer les tables existantes dans l'ordre inverse des dépendances
+            cur.execute("DROP TABLE IF EXISTS products CASCADE")
+            cur.execute("DROP TABLE IF EXISTS categories CASCADE")
+            cur.execute("DROP TABLE IF EXISTS users CASCADE")
+            # Créer les nouvelles tables
             cur.execute(file.read())
-        
-        # Lecture et exécution du script d'insertion des données
-        print("📝 Insertion des données initiales...")
+
+        # Réinsertion des données initiales
+        print("📝 Réinsertion des données...")
         with open('sql/insert_initial_data.sql', 'r') as file:
             cur.execute(file.read())
-            
-        print("✅ Base de données initialisée avec succès!")
+
+        print("✅ Base de données mise à jour avec succès!")
         
         cur.close()
         conn.close()

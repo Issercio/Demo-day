@@ -25,3 +25,19 @@ CREATE TABLE products (
     delivery_available BOOLEAN DEFAULT TRUE,
     click_collect_available BOOLEAN DEFAULT TRUE
 );
+
+CREATE TABLE prices (
+    id UUID PRIMARY KEY,
+    product_id UUID REFERENCES products(id),
+    amount DECIMAL(10,2) NOT NULL,
+    effective_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+-- Table de test
+CREATE TABLE test_table (
+    id UUID PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
+);
