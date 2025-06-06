@@ -1,5 +1,3 @@
 from .user import User
-from .category import Category
 from .product import Product
-from .review import Review
-from .price import Price
+from .category import Category

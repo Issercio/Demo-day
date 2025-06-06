@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FloraShop API Tester</title>
+    <style>
+        body { padding: 20px; font-family: Arial; }
+        .section { margin-bottom: 20px; padding: 20px; border: 1px solid #ddd; }
+        button { margin: 5px; padding: 10px; }
+        .response { background: #f5f5f5; padding: 10px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>FloraShop API Tester</h1>
+
+    <div class="section">
+        <h2>Utilisateurs</h2>
+        <div>
+            <input type="text" id="username" placeholder="Nom d'utilisateur">
+            <input type="email" id="email" placeholder="Email">
+            <input type="password" id="password" placeholder="Mot de passe">
+            <button onclick="createUser()">Créer un compte</button>
+        </div>
+        <div class="response" id="userResponse"></div>
+    </div>
+
+    <div class="section">
+        <h2>Produits</h2>
+        <div>
+            <input type="text" id="productName" placeholder="Nom du produit">
+            <input type="number" id="productPrice" placeholder="Prix">
+            <select id="categorySelect"></select>
+            <button onclick="createProduct()">Ajouter un produit</button>
+        </div>
+        <div>
+            <button onclick="getProducts()">Voir tous les produits</button>
+        </div>
+        <div class="response" id="productResponse"></div>
+    </div>
+
+    <div class="section">
+        <h2>Catégories</h2>
+        <div>
+            <button onclick="getCategories()">Voir les catégories</button>
+        </div>
+        <div class="response" id="categoryResponse"></div>
+    </div>
+
+    <script>
+        // Fonctions pour interagir avec l'API
+        async function createUser() {
+            const response = await fetch('/api/v1/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('username').value,
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value
+                })
+            });
+            const data = await response.json();
+            document.getElementById('userResponse').textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function createProduct() {
+            const response = await fetch('/api/v1/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: document.getElementById('productName').value,
+                    price: document.getElementById('productPrice').value,
+                    category_id: document.getElementById('categorySelect').value
+                })
+            });
+            const data = await response.json();
+            document.getElementById('productResponse').textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function getProducts() {
+            const response = await fetch('/api/v1/products');
+            const data = await response.json();
+            document.getElementById('productResponse').textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function getCategories() {
+            const response = await fetch('/api/v1/categories');
+            const data = await response.json();
+            document.getElementById('categoryResponse').textContent = JSON.stringify(data, null, 2);
+            updateCategorySelect(data);
+        }
+
+        function updateCategorySelect(categories) {
+            const select = document.getElementById('categorySelect');
+            select.innerHTML = categories.map(c => 
+                `<option value="${c.id}">${c.name}</option>`
+            ).join('');
+        }
+
+        // Charger les catégories au démarrage
+        getCategories();
+    </script>
+</body>
+</html>

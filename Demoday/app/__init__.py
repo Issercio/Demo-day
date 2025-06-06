@@ -1,3 +1,6 @@
+from flask import Flask, render_template
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 import psycopg2
 from psycopg2.extras import DictCursor
 import os
@@ -5,6 +8,32 @@ from dotenv import load_dotenv
 
 # Chargement des variables d'environnement
 load_dotenv()
+
+db = SQLAlchemy()
+migrate = Migrate()
+
+def create_app():
+    app = Flask(__name__)
+    
+    # Configuration de base
+    app.config['SECRET_KEY'] = 'votre-clé-secrète'
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres:@localhost:5432/florashop')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    # Initialisation des extensions
+    db.init_app(app)
+    migrate.init_app(app, db)
+
+    # Route racine modifiée pour servir le template
+    @app.route('/')
+    def index():
+        return render_template('index.html')
+
+    # Enregistrement des blueprints
+    from .routes import api_bp
+    app.register_blueprint(api_bp, url_prefix='/api/v1')
+
+    return app
 
 def test_database_connection():
     # Afficher les paramètres de connexion (sans le mot de passe)

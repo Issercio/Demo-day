@@ -1,11 +1,13 @@
 from .base_model import BaseModel
 from sqlalchemy import Column, String, Text, Numeric, Integer, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
+from app import db
 
-class Product(BaseModel):
+class Product(BaseModel, db.Model):
     __tablename__ = 'products'
     
-    category_id = Column(ForeignKey('categories.id'))
+    id = db.Column(db.Integer, primary_key=True)
+    category_id = Column(ForeignKey('categories.id'), nullable=False)
     name = Column(String(255), nullable=False)
     price = Column(Numeric(10,2), nullable=False)
     description = Column(Text)
