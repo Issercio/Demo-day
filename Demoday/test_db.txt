@@ -13,3 +13,22 @@ sudo apt update
 sudo apt install postgresql postgresql-contrib
 
 sudo service postgresql start
+
+
+TEST API DATABASE LINK :
+
+sudo -u postgres psql -d florashop
+
+-- Voir les utilisateurs
+SELECT * FROM users;
+
+-- Voir les produits
+SELECT * FROM products;
+
+-- Voir les catégories
+SELECT * FROM categories;
+
+-- Voir les relations entre produits et catégories
+SELECT p.name as product_name, p.price, c.name as category_name 
+FROM products p 
+JOIN categories c ON p.category_id = c.id;
