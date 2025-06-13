@@ -4,6 +4,8 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
+import psycopg2
+from psycopg2.extras import DictCursor
 
 # Chargement des variables d'environnement
 load_dotenv()

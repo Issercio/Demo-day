@@ -11,9 +11,93 @@ def api_index():
     return jsonify({
         'message': 'API FloraShop v1',
         'endpoints': {
-            'products': '/api/v1/products',
-            'categories': '/api/v1/categories'
+            'Test POST': {
+                'Test création utilisateur': {
+                    'url': '/api/v1/users',
+                    'method': 'POST',
+                    'body': {
+                        'username': 'string',
+                        'email': 'string',
+                        'password': 'string'
+                    }
+                },
+                'Test création produit': {
+                    'url': '/api/v1/products',
+                    'method': 'POST',
+                    'body': {
+                        'name': 'string',
+                        'price': 'number',
+                        'category_id': 'number'
+                    }
+                },
+                'Test création catégorie': {
+                    'url': '/api/v1/categories',
+                    'method': 'POST',
+                    'body': {
+                        'name': 'string'
+                    }
+                }
+            },
+            'Test GET': {
+                'Test récupération utilisateur par ID': '/api/v1/users/1',
+                'Test récupération produit par ID': '/api/v1/products/1',
+                'Test récupération catégorie par ID': '/api/v1/categories/1',
+                'Test récupération de tous les utilisateurs': '/api/v1/users'
+            }
         }
+    })
+
+# Route GET spécifique pour un utilisateur
+@api_bp.route('/users/<int:user_id>', methods=['GET'])
+def get_user(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'Utilisateur non trouvé'}), 404
+    return jsonify({
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'is_admin': user.is_admin,
+        'password': user.password
+    })
+
+# Route GET spécifique pour un produit
+@api_bp.route('/products/<int:product_id>', methods=['GET'])
+def get_product(product_id):
+    try:
+        product = Product.query.get(product_id)
+        if not product:
+            return jsonify({'error': 'Produit non trouvé'}), 404
+            
+        category = Category.query.get(product.category_id)
+        if not category:
+            return jsonify({'error': 'Catégorie non trouvée'}), 404
+            
+        return jsonify({
+            'id': product.id,
+            'name': product.name,
+            'price': product.price,
+            'category': {
+                'id': category.id,
+                'name': category.name
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Route GET spécifique pour une catégorie
+@api_bp.route('/categories/<int:category_id>', methods=['GET'])
+def get_category(category_id):
+    category = Category.query.get(category_id)
+    if not category:
+        return jsonify({'error': 'Catégorie non trouvée'}), 404
+    return jsonify({
+        'id': category.id,
+        'name': category.name,
+        'products': [{
+            'id': product.id,
+            'name': product.name
+        } for product in category.products]
     })
 
 # Routes pour les utilisateurs
@@ -41,11 +125,10 @@ def users():
             db.session.add(user)
             db.session.commit()
             
-            # Retourner l'utilisateur créé
             return jsonify({
                 'message': 'Utilisateur créé avec succès',
                 'user': {
-                    'id': user.id,
+                    'id': user.id,  # Ajout de l'ID dans la réponse
                     'username': user.username,
                     'email': user.email
                 }
@@ -53,17 +136,16 @@ def users():
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
-    
-    # GET - Liste des utilisateurs
-    try:
-        users = User.query.all()
-        return jsonify([{
-            'id': u.id,
-            'username': u.username,
-            'email': u.email
-        } for u in users])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+
+    # GET - Liste des utilisateurs avec mot de passe
+    users = User.query.all()
+    return jsonify([{
+        'id': u.id,
+        'username': u.username,
+        'email': u.email,
+        'is_admin': u.is_admin,
+        'password': u.password  # Ajout du mot de passe
+    } for u in users])
 
 # Routes pour les produits
 @api_bp.route('/products', methods=['GET', 'POST'])
@@ -71,50 +153,44 @@ def products():
     if request.method == 'POST':
         try:
             data = request.get_json()
-            if not data or not data.get('name') or not data.get('price'):
-                return jsonify({'error': 'Nom et prix sont requis'}), 400
+            if not data or not data.get('name') or not data.get('price') or not data.get('category_id'):
+                return jsonify({'error': 'Tous les champs sont requis'}), 400
             
-            if not data.get('category_id'):
-                return jsonify({'error': 'Veuillez sélectionner une catégorie'}), 400
-
-            # Vérifier si la catégorie existe
             category = Category.query.get(data['category_id'])
             if not category:
-                return jsonify({'error': 'Catégorie invalide'}), 400
+                return jsonify({'error': 'Catégorie non trouvée'}), 404
 
             product = Product(
                 name=data['name'],
-                price=float(data['price']),
-                category_id=int(data['category_id'])
+                price=data['price'],
+                category_id=data['category_id']
             )
             db.session.add(product)
             db.session.commit()
             
-            # Retourner le produit créé
             return jsonify({
                 'message': 'Produit créé avec succès',
                 'product': {
                     'id': product.id,
                     'name': product.name,
                     'price': product.price,
-                    'category_id': product.category_id,
-                    'category_name': category.name
+                    'category_id': product.category_id
                 }
             }), 201
-        except ValueError as e:
-            return jsonify({'error': 'Prix ou catégorie invalide'}), 400
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
-
-    # GET - Liste des produits
+    
     try:
         products = Product.query.all()
         return jsonify([{
             'id': p.id,
             'name': p.name,
             'price': p.price,
-            'category_id': p.category_id
+            'category': {
+                'id': p.category_id,
+                'name': Category.query.get(p.category_id).name if p.category_id else None
+            }
         } for p in products])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -123,14 +199,29 @@ def products():
 @api_bp.route('/categories', methods=['GET', 'POST'])
 def categories():
     if request.method == 'POST':
-        data = request.get_json()
-        category = Category(name=data['name'])
-        db.session.add(category)
-        db.session.commit()
-        return jsonify({'message': 'Catégorie créée avec succès', 'id': category.id}), 201
-    else:
-        categories = Category.query.all()
-        return jsonify([{
-            'id': c.id,
-            'name': c.name
-        } for c in categories])
+        try:
+            data = request.get_json()
+            if not data or not data.get('name'):
+                return jsonify({'error': 'Le nom de la catégorie est requis'}), 400
+            
+            category = Category(name=data['name'])
+            db.session.add(category)
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Catégorie créée avec succès',
+                'category': {
+                    'id': category.id,
+                    'name': category.name
+                }
+            }), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+    
+    # GET - Liste des catégories
+    categories = Category.query.all()
+    return jsonify([{
+        'id': c.id,
+        'name': c.name
+    } for c in categories])

@@ -24,6 +24,13 @@
             <button type="submit">Créer un compte</button>
             <button type="button" onclick="getUsers()">Voir tous les utilisateurs</button>
         </form>
+        <!-- Ajout des nouveaux boutons de test GET -->
+        <div class="get-tests">
+            <h3>Tests GET</h3>
+            <input type="number" id="userId" placeholder="ID utilisateur">
+            <button onclick="testGetUserById()">Tester GET utilisateur par ID</button>
+            <button onclick="testGetAllUsers()">Tester GET tous les utilisateurs</button>
+        </div>
         <div class="response" id="userResponse"></div>
         <div class="data-list" id="usersList"></div>
     </div>
@@ -39,6 +46,12 @@
         </div>
         <div class="response" id="productResponse"></div>
         <div class="data-list" id="productsList"></div>
+        <!-- Ajout du bouton de test GET -->
+        <div class="get-tests">
+            <h3>Tests GET</h3>
+            <input type="number" id="productId" placeholder="ID produit">
+            <button onclick="testGetProductById()">Tester GET produit par ID</button>
+        </div>
     </div>
 
     <div class="section">
@@ -50,6 +63,12 @@
         </div>
         <div class="response" id="categoryResponse"></div>
         <div class="data-list" id="categoriesList"></div>
+        <!-- Ajout du bouton de test GET -->
+        <div class="get-tests">
+            <h3>Tests GET</h3>
+            <input type="number" id="categoryId" placeholder="ID catégorie">
+            <button onclick="testGetCategoryById()">Tester GET catégorie par ID</button>
+        </div>
     </div>
 
     <script>
@@ -74,6 +93,7 @@
                     responseDiv.innerHTML = `
                         <div class="success">
                             ${data.message}<br>
+                            ID: ${data.user.id}<br>
                             Utilisateur: ${data.user.username}<br>
                             Email: ${data.user.email}
                         </div>
@@ -100,7 +120,7 @@
                         <ul>
                             ${users.map(user => `
                                 <li>
-                                    ${user.username} (${user.email})
+                                    ID: ${user.id} - ${user.username} (${user.email})
                                 </li>
                             `).join('')}
                         </ul>
@@ -165,12 +185,27 @@
         }
 
         async function getProducts() {
-            const response = await fetch('/api/v1/products');
-            const products = await response.json();
-            document.getElementById('productsList').innerHTML = `
-                <h3>Produits enregistrés:</h3>
-                <pre>${JSON.stringify(products, null, 2)}</pre>
-            `;
+            try {
+                const response = await fetch('/api/v1/products');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const products = await response.json();
+                document.getElementById('productsList').innerHTML = `
+                    <h3>Produits enregistrés:</h3>
+                    <ul>
+                        ${products.map(p => `
+                            <li>
+                                ID: ${p.id} - ${p.name} - Prix: ${p.price}€
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            } catch (error) {
+                document.getElementById('productsList').innerHTML = `
+                    <div class="error">Erreur de chargement des produits: ${error.message}</div>
+                `;
+            }
         }
 
         async function createCategory() {
@@ -223,6 +258,88 @@
             const select = document.getElementById('categorySelect');
             select.innerHTML = '<option value="">Sélectionnez une catégorie</option>' +
                 categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+
+        // Nouvelles fonctions pour les tests GET
+        async function testGetUserById() {
+            const id = document.getElementById('userId').value;
+            if (!id) {
+                alert('Veuillez entrer un ID');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/v1/users/${id}`);
+                const data = await response.json();
+                document.getElementById('userResponse').innerHTML = `
+                    <h4>Résultat du test GET utilisateur:</h4>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('userResponse').innerHTML = `
+                    <div class="error">Erreur: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function testGetProductById() {
+            const id = document.getElementById('productId').value;
+            if (!id) {
+                alert('Veuillez entrer un ID');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/v1/products/${id}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                document.getElementById('productResponse').innerHTML = `
+                    <h4>Résultat du test GET produit:</h4>
+                    <div>
+                        <p>Nom: ${data.name}</p>
+                        <p>Catégorie: ${data.category.name}</p>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('productResponse').innerHTML = `
+                    <div class="error">Erreur: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function testGetCategoryById() {
+            const id = document.getElementById('categoryId').value;
+            if (!id) {
+                alert('Veuillez entrer un ID');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/v1/categories/${id}`);
+                const data = await response.json();
+                document.getElementById('categoryResponse').innerHTML = `
+                    <h4>Résultat du test GET catégorie:</h4>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('categoryResponse').innerHTML = `
+                    <div class="error">Erreur: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function testGetAllUsers() {
+            try {
+                const response = await fetch('/api/v1/users');
+                const data = await response.json();
+                document.getElementById('userResponse').innerHTML = `
+                    <h4>Résultat du test GET tous les utilisateurs:</h4>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('userResponse').innerHTML = `
+                    <div class="error">Erreur: ${error.message}</div>
+                `;
+            }
         }
 
         // Charger les données au démarrage
