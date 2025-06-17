@@ -21,15 +21,18 @@
             <input type="text" id="username" placeholder="Nom d'utilisateur" required>
             <input type="email" id="email" placeholder="Email" required>
             <input type="password" id="password" placeholder="Mot de passe" required>
+            <div>
+                <input type="password" id="adminToken" placeholder="Token Admin (optionnel)">
+            </div>
             <button type="submit">Créer un compte</button>
-            <button type="button" onclick="getUsers()">Voir tous les utilisateurs</button>
         </form>
         <!-- Ajout des nouveaux boutons de test GET -->
         <div class="get-tests">
-            <h3>Tests GET</h3>
+            <h3>Tests GET/DELETE</h3>
             <input type="number" id="userId" placeholder="ID utilisateur">
             <button onclick="testGetUserById()">Tester GET utilisateur par ID</button>
             <button onclick="testGetAllUsers()">Tester GET tous les utilisateurs</button>
+            <button onclick="testDeleteUser()">Tester DELETE utilisateur</button>
         </div>
         <div class="response" id="userResponse"></div>
         <div class="data-list" id="usersList"></div>
@@ -42,15 +45,15 @@
             <input type="number" id="productPrice" placeholder="Prix">
             <select id="categorySelect"></select>
             <button onclick="createProduct()">Ajouter un produit</button>
-            <button onclick="getProducts()">Voir tous les produits</button>
         </div>
         <div class="response" id="productResponse"></div>
         <div class="data-list" id="productsList"></div>
         <!-- Ajout du bouton de test GET -->
         <div class="get-tests">
-            <h3>Tests GET</h3>
+            <h3>Tests GET/DELETE</h3>
             <input type="number" id="productId" placeholder="ID produit">
             <button onclick="testGetProductById()">Tester GET produit par ID</button>
+            <button onclick="testDeleteProduct()">Tester DELETE produit</button>
         </div>
     </div>
 
@@ -59,15 +62,15 @@
         <div>
             <input type="text" id="categoryName" placeholder="Nom de la catégorie">
             <button onclick="createCategory()">Créer une catégorie</button>
-            <button onclick="getCategories()">Voir les catégories</button>
         </div>
         <div class="response" id="categoryResponse"></div>
         <div class="data-list" id="categoriesList"></div>
         <!-- Ajout du bouton de test GET -->
         <div class="get-tests">
-            <h3>Tests GET</h3>
+            <h3>Tests GET/DELETE</h3>
             <input type="number" id="categoryId" placeholder="ID catégorie">
             <button onclick="testGetCategoryById()">Tester GET catégorie par ID</button>
+            <button onclick="testDeleteCategory()">Tester DELETE catégorie</button>
         </div>
     </div>
 
@@ -75,11 +78,18 @@
         async function createUser(event) {
             event.preventDefault();
             const responseDiv = document.getElementById('userResponse');
+            const headers = { 'Content-Type': 'application/json' };
+            
+            // Ajout du token admin s'il est fourni
+            const adminToken = document.getElementById('adminToken').value;
+            if (adminToken) {
+                headers['Admin-Token'] = adminToken;
+            }
             
             try {
                 const response = await fetch('/api/v1/users', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
                     body: JSON.stringify({
                         username: document.getElementById('username').value,
                         email: document.getElementById('email').value,
@@ -112,6 +122,9 @@
             const listDiv = document.getElementById('usersList');
             try {
                 const response = await fetch('/api/v1/users');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const users = await response.json();
                 
                 if (Array.isArray(users)) {
@@ -121,15 +134,16 @@
                             ${users.map(user => `
                                 <li>
                                     ID: ${user.id} - ${user.username} (${user.email})
+                                    ${user.is_admin ? '<strong style="color: green"> - Admin</strong>' : ''}
                                 </li>
                             `).join('')}
                         </ul>
                     `;
                 } else {
-                    listDiv.innerHTML = `<div class="error">Erreur lors de la récupération des utilisateurs</div>`;
+                    listDiv.innerHTML = `<div class="error">Format de réponse invalide</div>`;
                 }
             } catch (error) {
-                listDiv.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
+                listDiv.innerHTML = `<div class="error">Erreur de chargement des utilisateurs: ${error.message}</div>`;
             }
         }
 
@@ -339,6 +353,85 @@
                 document.getElementById('userResponse').innerHTML = `
                     <div class="error">Erreur: ${error.message}</div>
                 `;
+            }
+        }
+
+        // Ajouter ces nouvelles fonctions dans la partie script
+        async function testDeleteUser() {
+            const id = document.getElementById('userId').value;
+            if (!id) {
+                alert('Veuillez entrer un ID');
+                return;
+            }
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
+                try {
+                    const response = await fetch(`/api/v1/users/${id}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    document.getElementById('userResponse').innerHTML = `
+                        <h4>Résultat du test DELETE utilisateur:</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    if (response.ok) getUsers(); // Rafraîchir la liste
+                } catch (error) {
+                    document.getElementById('userResponse').innerHTML = `
+                        <div class="error">Erreur: ${error.message}</div>
+                    `;
+                }
+            }
+        }
+
+        async function testDeleteProduct() {
+            const id = document.getElementById('productId').value;
+            if (!id) {
+                alert('Veuillez entrer un ID');
+                return;
+            }
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
+                try {
+                    const response = await fetch(`/api/v1/products/${id}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    document.getElementById('productResponse').innerHTML = `
+                        <h4>Résultat du test DELETE produit:</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    if (response.ok) getProducts(); // Rafraîchir la liste
+                } catch (error) {
+                    document.getElementById('productResponse').innerHTML = `
+                        <div class="error">Erreur: ${error.message}</div>
+                    `;
+                }
+            }
+        }
+
+        async function testDeleteCategory() {
+            const id = document.getElementById('categoryId').value;
+            if (!id) {
+                alert('Veuillez entrer un ID');
+                return;
+            }
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette catégorie et tous ses produits ?')) {
+                try {
+                    const response = await fetch(`/api/v1/categories/${id}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    document.getElementById('categoryResponse').innerHTML = `
+                        <h4>Résultat du test DELETE catégorie:</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    if (response.ok) {
+                        getCategories(); // Rafraîchir la liste des catégories
+                        getProducts();   // Rafraîchir la liste des produits
+                    }
+                } catch (error) {
+                    document.getElementById('categoryResponse').innerHTML = `
+                        <div class="error">Erreur: ${error.message}</div>
+                    `;
+                }
             }
         }
 

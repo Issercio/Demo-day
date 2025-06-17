@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_cors import CORS
 from .models import Product, Category, User
 from . import db
@@ -109,6 +109,10 @@ def users():
             if not data or not data.get('username') or not data.get('email') or not data.get('password'):
                 return jsonify({'error': 'Tous les champs sont requis'}), 400
             
+            # Vérification du token admin
+            admin_token = request.headers.get('Admin-Token')
+            is_admin = admin_token == current_app.config['ADMIN_TOKEN']
+
             existing_user = User.query.filter_by(username=data['username']).first()
             if existing_user:
                 return jsonify({'error': 'Nom d\'utilisateur déjà pris'}), 400
@@ -120,7 +124,8 @@ def users():
             user = User(
                 username=data['username'],
                 email=data['email'],
-                password=data['password']
+                password=data['password'],
+                is_admin=is_admin  # Définir is_admin en fonction du token
             )
             db.session.add(user)
             db.session.commit()
@@ -128,24 +133,21 @@ def users():
             return jsonify({
                 'message': 'Utilisateur créé avec succès',
                 'user': {
-                    'id': user.id,  # Ajout de l'ID dans la réponse
+                    'id': user.id,
                     'username': user.username,
-                    'email': user.email
+                    'email': user.email,
+                    'is_admin': user.is_admin
                 }
             }), 201
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
 
-    # GET - Liste des utilisateurs avec mot de passe
-    users = User.query.all()
-    return jsonify([{
-        'id': u.id,
-        'username': u.username,
-        'email': u.email,
-        'is_admin': u.is_admin,
-        'password': u.password  # Ajout du mot de passe
-    } for u in users])
+    try:
+        users = User.query.all()
+        return jsonify([user.to_dict() for user in users])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Routes pour les produits
 @api_bp.route('/products', methods=['GET', 'POST'])
@@ -225,3 +227,47 @@ def categories():
         'id': c.id,
         'name': c.name
     } for c in categories])
+
+# Route DELETE pour utilisateur
+@api_bp.route('/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'Utilisateur non trouvé'}), 404
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'message': 'Utilisateur supprimé avec succès'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Route DELETE pour produit
+@api_bp.route('/products/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    try:
+        product = Product.query.get(product_id)
+        if not product:
+            return jsonify({'error': 'Produit non trouvé'}), 404
+        db.session.delete(product)
+        db.session.commit()
+        return jsonify({'message': 'Produit supprimé avec succès'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# Route DELETE pour catégorie
+@api_bp.route('/categories/<int:category_id>', methods=['DELETE'])
+def delete_category(category_id):
+    try:
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({'error': 'Catégorie non trouvée'}), 404
+        # Supprimer d'abord tous les produits de la catégorie
+        Product.query.filter_by(category_id=category_id).delete()
+        db.session.delete(category)
+        db.session.commit()
+        return jsonify({'message': 'Catégorie et ses produits supprimés avec succès'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500

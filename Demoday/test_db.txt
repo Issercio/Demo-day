@@ -32,3 +32,6 @@ SELECT * FROM categories;
 SELECT p.name as product_name, p.price, c.name as category_name 
 FROM products p 
 JOIN categories c ON p.category_id = c.id;
+
+
+API : 'Admin-Token': 'florashop_admin_2024_secure'

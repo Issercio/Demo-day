@@ -17,10 +17,11 @@ def create_app():
     app = Flask(__name__)
     CORS(app)
     
-    # Mise à jour de la configuration de la base de données
+    # Configuration
     app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:root@localhost:5432/florashop'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JSON_AS_ASCII'] = False
+    app.config['ADMIN_TOKEN'] = 'florashop_admin_2024_secure'  # Le token est défini ici
 
     # Extensions
     db.init_app(app)
