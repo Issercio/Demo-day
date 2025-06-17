@@ -1,0 +1,100 @@
+:root {
+    --primary-color: #198754;
+    --hover-color: #157347;
+}
+
+body {
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: all 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    border-bottom: none;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.api-endpoint {
+    background: #f8f9fa;
+    border-left: 4px solid var(--primary-color);
+    border-radius: 0 4px 4px 0;
+    margin: 1rem 0;
+    padding: 1rem;
+}
+
+.footer {
+    background-color: #f8f9fa;
+    margin-top: auto;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+}
+
+.input-group-text {
+    background-color: #198754;
+    color: white;
+    border: 1px solid #198754;
+}
+
+.btn-success {
+    padding: 0.5rem 1.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(25, 135, 84, 0.15);
+}
+
+.alert {
+    border-radius: 0.5rem;
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* Add these styles */
+#token-display {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.9rem;
+}
+
+#token-display i {
+    color: #ffd700;
+    margin-right: 0.5rem;
+}
+
+.modal-header {
+    border-bottom: none;
+}
+
+.modal-content {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}

@@ -9,13 +9,15 @@ class Config:
     """
     DEBUG = False
     TESTING = False
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'default_secret_key')
-    SQLALCHEMY_TRACK_MODIFICATIONS = False  # Désactive le suivi des modifications SQLAlchemy (meilleures performances)
+    SECRET_KEY = 'dev-secret-key'  # Change in production
     
     # JWT Configuration
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', SECRET_KEY)
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    JWT_SECRET_KEY = 'jwt-secret-key'  # Change in production
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=1)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres@localhost:5432/demoday'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False  # Désactive le suivi des modifications SQLAlchemy (meilleures performances)
 
 class DevelopmentConfig(Config):
     """Development configuration settings.
@@ -42,7 +44,5 @@ class ProductionConfig(Config):
     
     Used for deployment in production environment.
     """
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///production.db')
-    
     # Use a separate secret key for JWT in production
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')

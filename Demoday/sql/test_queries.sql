@@ -1,18 +1,20 @@
--- Sélectionner tous les utilisateurs
-SELECT * FROM User;
+-- Test de récupération des produits avec leurs catégories
+SELECT p.*, c.name as category_name
+FROM products p
+JOIN categories c ON p.category_id = c.id;
 
--- Insérer un nouveau lieu
-INSERT INTO Place (id, title, price, owner_id) 
-VALUES (lower(hex(randomblob(16))), 'New Place', 100.00, '36c9050e-ddd3-4c3b-9731-9f487208bbc1');
+-- Test de recherche de produits disponibles en livraison
+SELECT *
+FROM products
+WHERE delivery_available = TRUE;
 
--- Mettre à jour un lieu
-UPDATE Place SET price = 150.00 WHERE title = 'New Place';
+-- Test de recherche de produits par catégorie
+SELECT p.*
+FROM products p
+JOIN categories c ON p.category_id = c.id
+WHERE c.name = 'Fleurs Fraîches';
 
--- Supprimer un lieu
-DELETE FROM Place WHERE title = 'New Place';
-
--- Vérifier que l'admin est créé avec is_admin = TRUE
-SELECT * FROM User WHERE is_admin = TRUE;
-
--- Vérifier que les amenités sont insérées correctement
-SELECT * FROM Amenity;
+-- Test de recherche des produits en stock
+SELECT *
+FROM products
+WHERE stock > 0;
