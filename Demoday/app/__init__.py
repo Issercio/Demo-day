@@ -1,36 +1,138 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, redirect
+from flask_cors import CORS
 from flask_migrate import Migrate
-from flask_jwt_extended import JWTManager
-from flask_login import LoginManager
-from config import Config
+from app.extensions import db
+import os
+from dotenv import load_dotenv
+import psycopg2
+from psycopg2.extras import DictCursor
+from flask_restx import Api
 
-db = SQLAlchemy()
+# Initialisation de Migrate
 migrate = Migrate()
-jwt = JWTManager()
-login_manager = LoginManager()
 
-@login_manager.user_loader
-def load_user(user_id):
-    from app.models import User
-    return User.query.get(int(user_id))
+# Chargement des variables d'environnement
+load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_object(Config)
-    app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change en prod
+    CORS(app)
+    
+    # Configuration
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:root@localhost:5432/florashop'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['JSON_AS_ASCII'] = False
+    app.config['ADMIN_TOKEN'] = 'florashop_admin_2024_secure'
 
+    # Initialisation des extensions
     db.init_app(app)
     migrate.init_app(app, db)
-    jwt.init_app(app)
-    login_manager.init_app(app)
 
-    from .routes import frontend, api
-    app.register_blueprint(frontend)
-    app.register_blueprint(api)
+    # Import des modèles après l'init de db pour éviter les circular imports
+    from app.models import Category, Product, User, Review, Price
 
-    # Commandes CLI éventuelles
-    from .commands import create_admin_command
-    app.cli.add_command(create_admin_command)
+    # Swagger UI via Flask-RESTx
+    api = Api(
+        app, 
+        version='1.0', 
+        title='FloraShop API', 
+        doc='/docs',
+        description='API complète pour la gestion de la boutique FloraShop'
+    )
 
+    # Enregistrement des namespaces RESTx
+    from app.api.v1.products_restx import api as products_ns
+    api.add_namespace(products_ns, path='/api/v1/products')
+
+    from app.api.v1.users_restx import api as users_ns
+    api.add_namespace(users_ns, path='/api/v1/users')
+
+    from app.api.v1.categories_restx import api as categories_ns
+    api.add_namespace(categories_ns, path='/api/v1/categories')
+
+    from app.api.v1.reviews_restx import api as reviews_ns
+    api.add_namespace(reviews_ns, path='/api/v1/reviews')
+
+    # Redirection de la racine vers Swagger UI
+    @app.route('/')
+    def index():
+        return redirect('/docs')
+    
     return app
+
+def test_database_connection():
+    # Afficher les paramètres de connexion (sans le mot de passe)
+    print(f"Tentative de connexion à la base de données:")
+    print(f"Host: {os.getenv('DB_HOST')}")
+    print(f"Port: {os.getenv('DB_PORT')}")
+    print(f"Database: {os.getenv('DB_NAME')}")
+    print(f"User: {os.getenv('DB_USER')}")
+
+    try:
+        # Connexion à la base de données
+        conn = psycopg2.connect(
+            dbname=os.getenv('DB_NAME'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            host=os.getenv('DB_HOST'),
+            port=os.getenv('DB_PORT')
+        )
+        
+        # Création d'un curseur
+        cur = conn.cursor(cursor_factory=DictCursor)
+        
+        # Test des requêtes basiques
+        print("Test des requêtes sur la base de données...")
+        
+        # Test 1: Vérification des tables
+        cur.execute("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
+        """)
+        tables = cur.fetchall()
+        print("\nTables trouvées:", [table[0] for table in tables])
+        
+        # Test 2: Vérification des catégories
+        cur.execute("SELECT COUNT(*) FROM categories")
+        categories_count = cur.fetchone()[0]
+        print(f"\nNombre de catégories: {categories_count}")
+        
+        # Test 3: Vérification des produits
+        cur.execute("SELECT COUNT(*) FROM products")
+        products_count = cur.fetchone()[0]
+        print(f"Nombre de produits: {products_count}")
+        
+        # Test 4: Vérification de l'admin
+        cur.execute("SELECT COUNT(*) FROM users WHERE is_admin = TRUE")
+        admin_count = cur.fetchone()[0]
+        print(f"Nombre d'administrateurs: {admin_count}")
+        
+        print("\nTous les tests ont réussi!")
+        
+        # Fermeture des connexions
+        cur.close()
+        conn.close()
+        
+    except psycopg2.errors.UndefinedTable as e:
+        print("\nErreur: Les tables n'existent pas encore dans la base de données.")
+        print("Veuillez exécuter les commandes suivantes:")
+        print("psql -U postgres -d florashop -f sql/create_tables.sql")
+        print("psql -U postgres -d florashop -f sql/insert_initial_data.sql")
+        return False
+    except psycopg2.OperationalError as e:
+        print(f"\nErreur de connexion à la base de données:")
+        print(f"Détails: {str(e)}")
+        print("\nVérifiez que:")
+        print("1. PostgreSQL est en cours d'exécution")
+        print("2. Les informations de connexion dans le fichier .env sont correctes")
+        print("3. L'utilisateur et la base de données existent dans PostgreSQL")
+        return False
+    except Exception as e:
+        print(f"\nErreur inattendue: {str(e)}")
+        return False
+    
+    return True
+
+if __name__ == "__main__":
+    test_database_connection()

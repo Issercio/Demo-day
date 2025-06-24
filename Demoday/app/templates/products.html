@@ -1,147 +1,23 @@
 {% extends "base.html" %}
-
-{% block title %}Products{% endblock %}
-
+{% block title %}Produits{% endblock %}
 {% block content %}
-<div class="container">
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <h2 class="mb-4">
-                <i class="bi bi-box-seam"></i> Products
-            </h2>
-            
-            <!-- Product Form -->
-            <div class="card mb-4">
-                <div class="card-header bg-success text-white">
-                    <h5 class="card-title mb-0">Add New Product</h5>
-                </div>
-                <div class="card-body">
-                    <form id="productForm" class="needs-validation">
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="productName" class="form-label">Product Name</label>
-                                <input type="text" class="form-control" id="productName" required>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="price" class="form-label">Price</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">€</span>
-                                    <input type="number" class="form-control" id="price" step="0.01" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="categorySelect" class="form-label">Category</label>
-                                <select class="form-select" id="categorySelect" required>
-                                </select>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-success">
-                            <i class="bi bi-plus-circle"></i> Add Product
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Products List -->
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h5 class="card-title mb-0">Product List</h5>
-                </div>
-                <div class="card-body">
-                    <div id="productsList" class="row row-cols-1 row-cols-md-3 g-4">
-                        <!-- Products will be loaded here -->
-                    </div>
-                </div>
+<h1 class="mb-4"><i class="bi bi-flower1"></i> Nos Produits</h1>
+<div class="row">
+    {% for product in products %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">{{ product.name }}</h5>
+                <p class="card-text">{{ product.description }}</p>
+                <p class="card-text"><strong>Prix :</strong> {{ product.price }} €</p>
+                <span class="badge bg-primary">{{ product.category }}</span>
             </div>
         </div>
     </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info">Aucun produit disponible pour le moment.</div>
+    </div>
+    {% endfor %}
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Load categories for the select
-    async function loadCategories() {
-        try {
-            const response = await fetch('/api/v1/categories');
-            const categories = await response.json();
-            const select = document.getElementById('categorySelect');
-            select.innerHTML = '<option value="">Select a category</option>';
-            categories.forEach(category => {
-                select.innerHTML += `<option value="${category.id}">${category.name}</option>`;
-            });
-        } catch (error) {
-            console.error('Error loading categories:', error);
-        }
-    }
-
-    // Load and display products
-    async function loadProducts() {
-        try {
-            const response = await fetch('/api/v1/products');
-            const products = await response.json();
-            const productsDiv = document.getElementById('productsList');
-            productsDiv.innerHTML = '';
-            
-            products.forEach(product => {
-                productsDiv.innerHTML += `
-                    <div class="col">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">${product.name}</h5>
-                                <p class="card-text">
-                                    <strong>Price:</strong> €${product.price.toFixed(2)}<br>
-                                    <strong>Category:</strong> ${product.category_name || 'N/A'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-        } catch (error) {
-            console.error('Error loading products:', error);
-        }
-    }
-
-    // Handle form submission
-    document.getElementById('productForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const token = localStorage.getItem('jwt_token');
-        if (!token) {
-            alert('Please log in to add products');
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/v1/products', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    name: document.getElementById('productName').value,
-                    price: parseFloat(document.getElementById('price').value),
-                    category_id: parseInt(document.getElementById('categorySelect').value)
-                })
-            });
-
-            if (response.ok) {
-                alert('Product added successfully!');
-                document.getElementById('productForm').reset();
-                loadProducts();
-            } else {
-                const data = await response.json();
-                throw new Error(data.message || 'Failed to add product');
-            }
-        } catch (error) {
-            alert('Error: ' + error.message);
-        }
-    });
-
-    // Initial load
-    loadCategories();
-    loadProducts();
-});
-</script>
 {% endblock %}
