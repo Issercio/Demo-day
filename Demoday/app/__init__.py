@@ -31,13 +31,25 @@ def create_app():
     # Import des modèles après l'init de db pour éviter les circular imports
     from app.models import Category, Product, User, Review, Price
 
-    # Swagger UI via Flask-RESTx
+    # Ajout du header Authorization dans Swagger UI
+    authorizations = {
+        'Bearer Auth': {
+            'type': 'apiKey',
+            'in': 'header',
+            'name': 'Authorization',
+            'description': "Collez ici le token retourné par /auth/login"
+        }
+    }
+
+    # Swagger UI via Flask-RESTx sur /api/v1
     api = Api(
         app, 
         version='1.0', 
         title='FloraShop API', 
-        doc='/docs',
-        description='API complète pour la gestion de la boutique FloraShop'
+        doc='/api/v1',  # <--- La doc sera sur /api/v1
+        description='API complète pour la gestion de la boutique FloraShop',
+        authorizations=authorizations,
+        security='Bearer Auth'
     )
 
     # Enregistrement des namespaces RESTx
@@ -53,10 +65,13 @@ def create_app():
     from app.api.v1.reviews_restx import api as reviews_ns
     api.add_namespace(reviews_ns, path='/api/v1/reviews')
 
-    # Redirection de la racine vers Swagger UI
+    from app.api.v1.auth import api as auth_ns
+    api.add_namespace(auth_ns, path='/api/v1/auth')
+
+    # Redirection de la racine vers Swagger UI sur /api/v1
     @app.route('/')
     def index():
-        return redirect('/docs')
+        return redirect('/api/v1')
     
     return app
 
