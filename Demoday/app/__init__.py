@@ -1,17 +1,18 @@
-from flask import Flask, render_template
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+from flask import Flask, redirect
 from flask_cors import CORS
+from flask_migrate import Migrate
+from app.extensions import db
 import os
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import DictCursor
+from flask_restx import Api
+
+# Initialisation de Migrate
+migrate = Migrate()
 
 # Chargement des variables d'environnement
 load_dotenv()
-
-db = SQLAlchemy()
-migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
@@ -21,20 +22,56 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:root@localhost:5432/florashop'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JSON_AS_ASCII'] = False
-    app.config['ADMIN_TOKEN'] = 'florashop_admin_2024_secure'  # Le token est défini ici
+    app.config['ADMIN_TOKEN'] = 'florashop_admin_2024_secure'
 
-    # Extensions
+    # Initialisation des extensions
     db.init_app(app)
     migrate.init_app(app, db)
-    
-    # Routes
+
+    # Import des modèles après l'init de db pour éviter les circular imports
+    from app.models import Category, Product, User, Review, Price
+
+    # Ajout du header Authorization dans Swagger UI
+    authorizations = {
+        'Bearer Auth': {
+            'type': 'apiKey',
+            'in': 'header',
+            'name': 'Authorization',
+            'description': "Collez ici le token retourné par /auth/login"
+        }
+    }
+
+    # Swagger UI via Flask-RESTx sur /api/v1
+    api = Api(
+        app, 
+        version='1.0', 
+        title='FloraShop API', 
+        doc='/api/v1',  # <--- La doc sera sur /api/v1
+        description='API complète pour la gestion de la boutique FloraShop',
+        authorizations=authorizations,
+        security='Bearer Auth'
+    )
+
+    # Enregistrement des namespaces RESTx
+    from app.api.v1.products_restx import api as products_ns
+    api.add_namespace(products_ns, path='/api/v1/products')
+
+    from app.api.v1.users_restx import api as users_ns
+    api.add_namespace(users_ns, path='/api/v1/users')
+
+    from app.api.v1.categories_restx import api as categories_ns
+    api.add_namespace(categories_ns, path='/api/v1/categories')
+
+    from app.api.v1.reviews_restx import api as reviews_ns
+    api.add_namespace(reviews_ns, path='/api/v1/reviews')
+
+    from app.api.v1.auth import api as auth_ns
+    api.add_namespace(auth_ns, path='/api/v1/auth')
+
+    # Redirection de la racine vers Swagger UI sur /api/v1
     @app.route('/')
     def index():
-        return render_template('index.html')
-        
-    # Blueprints
-    from .routes import api_bp
-    app.register_blueprint(api_bp, url_prefix='/api/v1')
+        return redirect('/api/v1')
     
     return app
 

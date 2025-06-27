@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}API Documentation{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@3/swagger-ui.css">
+<script src="https://unpkg.com/swagger-ui-dist@3/swagger-ui-bundle.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">FloraShop API Documentation</h1>
+    
+    <!-- Authentication Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h3 class="h5 mb-0">Authentication</h3>
+        </div>
+        <div class="card-body">
+            <h4 class="h6">Get Admin Token</h4>
+            <pre><code>POST /api/v1/auth/admin-token
+Content-Type: application/json
+
+{
+    "email": "admin@florashop.com",
+    "password": "adminpassword"
+}</code></pre>
+        </div>
+    </div>
+
+    <!-- Users Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h3 class="h5 mb-0">Users</h3>
+        </div>
+        <div class="card-body">
+            <h4 class="h6">Create User</h4>
+            <pre><code>POST /api/v1/users
+Content-Type: application/json
+
+{
+    "username": "user1",
+    "email": "user1@example.com",
+    "password": "password123"
+}</code></pre>
+        </div>
+    </div>
+
+    <!-- Categories Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h3 class="h5 mb-0">Categories</h3>
+        </div>
+        <div class="card-body">
+            <h4 class="h6">Create Category (Requires Admin Token)</h4>
+            <pre><code>POST /api/v1/categories
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+{
+    "name": "Indoor Plants"
+}</code></pre>
+        </div>
+    </div>
+
+    <!-- Products Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h3 class="h5 mb-0">Products</h3>
+        </div>
+        <div class="card-body">
+            <h4 class="h6">Create Product (Requires Admin Token)</h4>
+            <pre><code>POST /api/v1/products
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+{
+    "name": "Monstera",
+    "price": 29.99,
+    "category_id": 1
+}</code></pre>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+openapi: 3.0.0
+info:
+  title: FloraShop API
+  version: 1.0.0
+  description: API documentation for FloraShop
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /auth/login:
+    post:
+      summary: Login user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+
+  /categories:
+    get:
+      summary: Get all categories
+      responses:
+        '200':
+          description: List of categories
+    post:
+      summary: Create new category
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Category created
+
+  /products:
+    get:
+      summary: Get all products
+      responses:
+        '200':
+          description: List of products
+    post:
+      summary: Create new product
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                price:
+                  type: number
+                category_id:
+                  type: integer
+      responses:
+        '201':
+          description: Product created
