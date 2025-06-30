@@ -1,7 +1,6 @@
-DROP SCHEMA IF EXISTS public CASCADE;
-CREATE SCHEMA public;
-GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO public;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
@@ -19,6 +18,8 @@ CREATE TABLE products (
     name VARCHAR(100) NOT NULL,
     price FLOAT NOT NULL,
     category_id INTEGER REFERENCES categories(id) NOT NULL,
+    is_on_sale BOOLEAN DEFAULT FALSE,
+    sale_price FLOAT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

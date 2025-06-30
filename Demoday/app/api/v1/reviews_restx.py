@@ -1,58 +1,71 @@
 from flask_restx import Namespace, Resource, fields
-from app.extensions import db
 from app.models.review import Review
+from app.models.user import User
+from app.extensions import db
 
-api = Namespace('reviews', description='Gestion des avis')
+api = Namespace('reviews', description='CRUD des avis globaux du site')
 
-review_model = api.model('Review', {
-    'id': fields.Integer(readOnly=True),
-    'product_id': fields.Integer(required=True, description='ID du produit concerné'),
-    'user_id': fields.Integer(required=True, description='ID de l\'utilisateur'),
-    'rating': fields.Integer(required=True, description='Note donnée', min=1, max=5),
-    'comment': fields.String(description='Commentaire')
+# Modèle d'entrée
+review_input_model = api.model('ReviewInput', {
+    'content': fields.String(required=True, description='Contenu de l\'avis'),
+    'rating': fields.Integer(required=True, description='Note'),
+    'user_id': fields.Integer(required=True, description='ID utilisateur')
+})
+
+# Modèle de sortie
+review_output_model = api.model('ReviewOutput', {
+    'content': fields.String(required=True),
+    'rating': fields.Integer(required=True),
+    'user': fields.String(attribute=lambda r: r.user.first_name + " " + r.user.last_name)
 })
 
 @api.route('')
 class ReviewList(Resource):
-    @api.marshal_list_with(review_model)
+    @api.marshal_list_with(review_output_model)
     def get(self):
-        """Liste tous les avis"""
+        """Liste tous les avis globaux"""
         return Review.query.all()
 
-    @api.expect(review_model)
+    @api.expect(review_input_model, validate=True)
+    @api.marshal_with(review_output_model, code=201)
     def post(self):
-        """Crée un nouvel avis"""
+        """Créer un avis global"""
         data = api.payload
+        user = User.query.get_or_404(data['user_id'])
         review = Review(
-            product_id=data['product_id'],
-            user_id=data['user_id'],
+            content=data['content'],
             rating=data['rating'],
-            comment=data.get('comment')
+            user=user
         )
         db.session.add(review)
         db.session.commit()
-        return {'id': review.id}, 201
+        return review, 201
 
 @api.route('/<int:review_id>')
 class ReviewResource(Resource):
-    @api.marshal_with(review_model)
+    @api.marshal_with(review_output_model)
     def get(self, review_id):
-        """Affiche un avis"""
+        """Récupère un avis global par son id"""
         return Review.query.get_or_404(review_id)
 
-    @api.expect(review_model)
+    @api.expect(review_input_model, validate=False)
+    @api.marshal_with(review_output_model)
     def patch(self, review_id):
-        """Modifie un avis"""
+        """Modifie un avis global"""
         review = Review.query.get_or_404(review_id)
         data = api.payload
-        for key, value in data.items():
-            setattr(review, key, value)
+        if 'content' in data:
+            review.content = data['content']
+        if 'rating' in data:
+            review.rating = data['rating']
+        if 'user_id' in data:
+            review.user = User.query.get_or_404(data['user_id'])
         db.session.commit()
-        return {'message': 'Review updated'}
+        return review
 
     def delete(self, review_id):
-        """Supprime un avis"""
+        """Supprime un avis global"""
         review = Review.query.get_or_404(review_id)
         db.session.delete(review)
         db.session.commit()
-        return {'message': 'Review deleted'}
+        return {'message': 'Avis supprimé'}
