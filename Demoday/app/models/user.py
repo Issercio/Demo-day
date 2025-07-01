@@ -1,27 +1,24 @@
-from ..models.base_model import BaseModel
 from app.extensions import db
 
-class User(BaseModel):
+class User(db.Model):
     __tablename__ = 'users'
 
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)  # Stocke le hash du mot de passe
+    password = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    first_name = db.Column(db.String(255))
+    last_name = db.Column(db.String(255))
 
-    def __init__(self, username, email, password, is_admin=False):
-        self.username = username
-        self.email = email
-        self.password = password  # Stocke toujours un hash !
-        self.is_admin = is_admin
+    # Relation vers Review
+    reviews = db.relationship('Review', back_populates='user', lazy=True)
+    
 
-    def to_dict(self, include_password=False):
-        data = {
+    def to_dict(self):
+        return {
             'id': self.id,
-            'username': self.username,
             'email': self.email,
-            'is_admin': self.is_admin
+            'is_admin': self.is_admin,
+            'first_name': self.first_name,
+            'last_name': self.last_name
         }
-        if include_password:
-            data['password'] = self.password
-        return data
