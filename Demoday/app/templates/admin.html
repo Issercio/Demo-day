@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - Boutique Florale</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="admin-body">
+    <div class="admin-container">
+        <aside class="admin-sidebar">
+            <h2>Administration</h2>
+            <ul>
+                <li class="active"><a href="#products">Produits</a></li>
+                <li><a href="#categories">Catégories</a></li>
+                <li><a href="shop.html">Retour à la boutique</a></li>
+            </ul>
+        </aside>
+
+        <main class="admin-content">
+            <div class="admin-header">
+                <h1>Gestion des produits</h1>
+                <button class="add-button">Ajouter un produit</button>
+            </div>
+
+            <div class="admin-form" id="productForm">
+                <div class="form-group">
+                    <label>Nom du produit</label>
+                    <input type="text" id="productName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Catégorie</label>
+                    <select id="category" onchange="toggleColorOptions()">
+                        <option value="fleurs">Fleurs fraîches</option>
+                        <option value="composition">Compositions</option>
+                        <option value="seches">Fleurs séchées</option>
+                        <option value="bougies">Bougies</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Prix (€)</label>
+                    <input type="number" id="price" step="0.01" required>
+                </div>
+
+                <div class="form-group" id="colorSection">
+                    <label>Couleur(s)</label>
+                    <div class="color-options">
+                        <div class="color-btn" style="background: #FF69B4;" data-color="#FF69B4"></div>
+                        <div class="color-btn" style="background: #FF0000;" data-color="#FF0000"></div>
+                        <div class="color-btn" style="background: #FFFFFF;" data-color="#FFFFFF"></div>
+                        <div class="color-btn" style="background: #800080;" data-color="#800080"></div>
+                        <div class="color-btn" style="background: #FFFF00;" data-color="#FFFF00"></div>
+                    </div>
+                    <div class="selected-colors"></div>
+                </div>
+
+                <button type="submit" class="submit-button" onclick="saveProduct(event)">Enregistrer le produit</button>
+            </div>
+
+            <script>
+                let selectedColors = [];
+
+                document.querySelectorAll('.color-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const color = this.dataset.color;
+                        if (selectedColors.includes(color)) {
+                            selectedColors = selectedColors.filter(c => c !== color);
+                            this.classList.remove('selected');
+                        } else {
+                            if (document.getElementById('category').value !== 'composition' && selectedColors.length > 0) {
+                                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+                                selectedColors = [];
+                            }
+                            selectedColors.push(color);
+                            this.classList.add('selected');
+                        }
+                        updateSelectedColors();
+                    });
+                });
+
+                function updateSelectedColors() {
+                    const container = document.querySelector('.selected-colors');
+                    container.innerHTML = selectedColors.map(color => 
+                        `<span class="color-tag" style="background: ${color}"></span>`
+                    ).join('');
+                }
+
+                function saveProduct(e) {
+                    e.preventDefault();
+                    const product = {
+                        name: document.getElementById('productName').value,
+                        category: document.getElementById('category').value,
+                        price: document.getElementById('price').value,
+                        colors: selectedColors
+                    };
+
+                    let products = JSON.parse(localStorage.getItem('products') || '[]');
+                    products.push(product);
+                    localStorage.setItem('products', JSON.stringify(products));
+                    
+                    alert('Produit enregistré !');
+                    document.getElementById('productForm').reset();
+                    selectedColors = [];
+                    updateSelectedColors();
+                }
+            </script>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Boutique Florale</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../static/css/style.css">
+</head>
+<body>
+  <!-- La navbar commune s'affiche automatiquement via le header commun -->
+  <main class="main-content" style="max-width: 1200px;">
+    <div class="shop-layout" style="display: flex; gap: 36px;">
+      <!-- Sidebar de filtres -->
+      <aside class="sidebar-filters" style="min-width:270px;max-width:340px;background:#fff;border-radius:12px;padding:2rem 1.2rem;box-shadow:0 2px 12px rgba(188,98,136,0.07);border:1.5px solid #e7d6d6;">
+        <h2 style="font-size:1.2rem;color:#bc6288;margin-bottom:1.5rem;text-align:center;">Filtres</h2>
+        <div class="filter-section">
+          <h3>Recherche</h3>
+          <input type="text" placeholder="Rechercher un produit..." class="search-input" id="searchInput">
+        </div>
+        <div class="filter-section">
+          <h3>Catégories</h3>
+          <div class="filter-options">
+            <label><input type="checkbox" value="fleurs" class="category-filter"> Fleurs fraîches</label>
+            <label><input type="checkbox" value="seches" class="category-filter"> Fleurs séchées</label>
+            <label><input type="checkbox" value="composition" class="category-filter"> Compositions</label>
+          </div>
+        </div>
+        <div class="filter-section">
+          <h3>Prix</h3>
+          <div class="price-inputs">
+            <input type="number" placeholder="Min" min="0" id="minPrice">
+            <span>à</span>
+            <input type="number" placeholder="Max" min="0" id="maxPrice">
+          </div>
+        </div>
+        <div class="filter-section">
+          <h3>Couleurs (max 5)</h3>
+          <div class="color-selection">
+            <input type="color" id="colorPicker" class="color-picker">
+            <button id="addColor" class="add-color-btn">Ajouter</button>
+            <button id="resetColors" class="reset-btn">Réinitialiser</button>
+          </div>
+          <div class="selected-colors"></div>
+          <p class="color-counter">0/5 couleurs sélectionnées</p>
+        </div>
+        <div class="filter-actions" style="margin-top:1.5rem;">
+          <button id="applyFilters" class="apply-filters-btn">Appliquer les filtres</button>
+          <button id="resetAllFilters" class="reset-all-btn">Réinitialiser tous les filtres</button>
+        </div>
+      </aside>
+      <!-- Zone produits -->
+      <section class="products-area" style="flex:1;">
+        <section class="category-section">
+          <h2>Fleurs fraîches</h2>
+          <div class="products-grid" id="fleurs"></div>
+        </section>
+        <section class="category-section">
+          <h2>Fleurs séchées</h2>
+          <div class="products-grid" id="seches"></div>
+        </section>
+        <section class="category-section">
+          <h2>Compositions</h2>
+          <div class="products-grid" id="composition"></div>
+        </section>
+      </section>
+    </div>
+    <script>
+      let selectedColors = [];
+      let allProducts = [];
+
+      window.onload = () => {
+        allProducts = JSON.parse(localStorage.getItem('products') || '[]');
+        displayProducts(allProducts);
+        setupFilters();
+      };
+
+      function setupFilters() {
+        const colorCounter = document.querySelector('.color-counter');
+        const colorPicker = document.getElementById('colorPicker');
+        const addColorBtn = document.getElementById('addColor');
+        const resetColorsBtn = document.getElementById('resetColors');
+        const selectedColorsDiv = document.querySelector('.selected-colors');
+        addColorBtn.addEventListener('click', () => {
+          const color = colorPicker.value;
+          if (selectedColors.includes(color)) {
+            alert('Cette couleur est déjà sélectionnée');
+            return;
+          }
+          if (selectedColors.length >= 5) {
+            alert('Vous ne pouvez pas sélectionner plus de 5 couleurs');
+            return;
+          }
+          selectedColors.push(color);
+          updateSelectedColorsDisplay();
+        });
+        resetColorsBtn.addEventListener('click', () => {
+          selectedColors = [];
+          updateSelectedColorsDisplay();
+        });
+        function updateSelectedColorsDisplay() {
+          selectedColorsDiv.innerHTML = '';
+          selectedColors.forEach(color => {
+            const colorDiv = document.createElement('div');
+            colorDiv.className = 'color-dot';
+            colorDiv.style.background = color;
+            colorDiv.title = color;
+            colorDiv.addEventListener('click', () => {
+              selectedColors = selectedColors.filter(c => c !== color);
+              updateSelectedColorsDisplay();
+            });
+            selectedColorsDiv.appendChild(colorDiv);
+          });
+          colorCounter.textContent = `${selectedColors.length}/5 couleurs sélectionnées`;
+        }
+        document.getElementById('applyFilters').addEventListener('click', applyFilters);
+        document.getElementById('resetAllFilters').addEventListener('click', () => {
+          document.getElementById('searchInput').value = '';
+          document.querySelectorAll('.category-filter').forEach(cb => cb.checked = false);
+          document.getElementById('minPrice').value = '';
+          document.getElementById('maxPrice').value = '';
+          selectedColors = [];
+          updateSelectedColorsDisplay();
+          displayProducts(allProducts);
+        });
+      }
+
+      function applyFilters() {
+        const searchText = document.getElementById('searchInput').value.toLowerCase();
+        const selectedCategories = Array.from(document.querySelectorAll('.category-filter:checked')).map(cb => cb.value);
+        const minPrice = parseFloat(document.getElementById('minPrice').value) || 0;
+        const maxPrice = parseFloat(document.getElementById('maxPrice').value) || Infinity;
+        const filteredProducts = allProducts.filter(product => {
+          const matchesSearch = product.name.toLowerCase().includes(searchText);
+          const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category);
+          const matchesPrice = product.price >= minPrice && product.price <= maxPrice;
+          const matchesColor = selectedColors.length === 0 || product.colors.some(color => selectedColors.includes(color));
+          return matchesSearch && matchesCategory && matchesPrice && matchesColor;
+        });
+        displayProducts(filteredProducts);
+      }
+
+      function displayProducts(products) {
+        ['fleurs', 'seches', 'composition'].forEach(id => {
+          document.getElementById(id).innerHTML = '';
+        });
+        products.forEach(product => {
+          const productCard = `
+            <div class="product-card">
+              <h3>${product.name}</h3>
+              <div class="product-colors">
+                ${product.colors.map(color => `<span class="color-dot" style="background: ${color}"></span>`).join('')}
+              </div>
+              <p class="product-price">${product.price} €</p>
+              <button class="add-to-cart">Commander</button>
+            </div>
+          `;
+          const container = document.getElementById(product.category);
+          if (container) {
+            container.innerHTML += productCard;
+          }
+        });
+      }
+    </script>
+  </main>
+</body>
+</html>
+                    const maxPrice = parseFloat(document.getElementById('maxPrice').value) || Infinity;
+
+                    const filteredProducts = allProducts.filter(product => {
+                        // Filtrage par texte
+                        const matchesSearch = product.name.toLowerCase().includes(searchText);
+                        
+                        // Filtrage par catégorie
+                        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category);
+                        
+                        // Filtrage par prix
+                        const matchesPrice = product.price >= minPrice && product.price <= maxPrice;
+                        
+                        // Filtrage par couleur
+                        const matchesColor = selectedColors.length === 0 || 
+                            product.colors.some(color => selectedColors.includes(color));
+
+                        return matchesSearch && matchesCategory && matchesPrice && matchesColor;
+                    });
+
+                    displayProducts(filteredProducts);
+                }
+
+                function displayProducts(products) {
+                    // Vider les conteneurs
+                    ['fleurs', 'seches', 'composition'].forEach(id => {
+                        document.getElementById(id).innerHTML = '';
+                    });
+
+                    products.forEach(product => {
+                        const productCard = `
+                            <div class="product-card">
+                                <h3>${product.name}</h3>
+                                <div class="product-colors">
+                                    ${product.colors.map(color => 
+                                        `<span class="color-dot" style="background: ${color}"></span>`
+                                    ).join('')}
+                                </div>
+                                <p class="product-price">${product.price} €</p>
+                                <button class="add-to-cart">Ajouter au panier</button>
+                            </div>
+                        `;
+
+                        const container = document.getElementById(product.category);
+                        if (container) {
+                            container.innerHTML += productCard;
+                        }
+                    });
+                }
+            </script>
+        </main>
+    </div>
+    <script src="shop.js"></script>
+</body>
+</html>
