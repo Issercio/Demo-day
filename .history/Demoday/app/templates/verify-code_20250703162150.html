@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérification du compte</title>
+    <link rel="stylesheet" href="account.css">
+</head>
+<body>
+    <div class="login-container verify-container">
+        <form class="login-form">
+            <h1>Vérification du compte</h1>
+            
+            <p class="verify-text">Un code a été envoyé à votre boîte email.<br>
+            Veuillez entrer le code à 6 chiffres pour valider votre compte.</p>
+
+            <div class="code-input-container">
+                <input type="text" maxlength="1" class="code-input" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="code-input" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="code-input" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="code-input" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="code-input" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="code-input" pattern="[0-9]" required>
+            </div>
+
+            <button type="submit" class="login-button">Valider</button>
+
+            <div class="help-links">
+                <a href="#" class="text-muted">Renvoyer le code</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

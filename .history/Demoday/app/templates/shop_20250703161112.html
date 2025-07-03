@@ -166,13 +166,12 @@
       products.forEach(product => {
         const productCard = `
           <div class="product-card">
-            ${product.outOfStock ? `<div class="out-of-stock-banner">Rupture de stock</div>` : ''}
             <h3>${product.name}</h3>
             <div class="product-colors">
               ${product.colors.map(color => `<span class="color-dot" style="background: ${color}"></span>`).join('')}
             </div>
             <p class="product-price">${product.price} €</p>
-            <button class="add-to-cart" ${product.outOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>Commander</button>
+            <button class="add-to-cart">Commander</button>
           </div>
         `;
         const container = document.getElementById(product.category);
@@ -239,20 +238,5 @@
       updateCartCount();
     };
   </script>
-  <style>
-    /* ...existing code... */
-    .out-of-stock-banner {
-      background: #bc6288;
-      color: #fff;
-      font-size: 1rem;
-      font-weight: bold;
-      padding: 7px 0;
-      border-radius: 8px 8px 0 0;
-      text-align: center;
-      letter-spacing: 0.04em;
-      margin-bottom: 10px;
-      width: 100%;
-    }
-  </style>
 </body>
 </html>
