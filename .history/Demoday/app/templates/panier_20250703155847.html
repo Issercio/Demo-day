@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Votre Panier - Pivoine & Lilas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../static/css/style.css">
+</head>
+<body>
+  <header>
+    <img class="logo" src="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6~mv2.png/v1/crop/x_748,y_1016,w_3355,h_2788/fill/w_239,h_198,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20P%26L%20Rond%20neutre%20pour%20fond%20clairsans%20fond%20-%20by%20fadamentalpics.png" alt="Logo pivoine & lilas, artisan fleuriste" width="120" height="100">
+    <nav>
+      <ul>
+        <li><a href="accueil.html">ACCUEIL</a></li>
+        <li><a href="shop.html">SHOP</a></li>
+        <li><a href="evenementiel.html">ÉVÈNEMENTIEL</a></li>
+        <li><a href="entreprises.html">ENTREPRISES</a></li>
+        <li><a href="portfolio.html">PORTFOLIO</a></li>
+        <li><a href="contact.html">CONTACT</a></li>
+        <li><a href="subscription.html">ABONNEMENT</a></li>
+        <li>
+          <a href="panier.html" id="cart-link" style="position:relative;">
+            <span style="font-size:22px;vertical-align:middle;">
+              🛒
+            </span>
+            <span id="cart-count" style="position:absolute;top:0;right:-10px;background:#bc6288;color:#fff;font-size:13px;padding:1px 6px;border-radius:10px;display:none;">0</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </header>
+  <main class="main-content" style="max-width: 900px;">
+    <h1 style="text-align:center;">Votre Panier</h1>
+    <div id="cart-list" style="margin: 40px 0;"></div>
+    <div id="cart-total" style="font-size:1.3rem;font-weight:bold;text-align:right;margin-bottom:30px;"></div>
+    <div style="text-align:right;">
+      <button id="pay-btn" class="cta-btn" disabled>Payer</button>
+    </div>
+  </main>
+  <script>
+    function updateCartCount() {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const badge = document.getElementById('cart-count');
+      if (badge) {
+        badge.textContent = cart.length;
+        badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
+      }
+    }
+
+    function renderCart() {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const cartList = document.getElementById('cart-list');
+      const cartTotal = document.getElementById('cart-total');
+      const payBtn = document.getElementById('pay-btn');
+      if (cart.length === 0) {
+        cartList.innerHTML = "<p style='text-align:center;color:#bc6288;'>Votre panier est vide.</p>";
+        cartTotal.textContent = "";
+        payBtn.disabled = true;
+        return;
+      }
+      let total = 0;
+      cartList.innerHTML = cart.map((prod, idx) => {
+        total += Number(prod.price);
+        return `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 0;border-bottom:1px solid #e7d6d6;">
+            <div>
+              <span style="font-weight:bold;color:#ab597c;">${prod.name}</span>
+              <span style="margin-left:12px;color:#888;">${prod.category}</span>
+              ${prod.colors && prod.colors.length ? prod.colors.map(c => `<span class="color-dot" style="background:${c};margin-left:7px;"></span>`).join('') : ''}
+            </div>
+            <div>
+              <span style="font-weight:bold;">${Number(prod.price).toFixed(2)} €</span>
+              <button onclick="removeFromCart(${idx})" style="margin-left:18px;background:none;border:none;color:#bc6288;font-size:1.1rem;cursor:pointer;">✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      cartTotal.textContent = "Total : " + total.toFixed(2) + " €";
+      payBtn.disabled = false;
+    }
+
+    function removeFromCart(idx) {
+      let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      cart.splice(idx, 1);
+      localStorage.setItem('cart', JSON.stringify(cart));
+      renderCart();
+      updateCartCount();
+    }
+
+    document.getElementById('pay-btn').addEventListener('click', function() {
+      alert("Fonctionnalité de paiement à venir !");
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      renderCart();
+      updateCartCount();
+    });
+  </script>
+</body>
+</html>
