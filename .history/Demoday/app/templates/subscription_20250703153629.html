@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Abonnement Floral</title>
+    <link rel="stylesheet" href="../static/css/subscription.css">
+</head>
+<body>
+    <!-- Test de la navbar -->
+    <nav class="navbar">
+        <ul>
+            <li><a href="#" class="nav-link">Accueil</a></li>
+            <li><a href="#" class="nav-link">Abonnement</a></li>
+            <li><a href="#" class="nav-link">Panier</a></li>
+            <li><a href="#" class="nav-link">En savoir plus</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <!-- Test du texte de présentation -->
+        <section class="hero">
+            <h1>Testez nos Abonnements Floraux</h1>
+            <p class="intro-text">
+                Voici un exemple de notre page d'abonnement.
+                Cliquez sur les différentes options pour tester l'interactivité.
+            </p>
+        </section>
+
+        <!-- Test des cartes d'abonnement -->
+        <section class="subscription-options">
+            <div class="subscription-card" data-plan="monthly">
+                <h2>Test 1 mois</h2>
+                <p class="duration">1 mois</p>
+                <p class="price">29.99€</p>
+                <ul class="features">
+                    <li>Test feature 1</li>
+                    <li>Test feature 2</li>
+                </ul>
+            </div>
+
+            <div class="subscription-card" data-plan="semester">
+                <h2>Test 6 mois</h2>
+                <p class="duration">6 mois</p>
+                <p class="price">24.99€</p>
+                <ul class="features">
+                    <li>Test feature 1</li>
+                    <li>Test feature 2</li>
+                </ul>
+            </div>
+
+            <div class="subscription-card" data-plan="yearly">
+                <h2>Test 1 an</h2>
+                <p class="duration">12 mois</p>
+                <p class="price">19.99€</p>
+                <ul class="features">
+                    <li>Test feature 1</li>
+                    <li>Test feature 2</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Test du bouton de sélection -->
+        <button id="select-plan" class="select-button" disabled>Sélectionner</button>
+    </main>
+
+    <script>
+        // Test de l'interactivité
+        const cards = document.querySelectorAll('.subscription-card');
+        const selectButton = document.getElementById('select-plan');
+
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Retire la sélection de toutes les cartes
+                cards.forEach(c => c.classList.remove('selected'));
+                // Ajoute la sélection à la carte cliquée
+                card.classList.add('selected');
+                // Active le bouton
+                selectButton.disabled = false;
+            });
+        });
+
+        // Test du bouton
+        selectButton.addEventListener('click', () => {
+            alert('Test: Abonnement sélectionné !');
+        });
+    </script>
+</body>
+</html>
