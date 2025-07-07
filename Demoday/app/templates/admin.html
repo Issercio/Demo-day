@@ -3,176 +3,219 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administration - Boutique Florale</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Administration - FloraShop</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <style>
+        .admin-container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .admin-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .item-list {
+            margin-top: 20px;
+        }
+        
+        .item-card {
+            padding: 10px;
+            border: 1px solid #eee;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .delete-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
 </head>
-<body class="admin-body">
+<body>
+    <header>
+        <!-- ...existing header code... -->
+    </header>
+
     <div class="admin-container">
-        <aside class="admin-sidebar">
-            <h2>Administration</h2>
-            <ul>
-                <li class="active"><a href="#products">Produits</a></li>
-                <li><a href="#categories">Catégories</a></li>
-                <li><a href="shop.html">Retour à la boutique</a></li>
-            </ul>
-        </aside>
-
-        <main class="admin-content">
-            <div class="admin-header">
-                <h1>Gestion des produits</h1>
-                <button class="add-button">Ajouter un produit</button>
-            </div>
-
-            <div class="admin-form" id="productForm">
+        <h1>Administration</h1>
+        
+        <!-- Section Catégories -->
+        <div class="admin-section">
+            <h2>Gestion des Catégories</h2>
+            <form id="category-form">
                 <div class="form-group">
-                    <label>Nom du produit</label>
-                    <input type="text" id="productName" required>
+                    <label for="category-name">Nom de la catégorie</label>
+                    <input type="text" id="category-name" required>
                 </div>
-                
+                <button type="submit">Ajouter une catégorie</button>
+            </form>
+            <div id="categories-list" class="item-list">
+                <!-- Les catégories seront ajoutées ici dynamiquement -->
+            </div>
+        </div>
+        
+        <!-- Section Produits -->
+        <div class="admin-section">
+            <h2>Gestion des Produits</h2>
+            <form id="product-form">
                 <div class="form-group">
-                    <label>Catégorie</label>
-                    <select id="category" onchange="toggleColorOptions()">
-                        <option value="fleurs">Fleurs fraîches</option>
-                        <option value="composition">Compositions</option>
-                        <option value="seches">Fleurs séchées</option>
-                        <option value="bougies">Bougies</option>
+                    <label for="product-name">Nom du produit</label>
+                    <input type="text" id="product-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="product-price">Prix</label>
+                    <input type="number" id="product-price" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="product-category">Catégorie</label>
+                    <select id="product-category" required>
+                        <!-- Les catégories seront ajoutées ici dynamiquement -->
                     </select>
                 </div>
-
-                <div class="form-group">
-                    <label>Prix (€)</label>
-                    <input type="number" id="price" step="0.01" required>
-                </div>
-
-                <div class="form-group" id="colorSection">
-                    <label>Couleur(s)</label>
-                    <div class="color-options">
-                        <div class="color-btn" style="background: #FF69B4;" data-color="#FF69B4"></div>
-                        <div class="color-btn" style="background: #FF0000;" data-color="#FF0000"></div>
-                        <div class="color-btn" style="background: #FFFFFF;" data-color="#FFFFFF"></div>
-                        <div class="color-btn" style="background: #800080;" data-color="#800080"></div>
-                        <div class="color-btn" style="background: #FFFF00;" data-color="#FFFF00"></div>
-                    </div>
-                    <div class="selected-colors"></div>
-                </div>
-
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="outOfStock">
-                        Rupture de stock
-                    </label>
-                </div>
-                <button type="submit" class="submit-button" onclick="saveProduct(event)">Enregistrer le produit</button>
+                <button type="submit">Ajouter un produit</button>
+            </form>
+            <div id="products-list" class="item-list">
+                <!-- Les produits seront ajoutés ici dynamiquement -->
             </div>
-
-            <section style="margin-top:40px;">
-                <h2>Produits publiés</h2>
-                <table id="products-table" style="width:100%;margin-top:18px;border-collapse:collapse;">
-                    <thead>
-                        <tr style="background:#f8f5f2;">
-                            <th style="padding:10px 6px;">Nom</th>
-                            <th style="padding:10px 6px;">Catégorie</th>
-                            <th style="padding:10px 6px;">Prix</th>
-                            <th style="padding:10px 6px;">Rupture de stock</th>
-                            <th style="padding:10px 6px;">Supprimer</th>
-                        </tr>
-                    </thead>
-                    <tbody id="products-tbody">
-                        <!-- JS: produits ici -->
-                    </tbody>
-                </table>
-            </section>
-
-            <script>
-                let selectedColors = [];
-
-                document.querySelectorAll('.color-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const color = this.dataset.color;
-                        if (selectedColors.includes(color)) {
-                            selectedColors = selectedColors.filter(c => c !== color);
-                            this.classList.remove('selected');
-                        } else {
-                            if (document.getElementById('category').value !== 'composition' && selectedColors.length > 0) {
-                                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
-                                selectedColors = [];
-                            }
-                            selectedColors.push(color);
-                            this.classList.add('selected');
-                        }
-                        updateSelectedColors();
-                    });
-                });
-
-                function updateSelectedColors() {
-                    const container = document.querySelector('.selected-colors');
-                    container.innerHTML = selectedColors.map(color => 
-                        `<span class="color-tag" style="background: ${color}"></span>`
-                    ).join('');
-                }
-
-                function saveProduct(e) {
-                    e.preventDefault();
-                    const product = {
-                        name: document.getElementById('productName').value,
-                        category: document.getElementById('category').value,
-                        price: document.getElementById('price').value,
-                        colors: selectedColors,
-                        outOfStock: false // Toujours false à la création
-                    };
-                    let products = JSON.parse(localStorage.getItem('products') || '[]');
-                    products.push(product);
-                    localStorage.setItem('products', JSON.stringify(products));
-                    alert('Produit enregistré !');
-                    document.getElementById('productForm').reset();
-                    selectedColors = [];
-                    updateSelectedColors();
-                    renderProductsTable();
-                }
-
-                // Affichage des produits publiés et gestion rupture de stock
-                function renderProductsTable() {
-                    const products = JSON.parse(localStorage.getItem('products') || '[]');
-                    const tbody = document.getElementById('products-tbody');
-                    tbody.innerHTML = '';
-                    products.forEach((prod, idx) => {
-                        tbody.innerHTML += `
-                            <tr>
-                                <td style="padding:10px 6px;">${prod.name}</td>
-                                <td style="padding:10px 6px;">${prod.category}</td>
-                                <td style="padding:10px 6px;">${Number(prod.price).toFixed(2)} €</td>
-                                <td style="padding:10px 6px;text-align:center;">
-                                    <input type="checkbox" ${prod.outOfStock ? 'checked' : ''} onchange="toggleOutOfStock(${idx}, this.checked)">
-                                </td>
-                                <td style="padding:10px 6px;text-align:center;">
-                                    <button onclick="deleteProduct(${idx})" style="background:#fff;color:#bc6288;border:1.5px solid #bc6288;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:1rem;">🗑️</button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                }
-
-                window.toggleOutOfStock = function(idx, checked) {
-                    let products = JSON.parse(localStorage.getItem('products') || '[]');
-                    products[idx].outOfStock = checked;
-                    localStorage.setItem('products', JSON.stringify(products));
-                    renderProductsTable();
-                };
-
-                window.deleteProduct = function(idx) {
-                    if (!confirm("Supprimer ce produit ?")) return;
-                    let products = JSON.parse(localStorage.getItem('products') || '[]');
-                    products.splice(idx, 1);
-                    localStorage.setItem('products', JSON.stringify(products));
-                    renderProductsTable();
-                };
-
-                document.addEventListener('DOMContentLoaded', function() {
-                    renderProductsTable();
-                });
-            </script>
-        </main>
+        </div>
     </div>
+
+    <script src="../static/js/api.js"></script>
+    <script>
+        // Vérification de l'authentification admin
+        if (!apiService.isLoggedIn() || !apiService.isAdmin()) {
+            window.location.href = 'account.html';
+        }
+
+        // Fonctions de mise à jour de l'interface
+        async function refreshCategories() {
+            const categories = await apiService.getCategories();
+            const categoriesList = document.getElementById('categories-list');
+            const categorySelect = document.getElementById('product-category');
+            
+            categoriesList.innerHTML = '';
+            categorySelect.innerHTML = '<option value="">Sélectionnez une catégorie</option>';
+            
+            categories.forEach(category => {
+                // Liste des catégories
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'item-card';
+                categoryDiv.innerHTML = `
+                    <span>${category.name}</span>
+                    <button class="delete-btn" onclick="deleteCategory('${category.id}')">Supprimer</button>
+                `;
+                categoriesList.appendChild(categoryDiv);
+                
+                // Select des catégories
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                categorySelect.appendChild(option);
+            });
+        }
+
+        async function refreshProducts() {
+            const products = await apiService.getProducts();
+            const productsList = document.getElementById('products-list');
+            
+            productsList.innerHTML = '';
+            products.forEach(product => {
+                const productDiv = document.createElement('div');
+                productDiv.className = 'item-card';
+                productDiv.innerHTML = `
+                    <span>${product.name} - ${product.price}€</span>
+                    <button class="delete-btn" onclick="deleteProduct('${product.id}')">Supprimer</button>
+                `;
+                productsList.appendChild(productDiv);
+            });
+        }
+
+        // Gestionnaires d'événements pour les formulaires
+        document.getElementById('category-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('category-name').value;
+            const result = await apiService.createCategory({ name });
+            if (result.success) {
+                document.getElementById('category-name').value = '';
+                refreshCategories();
+            } else {
+                alert('Erreur lors de la création de la catégorie');
+            }
+        });
+
+        document.getElementById('product-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const productData = {
+                name: document.getElementById('product-name').value,
+                price: parseFloat(document.getElementById('product-price').value),
+                category_id: document.getElementById('product-category').value
+            };
+            const result = await apiService.createProduct(productData);
+            if (result.success) {
+                document.getElementById('product-form').reset();
+                refreshProducts();
+            } else {
+                alert('Erreur lors de la création du produit');
+            }
+        });
+
+        // Fonctions de suppression
+        async function deleteCategory(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) {
+                const success = await apiService.deleteCategory(id);
+                if (success) {
+                    refreshCategories();
+                    refreshProducts();
+                } else {
+                    alert('Erreur lors de la suppression de la catégorie');
+                }
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
+                const success = await apiService.deleteProduct(id);
+                if (success) {
+                    refreshProducts();
+                } else {
+                    alert('Erreur lors de la suppression du produit');
+                }
+            }
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshCategories();
+            refreshProducts();
+        });
+    </script>
 </body>
 </html>

@@ -29,14 +29,17 @@
           <li style="position:relative;">
             <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
             <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;">
-              <button id="login-btn" class="cta-btn" style="width:100%;">Se connecter</button>
+                <div id="user-email" style="margin-bottom: 10px; color: #bc6288; font-size: 0.9em; text-align: center; display: none;"></div>
+                <button id="login-btn" class="cta-btn" style="width:100%; margin-bottom: 5px;">Se connecter</button>
+                <button id="logout-btn" class="cta-btn" style="width:100%; margin-bottom: 5px; display: none;">Déconnexion</button>
+                <button id="delete-btn" class="cta-btn" style="width:100%; background: #fff; color: #bc6288; border: 1.5px solid #bc6288; display: none;">Supprimer le compte</button>
             </div>
           </li>
         </ul>
       </nav>
     </header>
     <div class="login-container">
-        <form class="login-form">
+        <form class="login-form" id="login-form">
             <h1>Connexion</h1>
             
             <div class="form-group">
@@ -62,30 +65,85 @@
             </div>
         </form>
     </div>
+    <script src="../static/js/api.js"></script>
     <script>
-      function updateCartCount() {
-        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-        const badge = document.getElementById('cart-count');
-        if (badge) {
-          badge.textContent = cart.length;
-          badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
-        }
-      }
-      document.addEventListener('DOMContentLoaded', updateCartCount);
+        // Fonction pour mettre à jour l'interface utilisateur après connexion/déconnexion
+        function updateUIAfterLogin(userData) {
+            const userEmail = document.getElementById('user-email');
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const deleteBtn = document.getElementById('delete-btn');
 
-      document.addEventListener('DOMContentLoaded', function() {
-        const profileLink = document.getElementById('profile-link');
-        const profilePanel = document.getElementById('profile-panel');
-        profileLink.addEventListener('click', function(e) {
-          e.preventDefault();
-          profilePanel.style.display = profilePanel.style.display === 'block' ? 'none' : 'block';
+            if (userData) {
+                userEmail.textContent = userData.email;
+                userEmail.style.display = 'block';
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'block';
+                deleteBtn.style.display = 'block';
+            } else {
+                userEmail.style.display = 'none';
+                loginBtn.style.display = 'block';
+                logoutBtn.style.display = 'none';
+                deleteBtn.style.display = 'none';
+            }
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log('Formulaire soumis');  // Debug log
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            console.log('Tentative de connexion avec:', email);  // Debug log
+            const result = await apiService.login(email, password);
+            console.log('Résultat de la connexion:', result);  // Debug log
+            
+            if (result.success) {
+                console.log('Connexion réussie, redirection...');  // Debug log
+                window.location.href = 'accueil.html';
+            } else {
+                console.error('Erreur:', result.error);  // Debug log
+                alert(result.error);
+            }
         });
-        document.addEventListener('click', function(e) {
-          if (!profilePanel.contains(e.target) && e.target !== profileLink) {
-            profilePanel.style.display = 'none';
-          }
+
+        document.getElementById('logout-btn').addEventListener('click', function() {
+            apiService.logout();
+            updateUIAfterLogin(null);
+            window.location.reload();
         });
-      });
+
+        // Vérifier l'état de connexion au chargement de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            function updateCartCount() {
+                const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+                const badge = document.getElementById('cart-count');
+                if (badge) {
+                  badge.textContent = cart.length;
+                  badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
+                }
+              }
+              updateCartCount();
+
+            const profileLink = document.getElementById('profile-link');
+            const profilePanel = document.getElementById('profile-panel');
+            profileLink.addEventListener('click', function(e) {
+              e.preventDefault();
+              profilePanel.style.display = profilePanel.style.display === 'block' ? 'none' : 'block';
+            });
+            document.addEventListener('click', function(e) {
+              if (!profilePanel.contains(e.target) && e.target !== profileLink) {
+                profilePanel.style.display = 'none';
+              }
+            });
+
+            // Vérifier si l'utilisateur est déjà connecté
+            const userData = JSON.parse(localStorage.getItem('user'));
+            if (userData) {
+                updateUIAfterLogin(userData);
+            }
+        });
     </script>
 </body>
 </html>

@@ -1,3 +1,8 @@
+DROP DATABASE IF EXISTS florashop;
+CREATE DATABASE florashop;
+USE florashop;
+
+-- Supprimer les tables dans l'ordre pour éviter les erreurs de clés étrangères
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS users;
@@ -5,21 +10,16 @@ DROP TABLE IF EXISTS users;
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(120) UNIQUE NOT NULL
+    email VARCHAR(120) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE
 );
 
-CREATE TABLE categories (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL
-);
-
-CREATE TABLE products (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    price FLOAT NOT NULL,
-    category_id INTEGER REFERENCES categories(id) NOT NULL,
-    is_on_sale BOOLEAN DEFAULT FALSE,
-    sale_price FLOAT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- Ajout de l'utilisateur admin avec password = admin123
+INSERT INTO users (username, email, password, is_admin) 
+VALUES (
+    'admin',
+    'admin@florashop.com',
+    '$2b$12$tXuY6/3rkTWjgGqW0QTQzqu/p7Zv4iLF0YLcLIQEHgGOXXIRMbmml.',
+    TRUE
 );
