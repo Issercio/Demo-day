@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - Boutique Florale</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="admin-body">
+    <div class="admin-container">
+        <aside class="admin-sidebar">
+            <h2>Administration</h2>
+            <ul>
+                <li class="active"><a href="#products">Produits</a></li>
+                <li><a href="#categories">Catégories</a></li>
+                <li><a href="shop.html">Retour à la boutique</a></li>
+            </ul>
+        </aside>
+
+        <main class="admin-content">
+            <div class="admin-header">
+                <h1>Gestion des produits</h1>
+                <button class="add-button">Ajouter un produit</button>
+            </div>
+
+            <div class="admin-form" id="productForm">
+                <div class="form-group">
+                    <label>Nom du produit</label>
+                    <input type="text" id="productName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Catégorie</label>
+                    <select id="category" onchange="toggleColorOptions()">
+                        <option value="fleurs">Fleurs fraîches</option>
+                        <option value="composition">Compositions</option>
+                        <option value="seches">Fleurs séchées</option>
+                        <option value="bougies">Bougies</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Prix (€)</label>
+                    <input type="number" id="price" step="0.01" required>
+                </div>
+
+                <div class="form-group" id="colorSection">
+                    <label>Couleur(s)</label>
+                    <div class="color-options">
+                        <div class="color-btn" style="background: #FF69B4;" data-color="#FF69B4"></div>
+                        <div class="color-btn" style="background: #FF0000;" data-color="#FF0000"></div>
+                        <div class="color-btn" style="background: #FFFFFF;" data-color="#FFFFFF"></div>
+                        <div class="color-btn" style="background: #800080;" data-color="#800080"></div>
+                        <div class="color-btn" style="background: #FFFF00;" data-color="#FFFF00"></div>
+                    </div>
+                    <div class="selected-colors"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="outOfStock">
+                        Rupture de stock
+                    </label>
+                </div>
+                <button type="submit" class="submit-button" onclick="saveProduct(event)">Enregistrer le produit</button>
+            </div>
+
+            <section style="margin-top:40px;">
+                <h2>Produits publiés</h2>
+                <table id="products-table" style="width:100%;margin-top:18px;border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#f8f5f2;">
+                            <th style="padding:10px 6px;">Nom</th>
+                            <th style="padding:10px 6px;">Catégorie</th>
+                            <th style="padding:10px 6px;">Prix</th>
+                            <th style="padding:10px 6px;">Rupture de stock</th>
+                            <th style="padding:10px 6px;">Supprimer</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-tbody">
+                        <!-- JS: produits ici -->
+                    </tbody>
+                </table>
+            </section>
+
+            <script>
+                let selectedColors = [];
+
+                document.querySelectorAll('.color-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const color = this.dataset.color;
+                        if (selectedColors.includes(color)) {
+                            selectedColors = selectedColors.filter(c => c !== color);
+                            this.classList.remove('selected');
+                        } else {
+                            if (document.getElementById('category').value !== 'composition' && selectedColors.length > 0) {
+                                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+                                selectedColors = [];
+                            }
+                            selectedColors.push(color);
+                            this.classList.add('selected');
+                        }
+                        updateSelectedColors();
+                    });
+                });
+
+                function updateSelectedColors() {
+                    const container = document.querySelector('.selected-colors');
+                    container.innerHTML = selectedColors.map(color => 
+                        `<span class="color-tag" style="background: ${color}"></span>`
+                    ).join('');
+                }
+
+                function saveProduct(e) {
+                    e.preventDefault();
+                    const product = {
+                        name: document.getElementById('productName').value,
+                        category: document.getElementById('category').value,
+                        price: document.getElementById('price').value,
+                        colors: selectedColors,
+                        outOfStock: false // Toujours false à la création
+                    };
+                    let products = JSON.parse(localStorage.getItem('products') || '[]');
+                    products.push(product);
+                    localStorage.setItem('products', JSON.stringify(products));
+                    alert('Produit enregistré !');
+                    document.getElementById('productForm').reset();
+                    selectedColors = [];
+                    updateSelectedColors();
+                    renderProductsTable();
+                }
+
+                // Affichage des produits publiés et gestion rupture de stock
+                function renderProductsTable() {
+                    const products = JSON.parse(localStorage.getItem('products') || '[]');
+                    const tbody = document.getElementById('products-tbody');
+                    tbody.innerHTML = '';
+                    products.forEach((prod, idx) => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td style="padding:10px 6px;">${prod.name}</td>
+                                <td style="padding:10px 6px;">${prod.category}</td>
+                                <td style="padding:10px 6px;">${Number(prod.price).toFixed(2)} €</td>
+                                <td style="padding:10px 6px;text-align:center;">
+                                    <input type="checkbox" ${prod.outOfStock ? 'checked' : ''} onchange="toggleOutOfStock(${idx}, this.checked)">
+                                </td>
+                                <td style="padding:10px 6px;text-align:center;">
+                                    <button onclick="deleteProduct(${idx})" style="background:#fff;color:#bc6288;border:1.5px solid #bc6288;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:1rem;">🗑️</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                window.toggleOutOfStock = function(idx, checked) {
+                    let products = JSON.parse(localStorage.getItem('products') || '[]');
+                    products[idx].outOfStock = checked;
+                    localStorage.setItem('products', JSON.stringify(products));
+                    renderProductsTable();
+                };
+
+                window.deleteProduct = function(idx) {
+                    if (!confirm("Supprimer ce produit ?")) return;
+                    let products = JSON.parse(localStorage.getItem('products') || '[]');
+                    products.splice(idx, 1);
+                    localStorage.setItem('products', JSON.stringify(products));
+                    renderProductsTable();
+                };
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    renderProductsTable();
+                });
+            </script>
+        </main>
+    </div>
+</body>
+</html>

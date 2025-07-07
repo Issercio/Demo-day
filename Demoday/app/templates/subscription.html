@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Abonnement Floral</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="stylesheet" href="../static/css/subscription.css">
+</head>
+<body>
+    <header>
+      <img class="logo" src="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6~mv2.png/v1/crop/x_748,y_1016,w_3355,h_2788/fill/w_239,h_198,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20P%26L%20Rond%20neutre%20pour%20fond%20clairsans%20fond%20-%20by%20fadamentalpics.png" alt="Logo pivoine & lilas, artisan fleuriste" width="120" height="100">
+      <nav>
+        <ul>
+          <li><a href="accueil.html">ACCUEIL</a></li>
+          <li><a href="shop.html">SHOP</a></li>
+          <li><a href="evenementiel.html">ÉVÈNEMENTIEL</a></li>
+          <li><a href="entreprises.html">ENTREPRISES</a></li>
+          <li><a href="portfolio.html">PORTFOLIO</a></li>
+          <li><a href="contact.html">CONTACT</a></li>
+          <li><a href="subscription.html" class="active">ABONNEMENT</a></li>
+          <li>
+            <a href="panier.html" id="cart-link" style="position:relative;">
+              <span style="font-size:22px;vertical-align:middle;">🛒</span>
+              <span id="cart-count" style="position:absolute;top:0;right:-10px;background:#bc6288;color:#fff;font-size:13px;padding:1px 6px;border-radius:10px;display:none;">0</span>
+            </a>
+          </li>
+          <li style="position:relative;">
+            <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
+            <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;">
+              <button id="login-btn" class="cta-btn" style="width:100%;margin-bottom:8px;">Se connecter</button>
+              <button id="logout-btn" class="cta-btn" style="width:100%;margin-bottom:8px;display:none;">Se déconnecter</button>
+              <button id="delete-btn" class="cta-btn" style="width:100%;background:#fff;color:#bc6288;border:1.5px solid #bc6288;">Supprimer le compte</button>
+            </div>
+          </li>
+        </ul>
+      </nav>
+    </header>
+    <main>
+        <!-- Test du texte de présentation -->
+        <section class="hero">
+            <h1>Testez nos Abonnements Floraux</h1>
+            <p class="intro-text">
+                Voici un exemple de notre page d'abonnement.
+                Cliquez sur les différentes options pour tester l'interactivité.
+            </p>
+        </section>
+
+        <!-- Test des cartes d'abonnement -->
+        <section class="subscription-options">
+            <div class="subscription-card" data-plan="monthly">
+                <h2>Test 1 mois</h2>
+                <p class="duration">1 mois</p>
+                <p class="price">29.99€</p>
+                <ul class="features">
+                    <li>Test feature 1</li>
+                    <li>Test feature 2</li>
+                </ul>
+            </div>
+
+            <div class="subscription-card" data-plan="semester">
+                <h2>Test 6 mois</h2>
+                <p class="duration">6 mois</p>
+                <p class="price">24.99€</p>
+                <ul class="features">
+                    <li>Test feature 1</li>
+                    <li>Test feature 2</li>
+                </ul>
+            </div>
+
+            <div class="subscription-card" data-plan="yearly">
+                <h2>Test 1 an</h2>
+                <p class="duration">12 mois</p>
+                <p class="price">19.99€</p>
+                <ul class="features">
+                    <li>Test feature 1</li>
+                    <li>Test feature 2</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Test du bouton de sélection -->
+        <button id="select-plan" class="select-button" disabled>Sélectionner</button>
+    </main>
+    <script>
+        // Test de l'interactivité
+        const cards = document.querySelectorAll('.subscription-card');
+        const selectButton = document.getElementById('select-plan');
+
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Retire la sélection de toutes les cartes
+                cards.forEach(c => c.classList.remove('selected'));
+                // Ajoute la sélection à la carte cliquée
+                card.classList.add('selected');
+                // Active le bouton
+                selectButton.disabled = false;
+            });
+        });
+
+        // Test du bouton
+        selectButton.addEventListener('click', () => {
+            alert('Test: Abonnement sélectionné !');
+        });
+
+        function updateCartCount() {
+          const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+          const badge = document.getElementById('cart-count');
+          if (badge) {
+            badge.textContent = cart.length;
+            badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
+          }
+        }
+        document.addEventListener('DOMContentLoaded', updateCartCount);
+
+        document.addEventListener('DOMContentLoaded', function() {
+          const profileLink = document.getElementById('profile-link');
+          const profilePanel = document.getElementById('profile-panel');
+          profileLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            profilePanel.style.display = profilePanel.style.display === 'block' ? 'none' : 'block';
+          });
+          document.addEventListener('click', function(e) {
+            if (!profilePanel.contains(e.target) && e.target !== profileLink) {
+              profilePanel.style.display = 'none';
+            }
+          });
+          let loggedIn = false;
+          document.getElementById('login-btn').onclick = function() {
+            loggedIn = true;
+            this.style.display = 'none';
+            document.getElementById('logout-btn').style.display = '';
+          };
+          document.getElementById('logout-btn').onclick = function() {
+            loggedIn = false;
+            this.style.display = 'none';
+            document.getElementById('login-btn').style.display = '';
+          };
+          document.getElementById('delete-btn').onclick = function() {
+            alert('Suppression du compte (fonctionnalité à venir)');
+          };
+        });
+    </script>
+</body>
+</html>
