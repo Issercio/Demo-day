@@ -6,6 +6,7 @@ class ApiService {
     constructor() {
         this.token = localStorage.getItem('auth_token');
         this.user = JSON.parse(localStorage.getItem('user') || 'null');
+        this.updateProfileUI();
     }
 
     // Méthode pour configurer les headers
@@ -40,7 +41,10 @@ class ApiService {
 
             if (response.ok && data.success) {
                 this.user = data.data.user;
+                this.token = data.data.token;
+                localStorage.setItem('auth_token', this.token);
                 localStorage.setItem('user', JSON.stringify(this.user));
+                this.updateProfileUI();
                 return { success: true, data: data.data };
             }
             
@@ -65,7 +69,8 @@ class ApiService {
             const response = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({ username, email, password })
             });
@@ -80,10 +85,43 @@ class ApiService {
                 return { success: true, data: data.data };
             }
             
-            return { success: false, error: data.message };
+            return { 
+                success: false, 
+                error: data.message || 'Erreur lors de la création du compte'
+            };
         } catch (error) {
             console.error('Erreur création de compte:', error);
             return { success: false, error: 'Erreur de communication avec le serveur' };
+        }
+    }
+
+    logout() {
+        this.token = null;
+        this.user = null;
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        this.updateProfileUI();
+    }
+
+    updateProfileUI() {
+        const userEmail = document.getElementById('user-email');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const deleteBtn = document.getElementById('delete-btn');
+
+        if (!userEmail || !loginBtn || !logoutBtn || !deleteBtn) return;
+
+        if (this.user) {
+            userEmail.textContent = this.user.email;
+            userEmail.style.display = 'block';
+            loginBtn.style.display = 'none';
+            logoutBtn.style.display = 'block';
+            deleteBtn.style.display = 'block';
+        } else {
+            userEmail.style.display = 'none';
+            loginBtn.style.display = 'block';
+            logoutBtn.style.display = 'none';
+            deleteBtn.style.display = 'none';
         }
     }
 
@@ -169,38 +207,7 @@ class ApiService {
 
     // Utilitaires
     isLoggedIn() {
-        return !!this.token;
-    }
-
-    isAdmin() {
-        return this.user && this.user.is_admin;
-    }
-
-    logout() {
-        this.user = null;
-        localStorage.removeItem('user');
-    }
-
-    getUser() {
-        return JSON.parse(localStorage.getItem('user'));
-    }
-
-    async deleteAccount() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/users/me`, {
-                method: 'DELETE',
-                headers: this.getHeaders()
-            });
-            
-            if (response.ok) {
-                this.logout();
-                return { success: true };
-            }
-            return { success: false, error: 'Erreur lors de la suppression du compte' };
-        } catch (error) {
-            console.error('Erreur:', error);
-            return { success: false, error: 'Erreur de communication avec le serveur' };
-        }
+        return !!this.user;
     }
 }
 
@@ -228,6 +235,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (forgotPasswordButton) {
         forgotPasswordButton.addEventListener('click', () => {
             window.location.href = 'forgot-password.html';
+        });
+    }
+});
+
+// Initialisation au chargement de la page
+document.addEventListener('DOMContentLoaded', () => {
+    apiService.updateProfileUI();
+    
+    // Gestionnaires d'événements pour le panel profil
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            apiService.logout();
+            window.location.href = 'accueil.html';
+        });
+    }
+
+    const loginBtn = document.getElementById('login-btn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', () => {
+            window.location.href = 'account.html';
         });
     }
 });
