@@ -30,7 +30,6 @@
           <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;">
             <button id="login-btn" class="cta-btn" style="width:100%;margin-bottom:8px;">Se connecter</button>
             <button id="logout-btn" class="cta-btn" style="width:100%;margin-bottom:8px;display:none;">Se déconnecter</button>
-            <button id="delete-btn" class="cta-btn" style="width:100%;background:#fff;color:#bc6288;border:1.5px solid #bc6288;">Supprimer le compte</button>
           </div>
         </li>
       </ul>
@@ -69,9 +68,13 @@
   }
   document.addEventListener('DOMContentLoaded', updateCartCount);
 
+  // Panel profil + gestion connexion/déconnexion
   document.addEventListener('DOMContentLoaded', function() {
     const profileLink = document.getElementById('profile-link');
     const profilePanel = document.getElementById('profile-panel');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+
     profileLink.addEventListener('click', function(e) {
       e.preventDefault();
       profilePanel.style.display = profilePanel.style.display === 'block' ? 'none' : 'block';
@@ -81,21 +84,26 @@
         profilePanel.style.display = 'none';
       }
     });
-    let loggedIn = false;
-    document.getElementById('login-btn').onclick = function() {
-      loggedIn = true;
-      this.style.display = 'none';
-      document.getElementById('logout-btn').style.display = '';
+
+    loginBtn.onclick = function() {
+      window.location.href = "account.html";
     };
-    document.getElementById('logout-btn').onclick = function() {
-      loggedIn = false;
-      this.style.display = 'none';
-      document.getElementById('login-btn').style.display = '';
+    logoutBtn.onclick = function() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      window.location.reload();
     };
-    document.getElementById('delete-btn').onclick = function() {
-      alert('Suppression du compte (fonctionnalité à venir)');
-    };
+
+    // Affichage conditionnel des boutons selon l'état de connexion
+    const user = localStorage.getItem('user');
+    if (user) {
+      loginBtn.style.display = 'none';
+      logoutBtn.style.display = '';
+    } else {
+      loginBtn.style.display = '';
+      logoutBtn.style.display = 'none';
+    }
   });
-</script>
+  </script>
 </body>
 </html>

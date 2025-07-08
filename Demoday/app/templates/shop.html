@@ -270,10 +270,13 @@
       displayProducts(allProducts);
     });
 
-    // Panel profil
+    // Panel profil + gestion connexion/déconnexion
     document.addEventListener('DOMContentLoaded', function() {
       const profileLink = document.getElementById('profile-link');
       const profilePanel = document.getElementById('profile-panel');
+      const loginBtn = document.getElementById('login-btn');
+      const logoutBtn = document.getElementById('logout-btn');
+
       profileLink.addEventListener('click', function(e) {
         e.preventDefault();
         profilePanel.style.display = profilePanel.style.display === 'block' ? 'none' : 'block';
@@ -283,13 +286,26 @@
           profilePanel.style.display = 'none';
         }
       });
-      document.getElementById('login-btn').onclick = function() {
+
+      loginBtn.onclick = function() {
         window.location.href = "account.html";
       };
-      document.getElementById('logout-btn').onclick = function() {
+
+      logoutBtn.onclick = function() {
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
         window.location.reload();
       };
+
+      // Affichage conditionnel des boutons selon l'état de connexion
+      const user = localStorage.getItem('user');
+      if (user) {
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = '';
+      } else {
+        loginBtn.style.display = '';
+        logoutBtn.style.display = 'none';
+      }
     });
   </script>
   <style>
@@ -305,6 +321,169 @@
       margin-bottom: 10px;
       width: 100%;
     }
+
+    .sidebar-filters {
+  background: #fff7fa;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(188,98,136,0.08);
+  padding: 32px 20px 24px 20px;
+  margin: 32px 20px 32px 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  min-width: 220px;
+  max-width: 320px;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 110px;
+  z-index: 1100;
+}
+.sidebar-filters h2 {
+  color: #bc6288;
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  font-weight: bold;
+  letter-spacing: 0.03em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+.filter-section {
+  background: #f8f5f2;
+  border-radius: 10px;
+  padding: 1.1rem 1rem;
+  border: 1px solid #e7d6d6;
+  margin-bottom: 0;
+}
+.filter-section h3 {
+  color: #bc6288;
+  font-size: 1rem;
+  letter-spacing: 0.05rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.search-input,
+.price-inputs input[type="number"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid #e6b5c9;
+  border-radius: 7px;
+  font-size: 1rem;
+  margin-bottom: 7px;
+  background: #fff;
+  transition: border 0.2s;
+}
+.search-input:focus,
+.price-inputs input[type="number"]:focus {
+  border-color: #bc6288;
+  outline: none;
+}
+.price-inputs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.color-selection {
+  display: flex;
+  justify-content: center; /* centre horizontalement */
+  gap: 10px; /* espace entre les boutons et le picker */
+  margin-bottom: 7px;
+}
+
+.color-picker {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.add-color-btn, .reset-btn {
+  background: #e6b5c9;
+  color: #bc6288;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px; /* réduit la taille verticale et horizontale */
+  font-size: 0.85em; /* taille de police plus petite */
+  cursor: pointer;
+  transition: background 0.2s;
+  min-width: 80px; /* largeur minimale pour garder un bon clic */
+  text-align: center;
+}
+.add-color-btn:hover, .reset-btn:hover {
+  background: #bc6288;
+  color: #fff;
+}
+.selected-colors {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 7px;
+}
+.selected-colors .color-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(188,98,136,0.13);
+  cursor: pointer;
+  transition: border 0.2s;
+}
+.selected-colors .color-dot:hover {
+  border: 2px solid #bc6288;
+}
+.color-counter {
+  font-size: 0.93em;
+  color: #bc6288;
+  margin-bottom: 0;
+}
+.filter-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 1.5rem;
+}
+.apply-filters-btn, .reset-all-btn {
+  width: 100%;
+  padding: 11px;
+  border: none;
+  border-radius: 7px;
+  font-size: 1.05em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.apply-filters-btn {
+  background: #bc6288;
+  color: #fff;
+}
+.apply-filters-btn:hover {
+  background: #a04f6f;
+}
+.reset-all-btn {
+  background: #fff;
+  color: #bc6288;
+  border: 1.5px solid #bc6288;
+}
+.reset-all-btn:hover {
+  background: #ffe6f0;
+}
+/* Responsive pour mobile */
+@media (max-width: 900px) {
+  .sidebar-filters {
+    width: 100%;
+    margin: 0 0 20px 0;
+    min-width: unset;
+    max-width: unset;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(188,98,136,0.08);
+    padding: 22px 12px;
+    position: static;
+    top: 0;
+  }
+}
     /* Ajoute ici tes styles .product-card, .products-grid, .category-section, etc. */
   </style>
 </body>

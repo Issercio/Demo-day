@@ -1,6 +1,7 @@
 from flask_restx import Namespace, Resource, fields
 from flask import request, current_app
 from app.models.user import User
+from werkzeug.security import check_password_hash
 import jwt
 from datetime import datetime, timedelta
 
@@ -24,7 +25,8 @@ class Login(Resource):
             if not user:
                 return {'success': False, 'message': 'Email ou mot de passe incorrect'}, 401
 
-            if data['password'] != 'admin123':  # Temporaire pour le test
+            # Vérification sécurisée du mot de passe hashé
+            if not check_password_hash(user.password, data['password']):
                 return {'success': False, 'message': 'Email ou mot de passe incorrect'}, 401
 
             token = jwt.encode({

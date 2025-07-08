@@ -30,6 +30,7 @@
           <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
           <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;">
             <button id="login-btn" class="cta-btn" style="width:100%;">Se connecter</button>
+            <button id="logout-btn" class="cta-btn" style="width:100%;margin-top:8px;display:none;">Se déconnecter</button>
           </div>
         </li>
       </ul>
@@ -86,11 +87,13 @@
   }
   document.addEventListener('DOMContentLoaded', updateCartCount);
 
-  // Panel profil
+  // Panel profil + gestion connexion/déconnexion
   document.addEventListener('DOMContentLoaded', function() {
     const profileLink = document.getElementById('profile-link');
     const profilePanel = document.getElementById('profile-panel');
     const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+
     profileLink.addEventListener('click', function(e) {
       e.preventDefault();
       profilePanel.style.display = profilePanel.style.display === 'block' ? 'none' : 'block';
@@ -103,20 +106,22 @@
     loginBtn.onclick = function() {
       window.location.href = "account.html";
     };
+    logoutBtn.onclick = function() {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      window.location.reload();
+    };
+
+    // Affichage conditionnel des boutons selon l'état de connexion
+    const user = localStorage.getItem('user');
+    if (user) {
+      loginBtn.style.display = 'none';
+      logoutBtn.style.display = '';
+    } else {
+      loginBtn.style.display = '';
+      logoutBtn.style.display = 'none';
+    }
   });
-</script>
-</body>
-</html>
-    };
-    document.getElementById('logout-btn').onclick = function() {
-      loggedIn = false;
-      this.style.display = 'none';
-      document.getElementById('login-btn').style.display = '';
-    };
-    document.getElementById('delete-btn').onclick = function() {
-      alert('Suppression du compte (fonctionnalité à venir)');
-    };
-  });
-</script>
+  </script>
 </body>
 </html>
