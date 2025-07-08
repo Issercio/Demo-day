@@ -1,10 +1,10 @@
 from flask_restx import Namespace, Resource, fields
 from flask import request, current_app
 from app.models.user import User
-from app.extensions import db  # Ajout de l'import manquant
+from app.extensions import db
 import jwt
 from datetime import datetime, timedelta
-from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash
 
 api = Namespace('auth', description='Authentification')
 
@@ -32,8 +32,17 @@ class Login(Resource):
             if not user:
                 return {'success': False, 'message': 'Email ou mot de passe incorrect'}, 401
 
-            if data['password'] != 'admin123':  # Pour test uniquement
-                return {'success': False, 'message': 'Email ou mot de passe incorrect'}, 401
+            # Vérification du mot de passe selon le type d'utilisateur
+            if user.email == 'admin@florashop.com':
+                # Pour l'admin, vérifier directement avec "admin123"
+                if data['password'] != 'admin123':
+                    print(f"Mot de passe incorrect pour admin")
+                    return {'success': False, 'message': 'Email ou mot de passe incorrect'}, 401
+            else:
+                # Pour les nouveaux utilisateurs, vérifier en clair
+                if user.password != data['password']:
+                    print(f"Mot de passe incorrect. Stocké: {user.password}, Fourni: {data['password']}")
+                    return {'success': False, 'message': 'Email ou mot de passe incorrect'}, 401
 
             token = jwt.encode({
                 'sub': str(user.id),
@@ -42,6 +51,7 @@ class Login(Resource):
                 'exp': datetime.utcnow() + timedelta(days=1)
             }, current_app.config['SECRET_KEY'])
 
+            print(f"Connexion réussie pour: {user.email}")
             return {
                 'success': True,
                 'data': {
@@ -74,18 +84,18 @@ class Register(Resource):
             if existing_username:
                 return {'success': False, 'message': 'Nom d\'utilisateur déjà pris'}, 400
 
-            # Créer le nouvel utilisateur (mot de passe en clair pour le test)
+            # Créer le nouvel utilisateur (mot de passe en clair)
             user = User(
                 username=data['username'],
                 email=data['email'],
-                password=data['password'],  # En clair pour le test
+                password=data['password'],  # Stockage en clair
                 is_admin=False
             )
             
             db.session.add(user)
             db.session.commit()
 
-            print(f"Compte créé avec succès pour: {user.email}")
+            print(f"Compte créé avec succès pour: {user.email} avec mot de passe: {user.password}")
             return {
                 'success': True,
                 'data': {
