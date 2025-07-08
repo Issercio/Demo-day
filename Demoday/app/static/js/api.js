@@ -58,21 +58,32 @@ class ApiService {
     }
 
     // Méthode pour créer un compte utilisateur
-    async register(userData) {
+    async register(username, email, password) {
         try {
+            console.log('Tentative de création de compte:', { username, email });
+            
             const response = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(userData)
+                body: JSON.stringify({ username, email, password })
             });
             
             const data = await response.json();
-            return { success: response.ok, data };
+            console.log('Réponse création de compte:', data);
+            
+            if (response.ok && data.success) {
+                this.user = data.data.user;
+                localStorage.setItem('user', JSON.stringify(this.user));
+                this.updateProfileUI();
+                return { success: true, data: data.data };
+            }
+            
+            return { success: false, error: data.message };
         } catch (error) {
-            console.error('Erreur lors de l\'inscription:', error);
-            return { success: false, error: 'Erreur lors de l\'inscription' };
+            console.error('Erreur création de compte:', error);
+            return { success: false, error: 'Erreur de communication avec le serveur' };
         }
     }
 

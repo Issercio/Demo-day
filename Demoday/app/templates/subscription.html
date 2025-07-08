@@ -27,10 +27,11 @@
           </li>
           <li style="position:relative;">
             <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
-            <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;">
-              <button id="login-btn" class="cta-btn" style="width:100%;margin-bottom:8px;">Se connecter</button>
-              <button id="logout-btn" class="cta-btn" style="width:100%;margin-bottom:8px;display:none;">Se déconnecter</button>
-              <button id="delete-btn" class="cta-btn" style="width:100%;background:#fff;color:#bc6288;border:1.5px solid #bc6288;">Supprimer le compte</button>
+            <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;min-width:200px;">
+              <div id="user-email" style="margin-bottom: 15px; color: #bc6288; font-size: 0.9em; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; display: none;"></div>
+              <button id="login-btn" class="cta-btn" style="width:100%; margin-bottom: 8px;">Se connecter</button>
+              <button id="logout-btn" class="cta-btn" style="width:100%; margin-bottom: 8px; display: none;">Déconnexion</button>
+              <button id="delete-btn" class="cta-btn" style="width:100%; background: #fff; color: #bc6288; border: 1.5px solid #bc6288; display: none;">Supprimer le compte</button>
             </div>
           </li>
         </ul>
@@ -82,63 +83,75 @@
         <!-- Test du bouton de sélection -->
         <button id="select-plan" class="select-button" disabled>Sélectionner</button>
     </main>
+    <script src="../static/js/api.js"></script>
     <script>
-        // Test de l'interactivité
-        const cards = document.querySelectorAll('.subscription-card');
-        const selectButton = document.getElementById('select-plan');
-
-        cards.forEach(card => {
-            card.addEventListener('click', () => {
-                // Retire la sélection de toutes les cartes
-                cards.forEach(c => c.classList.remove('selected'));
-                // Ajoute la sélection à la carte cliquée
-                card.classList.add('selected');
-                // Active le bouton
-                selectButton.disabled = false;
-            });
-        });
-
-        // Test du bouton
-        selectButton.addEventListener('click', () => {
-            alert('Test: Abonnement sélectionné !');
-        });
-
-        function updateCartCount() {
-          const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-          const badge = document.getElementById('cart-count');
-          if (badge) {
-            badge.textContent = cart.length;
-            badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
-          }
-        }
-        document.addEventListener('DOMContentLoaded', updateCartCount);
-
         document.addEventListener('DOMContentLoaded', function() {
-          const profileLink = document.getElementById('profile-link');
-          const profilePanel = document.getElementById('profile-panel');
-          profileLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            profilePanel.style.display = profilePanel.style.display === 'block' ? 'none' : 'block';
-          });
-          document.addEventListener('click', function(e) {
-            if (!profilePanel.contains(e.target) && e.target !== profileLink) {
-              profilePanel.style.display = 'none';
+            const userEmail = document.getElementById('user-email');
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const deleteBtn = document.getElementById('delete-btn');
+            const profilePanel = document.getElementById('profile-panel');
+            const profileLink = document.getElementById('profile-link');
+
+            // Vérifier la connexion
+            const userData = JSON.parse(localStorage.getItem('user'));
+            if (userData) {
+                userEmail.textContent = userData.email;
+                userEmail.style.display = 'block';
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'block';
+                deleteBtn.style.display = 'block';
             }
-          });
-          let loggedIn = false;
-          document.getElementById('login-btn').onclick = function() {
-            loggedIn = true;
-            this.style.display = 'none';
-            document.getElementById('logout-btn').style.display = '';
-          };
-          document.getElementById('logout-btn').onclick = function() {
-            loggedIn = false;
-            this.style.display = 'none';
-            document.getElementById('login-btn').style.display = '';
-          };
-          document.getElementById('delete-btn').onclick = function() {
-            alert('Suppression du compte (fonctionnalité à venir)');
-          };
+
+            // Gestion du panel
+            profileLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                profilePanel.style.display = profilePanel.style.display === 'block' ? 'none' : 'block';
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!profilePanel.contains(e.target) && e.target !== profileLink) {
+                    profilePanel.style.display = 'none';
+                }
+            });
+
+            // Boutons
+            loginBtn.addEventListener('click', () => window.location.href = 'account.html');
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('user');
+                localStorage.removeItem('auth_token');
+                window.location.reload();
+            });
+
+            // Test de l'interactivité
+            const cards = document.querySelectorAll('.subscription-card');
+            const selectButton = document.getElementById('select-plan');
+
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    // Retire la sélection de toutes les cartes
+                    cards.forEach(c => c.classList.remove('selected'));
+                    // Ajoute la sélection à la carte cliquée
+                    card.classList.add('selected');
+                    // Active le bouton
+                    selectButton.disabled = false;
+                });
+            });
+
+            // Test du bouton
+            selectButton.addEventListener('click', () => {
+                alert('Test: Abonnement sélectionné !');
+            });
+
+            function updateCartCount() {
+              const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+              const badge = document.getElementById('cart-count');
+              if (badge) {
+                badge.textContent = cart.length;
+                badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
+              }
+            }
+            document.addEventListener('DOMContentLoaded', updateCartCount);
         });
     </script>
 </body>
