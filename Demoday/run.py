@@ -3,5 +3,5 @@ from app import create_app
 app = create_app()
 
 if __name__ == '__main__':
-    # Le debug est activé ici, le port est 2000, et l'app écoute sur toutes les interfaces
-    app.run(host='0.0.0.0', port=2000, debug=True)
+    # Forcer l'utilisation de localhost au lieu de 127.0.0.1
+    app.run(host='0.0.0.0', port=5000, debug=True)

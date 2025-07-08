@@ -29,14 +29,12 @@
           <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;">
             <button id="login-btn" class="cta-btn" style="width:100%;margin-bottom:8px;">Se connecter</button>
             <button id="logout-btn" class="cta-btn" style="width:100%;margin-bottom:8px;display:none;">Se déconnecter</button>
-            <button id="delete-btn" class="cta-btn" style="width:100%;background:#fff;color:#bc6288;border:1.5px solid #bc6288;">Supprimer le compte</button>
           </div>
         </li>
       </ul>
     </nav>
   </header>
   <div class="shop-container">
-    <!-- Sidebar de filtres -->
     <aside class="sidebar-filters">
       <h2 style="font-size:1.2rem;color:#bc6288;margin-bottom:1.5rem;text-align:center;">Filtres</h2>
       <div class="filter-section">
@@ -45,11 +43,7 @@
       </div>
       <div class="filter-section">
         <h3>Catégories</h3>
-        <div class="filter-options">
-          <label><input type="checkbox" value="fleurs" class="category-filter"> Fleurs fraîches</label>
-          <label><input type="checkbox" value="seches" class="category-filter"> Fleurs séchées</label>
-          <label><input type="checkbox" value="composition" class="category-filter"> Compositions</label>
-        </div>
+        <div class="filter-options" id="categories-filters"></div>
       </div>
       <div class="filter-section">
         <h3>Prix</h3>
@@ -74,25 +68,49 @@
         <button id="resetAllFilters" class="reset-all-btn">Réinitialiser tous les filtres</button>
       </div>
     </aside>
-    <!-- Zone produits -->
-    <main class="products-area">
-      <section class="category-section">
-        <h2>Fleurs fraîches</h2>
-        <div class="products-grid" id="fleurs"></div>
-      </section>
-      <section class="category-section">
-        <h2>Fleurs séchées</h2>
-        <div class="products-grid" id="seches"></div>
-      </section>
-      <section class="category-section">
-        <h2>Compositions</h2>
-        <div class="products-grid" id="composition"></div>
-      </section>
+    <main class="products-area" id="products-area">
+      <!-- Les catégories et produits seront générés dynamiquement ici -->
     </main>
   </div>
+  <script src="../static/js/api.js"></script>
   <script>
+    console.log("JS chargé !");
+
     let selectedColors = [];
     let allProducts = [];
+    let allCategories = [];
+
+    function renderCategories() {
+      const productsArea = document.getElementById('products-area');
+      productsArea.innerHTML = '';
+      allCategories.forEach(cat => {
+        const section = document.createElement('section');
+        section.className = 'category-section';
+        section.innerHTML = `
+          <h2>${cat.name}</h2>
+          <div class="products-grid" id="${cat.slug}"></div>
+        `;
+        productsArea.appendChild(section);
+      });
+
+      if (!document.getElementById('autre')) {
+        const otherSection = document.createElement('section');
+        otherSection.className = 'category-section';
+        otherSection.innerHTML = `
+          <h2>Autres</h2>
+          <div class="products-grid" id="autre"></div>
+        `;
+        productsArea.appendChild(otherSection);
+      }
+
+      const filtersDiv = document.getElementById('categories-filters');
+      filtersDiv.innerHTML = '';
+      allCategories.forEach(cat => {
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" value="${cat.slug}" class="category-filter"> ${cat.name}`;
+        filtersDiv.appendChild(label);
+      });
+    }
 
     function setupFilters() {
       const colorCounter = document.querySelector('.color-counter');
@@ -151,36 +169,39 @@
       const maxPrice = parseFloat(document.getElementById('maxPrice').value) || Infinity;
       const filteredProducts = allProducts.filter(product => {
         const matchesSearch = product.name.toLowerCase().includes(searchText);
-        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category);
+        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category_slug);
         const matchesPrice = product.price >= minPrice && product.price <= maxPrice;
-        const matchesColor = selectedColors.length === 0 || product.colors.some(color => selectedColors.includes(color));
+        const matchesColor = selectedColors.length === 0 || (product.colors && product.colors.some(color => selectedColors.includes(color)));
         return matchesSearch && matchesCategory && matchesPrice && matchesColor;
       });
       displayProducts(filteredProducts);
     }
 
     function displayProducts(products) {
-      ['fleurs', 'seches', 'composition'].forEach(id => {
-        document.getElementById(id).innerHTML = '';
+      allCategories.forEach(cat => {
+        const grid = document.getElementById(cat.slug);
+        if (grid) grid.innerHTML = '';
       });
+      const otherGrid = document.getElementById('autre');
+      if (otherGrid) otherGrid.innerHTML = '';
+
       products.forEach(product => {
+        const container = document.getElementById(product.category_slug);
+        const target = container || document.getElementById('autre');
+        if (!target) return;
         const productCard = `
           <div class="product-card">
             ${product.outOfStock ? `<div class="out-of-stock-banner">Rupture de stock</div>` : ''}
             <h3>${product.name}</h3>
             <div class="product-colors">
-              ${product.colors.map(color => `<span class="color-dot" style="background: ${color}"></span>`).join('')}
+              ${(product.colors || []).map(color => `<span class="color-dot" style="background: ${color}"></span>`).join('')}
             </div>
             <p class="product-price">${product.price} €</p>
             <button class="add-to-cart" ${product.outOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>Commander</button>
           </div>
         `;
-        const container = document.getElementById(product.category);
-        if (container) {
-          container.innerHTML += productCard;
-        }
+        target.innerHTML += productCard;
       });
-      // Ajout listeners bouton commander
       document.querySelectorAll('.add-to-cart').forEach((btn, idx) => {
         btn.addEventListener('click', () => {
           const prod = products[idx];
@@ -192,7 +213,6 @@
       });
     }
 
-    // Panier badge
     function updateCartCount() {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       const badge = document.getElementById('cart-count');
@@ -201,7 +221,54 @@
         badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
       }
     }
-    document.addEventListener('DOMContentLoaded', updateCartCount);
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      updateCartCount();
+
+      // Récupère les catégories depuis l'API
+      const categoriesResp = await apiService.getCategories();
+      const rawCategories = categoriesResp.data || categoriesResp;
+      console.log("Catégories brutes :", rawCategories);
+
+      // Utilise le nom comme identifiant temporaire
+      allCategories = rawCategories.map(cat => ({
+        id: cat.name,
+        name: cat.name,
+        slug: cat.slug || cat.name.toLowerCase().replace(/ /g, '_').replace(/[^\w-]/g, '')
+      }));
+
+      console.log("Catégories traitées :", allCategories);
+
+      renderCategories();
+
+      // Récupère les produits depuis l'API
+      const productsResp = await apiService.getProducts();
+      const rawProducts = (productsResp.data || productsResp);
+      console.log("Produits bruts :", rawProducts);
+      console.log("Premier produit :", rawProducts[0]);
+
+      // Mapping produit : on prend le nom de la catégorie depuis l'objet category
+      allProducts = rawProducts.map(prod => {
+        let catName = null;
+        if (prod.category && typeof prod.category === "object" && "name" in prod.category) {
+          catName = prod.category.name;
+        } else if (typeof prod.category === "string") {
+          catName = prod.category;
+        } else if (prod.category_name) {
+          catName = prod.category_name;
+        }
+        let cat = allCategories.find(c => c.name === catName);
+        return {
+          ...prod,
+          category_slug: cat ? cat.slug : 'autre'
+        };
+      });
+
+      console.log("Produits traités :", allProducts);
+
+      setupFilters();
+      displayProducts(allProducts);
+    });
 
     // Panel profil
     document.addEventListener('DOMContentLoaded', function() {
@@ -216,31 +283,16 @@
           profilePanel.style.display = 'none';
         }
       });
-      let loggedIn = false;
       document.getElementById('login-btn').onclick = function() {
-        loggedIn = true;
-        this.style.display = 'none';
-        document.getElementById('logout-btn').style.display = '';
+        window.location.href = "account.html";
       };
       document.getElementById('logout-btn').onclick = function() {
-        loggedIn = false;
-        this.style.display = 'none';
-        document.getElementById('login-btn').style.display = '';
-      };
-      document.getElementById('delete-btn').onclick = function() {
-        alert('Suppression du compte (fonctionnalité à venir)');
+        localStorage.removeItem('user');
+        window.location.reload();
       };
     });
-
-    window.onload = () => {
-      allProducts = JSON.parse(localStorage.getItem('products') || '[]');
-      displayProducts(allProducts);
-      setupFilters();
-      updateCartCount();
-    };
   </script>
   <style>
-    /* ...existing code... */
     .out-of-stock-banner {
       background: #bc6288;
       color: #fff;
@@ -253,6 +305,7 @@
       margin-bottom: 10px;
       width: 100%;
     }
+    /* Ajoute ici tes styles .product-card, .products-grid, .category-section, etc. */
   </style>
 </body>
 </html>

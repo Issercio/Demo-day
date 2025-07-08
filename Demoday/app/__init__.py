@@ -14,20 +14,31 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
     
-    # Configuration de la base de données
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:root@localhost:5432/florashop'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['JSON_AS_ASCII'] = False
-    app.config['ADMIN_TOKEN'] = 'florashop_admin_2024_secure'
+    # Configuration CORS plus permissive
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": ["http://localhost:8000", "http://localhost:5000"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+    })
+    
+    # Configuration de la base de données et autres paramètres
+    app.config.update(
+        SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:root@localhost:5432/florashop',
+        SQLALCHEMY_TRACK_MODIFICATIONS = False,
+        JSON_AS_ASCII = False,
+        SECRET_KEY = 'dev_secret_key_123',  # Clé pour JWT
+        ADMIN_TOKEN = 'florashop_admin_2024_secure'
+    )
 
     # Initialisation des extensions
     db.init_app(app)
     migrate.init_app(app, db)
 
     # Import des modèles pour l'initialisation
-    from app.models import Category, Product, User, Review, Price
+    from app.models import Category, Product, User  # Suppression de Review et Price
 
     # Swagger UI : ajout du header Authorization
     authorizations = {
@@ -60,12 +71,10 @@ def create_app():
     from app.api.v1.categories_restx import api as categories_ns
     api.add_namespace(categories_ns, path='/api/v1/categories')
 
-    from app.api.v1.reviews_restx import api as reviews_ns
-    api.add_namespace(reviews_ns, path='/api/v1/reviews')
-
     from app.api.v1.auth import api as auth_ns
     api.add_namespace(auth_ns, path='/api/v1/auth')
-
+    # Suppression de reviews_restx
+    
     # Redirection de la racine vers Swagger UI
     @app.route('/')
     def index():
@@ -138,5 +147,7 @@ def test_database_connection():
     
     return True
 
+if __name__ == "__main__":
+    test_database_connection()
 if __name__ == "__main__":
     test_database_connection()
