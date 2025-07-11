@@ -7,214 +7,663 @@
     <link rel="stylesheet" href="../static/css/style.css">
     <style>
         .admin-container {
-            padding: 20px;
             max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .admin-section {
-            margin-bottom: 30px;
+            margin: 40px auto;
             padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
         }
-        
+
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #bc6288;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 15px 30px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            color: #bc6288;
+            border-bottom-color: #bc6288;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .admin-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+            align-items: end;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
         .form-group {
-            margin-bottom: 15px;
+            flex: 1;
+            min-width: 200px;
         }
-        
+
         .form-group label {
             display: block;
             margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
         }
-        
-        .form-group input, .form-group select {
+
+        .form-group input,
+        .form-group select {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
         }
-        
-        .item-list {
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-save {
+            background: #bc6288;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #ab597c;
+        }
+
+        .btn-edit {
+            background: #3498db;
+            color: white;
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .btn-cancel {
+            background: #95a5a6;
+            color: white;
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 20px;
         }
-        
-        .item-card {
-            padding: 10px;
-            border: 1px solid #eee;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+
+        .admin-table th,
+        .admin-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
         }
-        
-        .delete-btn {
-            background: #ff4444;
-            color: white;
-            border: none;
-            padding: 5px 10px;
+
+        .admin-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .edit-input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #bc6288;
             border-radius: 4px;
-            cursor: pointer;
         }
     </style>
 </head>
 <body>
+    <!-- Header avec cadenas admin visible -->
     <header>
-        <!-- ...existing header code... -->
+        <img class="logo" src="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6~mv2.png/v1/crop/x_748,y_1016,w_3355,h_2788/fill/w_239,h_198,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20P%26L%20Rond%20neutre%20pour%20fond%20clairsans%20fond%20-%20by%20fadamentalpics.png" alt="Logo pivoine & lilas, artisan fleuriste" width="120" height="100">
+        <nav>
+            <ul>
+                <li><a href="accueil.html">ACCUEIL</a></li>
+                <li><a href="shop.html">SHOP</a></li>
+                <li><a href="evenementiel.html">ÉVÈNEMENTIEL</a></li>
+                <li><a href="entreprises.html">ENTREPRISES</a></li>
+                <li><a href="portfolio.html">PORTFOLIO</a></li>
+                <li><a href="contact.html">CONTACT</a></li>
+                <li><a href="subscription.html">ABONNEMENT</a></li>
+                <li>
+                    <a href="panier.html" id="cart-link" style="position:relative;">
+                        <span style="font-size:22px;vertical-align:middle;">🛒</span>
+                        <span id="cart-count" style="position:absolute;top:0;right:-10px;background:#bc6288;color:#fff;font-size:13px;padding:1px 6px;border-radius:10px;display:none;">0</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="admin.html" style="font-size:22px;vertical-align:middle;color:#bc6288;" title="Administration">🔒</a>
+                </li>
+                <li style="position:relative;">
+                    <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
+                    <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;min-width:200px;">
+                        <div id="user-email" style="margin-bottom: 15px; color: #bc6288; font-size: 0.9em; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; display: none;"></div>
+                        <button id="login-btn" class="cta-btn" style="width:100%; margin-bottom: 8px;">Se connecter</button>
+                        <button id="logout-btn" class="cta-btn" style="width:100%; margin-bottom: 8px; display: none;">Déconnexion</button>
+                        <button id="delete-btn" class="cta-btn" style="width:100%; background: #fff; color: #bc6288; border: 1.5px solid #bc6288; display: none;">Supprimer le compte</button>
+                    </div>
+                </li>
+            </ul>
+        </nav>
     </header>
 
-    <div class="admin-container">
-        <h1>Administration</h1>
+    <main class="admin-container">
+        <h1 style="color: #bc6288; text-align: center; margin-bottom: 30px;">🔒 Administration FloraShop</h1>
         
-        <!-- Section Catégories -->
-        <div class="admin-section">
-            <h2>Gestion des Catégories</h2>
-            <form id="category-form">
-                <div class="form-group">
-                    <label for="category-name">Nom de la catégorie</label>
-                    <input type="text" id="category-name" required>
-                </div>
-                <button type="submit">Ajouter une catégorie</button>
-            </form>
-            <div id="categories-list" class="item-list">
-                <!-- Les catégories seront ajoutées ici dynamiquement -->
+        <div class="admin-tabs">
+            <button class="tab-btn active" data-tab="categories">Catégories</button>
+            <button class="tab-btn" data-tab="products">Produits</button>
+        </div>
+
+        <!-- Onglet Catégories -->
+        <div id="categories-tab" class="tab-content active">
+            <div class="admin-section">
+                <h2>🏷️ Gestion des Catégories</h2>
+                
+                <form id="category-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="category-name">Nom de la catégorie</label>
+                            <input type="text" id="category-name" required>
+                        </div>
+                        <button type="submit" class="btn btn-save">Ajouter</button>
+                    </div>
+                </form>
+
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nom</th>
+                            <th>Nombre de produits</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categories-list">
+                        <!-- Categories chargées via API -->
+                    </tbody>
+                </table>
             </div>
         </div>
-        
-        <!-- Section Produits -->
-        <div class="admin-section">
-            <h2>Gestion des Produits</h2>
-            <form id="product-form">
-                <div class="form-group">
-                    <label for="product-name">Nom du produit</label>
-                    <input type="text" id="product-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="product-price">Prix</label>
-                    <input type="number" id="product-price" step="0.01" required>
-                </div>
-                <div class="form-group">
-                    <label for="product-category">Catégorie</label>
-                    <select id="product-category" required>
-                        <!-- Les catégories seront ajoutées ici dynamiquement -->
-                    </select>
-                </div>
-                <button type="submit">Ajouter un produit</button>
-            </form>
-            <div id="products-list" class="item-list">
-                <!-- Les produits seront ajoutés ici dynamiquement -->
+
+        <!-- Onglet Produits -->
+        <div id="products-tab" class="tab-content">
+            <div class="admin-section">
+                <h2>📦 Gestion des Produits</h2>
+                
+                <form id="product-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-name">Nom du produit</label>
+                            <input type="text" id="product-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-price">Prix (€)</label>
+                            <input type="number" id="product-price" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-category">Catégorie</label>
+                            <select id="product-category" required>
+                                <option value="">Sélectionner...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-stock">Stock</label>
+                            <input type="number" id="product-stock" value="0" required>
+                        </div>
+                        <button type="submit" class="btn btn-save">Ajouter</button>
+                    </div>
+                </form>
+
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nom</th>
+                            <th>Prix</th>
+                            <th>Catégorie</th>
+                            <th>Stock</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-list">
+                        <!-- Produits chargés via API -->
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
+    </main>
 
     <script src="../static/js/api.js"></script>
     <script>
-        // Vérification de l'authentification admin
-        if (!apiService.isLoggedIn() || !apiService.isAdmin()) {
-            window.location.href = 'account.html';
+        let categories = [];
+        let products = [];
+
+        // Vérification admin au chargement
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userData = JSON.parse(localStorage.getItem('user'));
+            if (!userData || !userData.is_admin) {
+                alert('Accès refusé. Vous devez être administrateur.');
+                window.location.href = 'accueil.html';
+                return;
+            }
+
+            // Gestion des onglets
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                    
+                    btn.classList.add('active');
+                    document.getElementById(btn.dataset.tab + '-tab').classList.add('active');
+                });
+            });
+
+            await loadData();
+            setupEventListeners();
+        });
+
+        // Chargement des données depuis l'API
+        async function loadData() {
+            try {
+                // Charger catégories
+                const categoriesResponse = await fetch('http://localhost:5000/api/v1/categories');
+                categories = await categoriesResponse.json();
+                renderCategories();
+                updateCategorySelect();
+
+                // Charger produits
+                const productsResponse = await fetch('http://localhost:5000/api/v1/products');
+                products = await productsResponse.json();
+                renderProducts();
+            } catch (error) {
+                console.error('Erreur chargement données:', error);
+            }
         }
 
-        // Fonctions de mise à jour de l'interface
-        async function refreshCategories() {
-            const categories = await apiService.getCategories();
-            const categoriesList = document.getElementById('categories-list');
-            const categorySelect = document.getElementById('product-category');
-            
-            categoriesList.innerHTML = '';
-            categorySelect.innerHTML = '<option value="">Sélectionnez une catégorie</option>';
-            
-            categories.forEach(category => {
-                // Liste des catégories
-                const categoryDiv = document.createElement('div');
-                categoryDiv.className = 'item-card';
-                categoryDiv.innerHTML = `
-                    <span>${category.name}</span>
-                    <button class="delete-btn" onclick="deleteCategory('${category.id}')">Supprimer</button>
+        // Render functions CORRIGÉES
+        function renderCategories() {
+            const tbody = document.getElementById('categories-list');
+            tbody.innerHTML = categories.map(cat => {
+                console.log('Rendering category:', cat); // DEBUG
+                return `
+                <tr data-category-id="${cat.id}">
+                    <td>${cat.id}</td>
+                    <td>
+                        <span class="category-name">${cat.name}</span>
+                        <input type="text" class="edit-input category-edit" value="${cat.name}" style="display:none;">
+                    </td>
+                    <td>${products.filter(p => p.category && p.category.id === cat.id).length}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-edit" onclick="editCategory(${cat.id})">Modifier</button>
+                            <button class="btn btn-delete" onclick="deleteCategory(${cat.id})">Supprimer</button>
+                            <button class="btn btn-save category-save" onclick="saveCategory(${cat.id})" style="display:none;">Sauver</button>
+                            <button class="btn btn-cancel category-cancel" onclick="cancelEditCategory(${cat.id})" style="display:none;">Annuler</button>
+                        </div>
+                    </td>
+                </tr>
                 `;
-                categoriesList.appendChild(categoryDiv);
+            }).join('');
+        }
+
+        function renderProducts() {
+            const tbody = document.getElementById('products-list');
+            tbody.innerHTML = products.map(prod => {
+                console.log('Rendering product:', prod); // DEBUG
+                return `
+                <tr data-product-id="${prod.id}">
+                    <td>${prod.id}</td>
+                    <td>
+                        <span class="product-name">${prod.name}</span>
+                        <input type="text" class="edit-input product-name-edit" value="${prod.name}" style="display:none;">
+                    </td>
+                    <td>
+                        <span class="product-price">${prod.price}€</span>
+                        <input type="number" class="edit-input product-price-edit" value="${prod.price}" step="0.01" style="display:none;">
+                    </td>
+                    <td>
+                        <span class="product-category">${prod.category ? prod.category.name : 'Aucune'}</span>
+                        <select class="edit-input product-category-edit" style="display:none;">
+                            ${categories.map(cat => `<option value="${cat.id}" ${prod.category && prod.category.id === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td>
+                        <span class="product-stock">${prod.stock}</span>
+                        <input type="number" class="edit-input product-stock-edit" value="${prod.stock}" style="display:none;">
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-edit" onclick="editProduct(${prod.id})">Modifier</button>
+                            <button class="btn btn-delete" onclick="deleteProduct(${prod.id})">Supprimer</button>
+                            <button class="btn btn-save product-save" onclick="saveProduct(${prod.id})" style="display:none;">Sauver</button>
+                            <button class="btn btn-cancel product-cancel" onclick="cancelEditProduct(${prod.id})" style="display:none;">Annuler</button>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        // Mise à jour du select des catégories
+        function updateCategorySelect() {
+            const select = document.getElementById('product-category');
+            select.innerHTML = '<option value="">Sélectionner...</option>' + 
+                categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
+        }
+
+        // Event listeners
+        function setupEventListeners() {
+            // Formulaire catégorie
+            document.getElementById('category-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('category-name').value.trim();
+                if (name) {
+                    await createCategory(name);
+                    document.getElementById('category-name').value = '';
+                }
+            });
+
+            // Formulaire produit
+            document.getElementById('product-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('product-name').value.trim();
+                const price = document.getElementById('product-price').value;
+                const categoryId = document.getElementById('product-category').value;
+                const stock = document.getElementById('product-stock').value;
                 
-                // Select des catégories
-                const option = document.createElement('option');
-                option.value = category.id;
-                option.textContent = category.name;
-                categorySelect.appendChild(option);
+                if (name && price && categoryId) {
+                    await createProduct(name, price, categoryId, stock);
+                    document.getElementById('product-form').reset();
+                }
             });
         }
 
-        async function refreshProducts() {
-            const products = await apiService.getProducts();
-            const productsList = document.getElementById('products-list');
+        // Fonctions CRUD pour catégories
+        async function createCategory(name) {
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                
+                if (response.ok) {
+                    await loadData();
+                    alert('Catégorie créée avec succès !');
+                }
+            } catch (error) {
+                console.error('Erreur création catégorie:', error);
+            }
+        }
+
+        function editCategory(id) {
+            console.log('Edit category ID:', id);
+            const row = document.querySelector(`tr[data-category-id="${id}"]`);
+            if (!row) {
+                console.error('Row not found for category ID:', id);
+                return;
+            }
+            row.querySelector('.category-name').style.display = 'none';
+            row.querySelector('.category-edit').style.display = 'block';
+            row.querySelector('.btn-edit').style.display = 'none';
+            row.querySelector('.btn-delete').style.display = 'none';
+            row.querySelector('.category-save').style.display = 'inline-block';
+            row.querySelector('.category-cancel').style.display = 'inline-block';
+        }
+
+        async function saveCategory(id) {
+            console.log('Save category ID:', id);
+            const row = document.querySelector(`tr[data-category-id="${id}"]`);
+            if (!row) {
+                console.error('Row not found for category ID:', id);
+                return;
+            }
+            const newName = row.querySelector('.category-edit').value;
             
-            productsList.innerHTML = '';
-            products.forEach(product => {
-                const productDiv = document.createElement('div');
-                productDiv.className = 'item-card';
-                productDiv.innerHTML = `
-                    <span>${product.name} - ${product.price}€</span>
-                    <button class="delete-btn" onclick="deleteProduct('${product.id}')">Supprimer</button>
-                `;
-                productsList.appendChild(productDiv);
-            });
+            try {
+                const response = await fetch(`http://localhost:5000/api/v1/categories/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName })
+                });
+                
+                if (response.ok) {
+                    await loadData();
+                    alert('Catégorie modifiée avec succès !');
+                } else {
+                    const error = await response.json();
+                    alert('Erreur: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Erreur modification catégorie:', error);
+                alert('Erreur de communication');
+            }
         }
 
-        // Gestionnaires d'événements pour les formulaires
-        document.getElementById('category-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const name = document.getElementById('category-name').value;
-            const result = await apiService.createCategory({ name });
-            if (result.success) {
-                document.getElementById('category-name').value = '';
-                refreshCategories();
-            } else {
-                alert('Erreur lors de la création de la catégorie');
-            }
-        });
+        function cancelEditCategory(id) {
+            console.log('Cancel edit category ID:', id);
+            const row = document.querySelector(`tr[data-category-id="${id}"]`);
+            row.querySelector('.category-name').style.display = 'block';
+            row.querySelector('.category-edit').style.display = 'none';
+            row.querySelector('.btn-edit').style.display = 'inline-block';
+            row.querySelector('.btn-delete').style.display = 'inline-block';
+            row.querySelector('.category-save').style.display = 'none';
+            row.querySelector('.category-cancel').style.display = 'none';
+        }
 
-        document.getElementById('product-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const productData = {
-                name: document.getElementById('product-name').value,
-                price: parseFloat(document.getElementById('product-price').value),
-                category_id: document.getElementById('product-category').value
-            };
-            const result = await apiService.createProduct(productData);
-            if (result.success) {
-                document.getElementById('product-form').reset();
-                refreshProducts();
-            } else {
-                alert('Erreur lors de la création du produit');
-            }
-        });
-
-        // Fonctions de suppression
         async function deleteCategory(id) {
-            if (confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) {
-                const success = await apiService.deleteCategory(id);
-                if (success) {
-                    refreshCategories();
-                    refreshProducts();
-                } else {
-                    alert('Erreur lors de la suppression de la catégorie');
+            console.log('Delete category ID:', id);
+            if (confirm('Supprimer cette catégorie ?')) {
+                try {
+                    const response = await fetch(`http://localhost:5000/api/v1/categories/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        await loadData();
+                        alert('Catégorie supprimée avec succès !');
+                    } else {
+                        const error = await response.json();
+                        alert('Erreur: ' + error.error);
+                    }
+                } catch (error) {
+                    console.error('Erreur suppression catégorie:', error);
+                    alert('Erreur de communication');
                 }
             }
+        }
+
+        // Fonctions CRUD pour produits
+        async function createProduct(name, price, categoryId, stock) {
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name, 
+                        price: parseFloat(price), 
+                        category_id: parseInt(categoryId),
+                        stock: parseInt(stock)
+                    })
+                });
+                
+                if (response.ok) {
+                    await loadData();
+                    alert('Produit créé avec succès !');
+                }
+            } catch (error) {
+                console.error('Erreur création produit:', error);
+            }
+        }
+
+        function editProduct(id) {
+            console.log('Edit product ID:', id);
+            const row = document.querySelector(`tr[data-product-id="${id}"]`);
+            if (!row) {
+                console.error('Row not found for product ID:', id);
+                return;
+            }
+            row.querySelector('.product-name').style.display = 'none';
+            row.querySelector('.product-name-edit').style.display = 'block';
+            row.querySelector('.product-price').style.display = 'none';
+            row.querySelector('.product-price-edit').style.display = 'block';
+            row.querySelector('.product-category').style.display = 'none';
+            row.querySelector('.product-category-edit').style.display = 'block';
+            row.querySelector('.product-stock').style.display = 'none';
+            row.querySelector('.product-stock-edit').style.display = 'block';
+            row.querySelector('.btn-edit').style.display = 'none';
+            row.querySelector('.btn-delete').style.display = 'none';
+            row.querySelector('.product-save').style.display = 'inline-block';
+            row.querySelector('.product-cancel').style.display = 'inline-block';
+        }
+
+        async function saveProduct(id) {
+            console.log('Save product ID:', id);
+            const row = document.querySelector(`tr[data-product-id="${id}"]`);
+            const newName = row.querySelector('.product-name-edit').value;
+            const newPrice = row.querySelector('.product-price-edit').value;
+            const newCategoryId = row.querySelector('.product-category-edit').value;
+            const newStock = row.querySelector('.product-stock-edit').value;
+            
+            try {
+                const response = await fetch(`http://localhost:5000/api/v1/products/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: newName,
+                        price: parseFloat(newPrice),
+                        category_id: parseInt(newCategoryId),
+                        stock: parseInt(newStock)
+                    })
+                });
+                
+                if (response.ok) {
+                    await loadData();
+                    alert('Produit modifié avec succès !');
+                } else {
+                    const error = await response.json();
+                    alert('Erreur: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Erreur modification produit:', error);
+                alert('Erreur de communication');
+            }
+        }
+
+        function cancelEditProduct(id) {
+            const row = document.querySelector(`tr[data-product-id="${id}"]`);
+            row.querySelector('.product-name').style.display = 'block';
+            row.querySelector('.product-name-edit').style.display = 'none';
+            row.querySelector('.product-price').style.display = 'block';
+            row.querySelector('.product-price-edit').style.display = 'none';
+            row.querySelector('.product-category').style.display = 'block';
+            row.querySelector('.product-category-edit').style.display = 'none';
+            row.querySelector('.product-stock').style.display = 'block';
+            row.querySelector('.product-stock-edit').style.display = 'none';
+            row.querySelector('.btn-edit').style.display = 'inline-block';
+            row.querySelector('.btn-delete').style.display = 'inline-block';
+            row.querySelector('.product-save').style.display = 'none';
+            row.querySelector('.product-cancel').style.display = 'none';
         }
 
         async function deleteProduct(id) {
-            if (confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
-                const success = await apiService.deleteProduct(id);
-                if (success) {
-                    refreshProducts();
-                } else {
-                    alert('Erreur lors de la suppression du produit');
+            console.log('Delete product ID:', id);
+            if (confirm('Supprimer ce produit ?')) {
+                try {
+                    const response = await fetch(`http://localhost:5000/api/v1/products/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        await loadData();
+                        alert('Produit supprimé avec succès !');
+                    } else {
+                        const error = await response.json();
+                        alert('Erreur: ' + error.error);
+                    }
+                } catch (error) {
+                    console.error('Erreur suppression produit:', error);
+                    alert('Erreur de communication');
                 }
             }
         }
 
-        // Initialisation
+        // Gestion du profil
         document.addEventListener('DOMContentLoaded', function() {
-            refreshCategories();
-            refreshProducts();
+            const userData = JSON.parse(localStorage.getItem('user'));
+            const userEmail = document.getElementById('user-email');
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const deleteBtn = document.getElementById('delete-btn');
+            const profilePanel = document.getElementById('profile-panel');
+            const profileLink = document.getElementById('profile-link');
+
+            if (userData) {
+                userEmail.textContent = userData.email;
+                userEmail.style.display = 'block';
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'block';
+                deleteBtn.style.display = 'block';
+            }
+
+            profileLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                profilePanel.style.display = profilePanel.style.display === 'block' ? 'none' : 'block';
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!profilePanel.contains(e.target) && e.target !== profileLink) {
+                    profilePanel.style.display = 'none';
+                }
+            });
+
+            loginBtn.addEventListener('click', () => window.location.href = 'account.html');
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('user');
+                localStorage.removeItem('auth_token');
+                window.location.href = 'accueil.html';
+            });
         });
     </script>
 </body>

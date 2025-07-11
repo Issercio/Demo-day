@@ -24,6 +24,10 @@
             <span id="cart-count" style="position:absolute;top:0;right:-10px;background:#bc6288;color:#fff;font-size:13px;padding:1px 6px;border-radius:10px;display:none;">0</span>
           </a>
         </li>
+        <!-- Cadenas admin -->
+        <li id="admin-access" style="display:none;">
+          <a href="admin.html" style="font-size:22px;vertical-align:middle;color:#bc6288;" title="Administration">🔒</a>
+        </li>
         <li style="position:relative;">
           <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
           <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;min-width:200px;">
@@ -46,10 +50,8 @@
       </div>
       <div class="filter-section">
         <h3>Catégories</h3>
-        <div class="filter-options">
-          <label><input type="checkbox" value="fleurs" class="category-filter"> Fleurs fraîches</label>
-          <label><input type="checkbox" value="seches" class="category-filter"> Fleurs séchées</label>
-          <label><input type="checkbox" value="composition" class="category-filter"> Compositions</label>
+        <div class="filter-options" id="categories-filters">
+          <!-- Les catégories seront chargées depuis l'API -->
         </div>
       </div>
       <div class="filter-section">
@@ -76,19 +78,12 @@
       </div>
     </aside>
     <!-- Zone produits -->
-    <main class="products-area">
-      <section class="category-section">
-        <h2>Fleurs fraîches</h2>
-        <div class="products-grid" id="fleurs"></div>
-      </section>
-      <section class="category-section">
-        <h2>Fleurs séchées</h2>
-        <div class="products-grid" id="seches"></div>
-      </section>
-      <section class="category-section">
-        <h2>Compositions</h2>
-        <div class="products-grid" id="composition"></div>
-      </section>
+    <main class="products-area" id="products-area">
+      <!-- Les catégories et produits seront chargés depuis l'API -->
+      <div style="text-align: center; color: #bc6288; padding: 60px 20px;">
+        <h2>Boutique en construction</h2>
+        <p>Les produits seront bientôt disponibles via notre API.</p>
+      </div>
     </main>
   </div>
   <script src="../static/js/api.js"></script>
@@ -133,7 +128,6 @@
     });
 
     let selectedColors = [];
-    let allProducts = [];
 
     function setupFilters() {
       const colorCounter = document.querySelector('.color-counter');
@@ -141,6 +135,7 @@
       const addColorBtn = document.getElementById('addColor');
       const resetColorsBtn = document.getElementById('resetColors');
       const selectedColorsDiv = document.querySelector('.selected-colors');
+      
       addColorBtn.addEventListener('click', () => {
         const color = colorPicker.value;
         if (selectedColors.includes(color)) {
@@ -154,10 +149,12 @@
         selectedColors.push(color);
         updateSelectedColorsDisplay();
       });
+      
       resetColorsBtn.addEventListener('click', () => {
         selectedColors = [];
         updateSelectedColorsDisplay();
       });
+      
       function updateSelectedColorsDisplay() {
         selectedColorsDiv.innerHTML = '';
         selectedColors.forEach(color => {
@@ -173,64 +170,141 @@
         });
         colorCounter.textContent = `${selectedColors.length}/5 couleurs sélectionnées`;
       }
-      document.getElementById('applyFilters').addEventListener('click', applyFilters);
+      
+      document.getElementById('applyFilters').addEventListener('click', () => {
+        // TODO: Implémenter les filtres avec l'API
+        console.log('Filtres à appliquer:', {
+          search: document.getElementById('searchInput').value,
+          minPrice: document.getElementById('minPrice').value,
+          maxPrice: document.getElementById('maxPrice').value,
+          colors: selectedColors
+        });
+      });
+      
       document.getElementById('resetAllFilters').addEventListener('click', () => {
         document.getElementById('searchInput').value = '';
-        document.querySelectorAll('.category-filter').forEach(cb => cb.checked = false);
         document.getElementById('minPrice').value = '';
         document.getElementById('maxPrice').value = '';
         selectedColors = [];
         updateSelectedColorsDisplay();
-        displayProducts(allProducts);
+        // TODO: Recharger tous les produits depuis l'API
       });
     }
 
-    function applyFilters() {
-      const searchText = document.getElementById('searchInput').value.toLowerCase();
-      const selectedCategories = Array.from(document.querySelectorAll('.category-filter:checked')).map(cb => cb.value);
-      const minPrice = parseFloat(document.getElementById('minPrice').value) || 0;
-      const maxPrice = parseFloat(document.getElementById('maxPrice').value) || Infinity;
-      const filteredProducts = allProducts.filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchText);
-        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category);
-        const matchesPrice = product.price >= minPrice && product.price <= maxPrice;
-        const matchesColor = selectedColors.length === 0 || product.colors.some(color => selectedColors.includes(color));
-        return matchesSearch && matchesCategory && matchesPrice && matchesColor;
-      });
-      displayProducts(filteredProducts);
+    // Maintenant on va charger les produits depuis l'API
+    document.addEventListener('DOMContentLoaded', async function() {
+      try {
+        // Charger les catégories depuis l'API
+        const categoriesResponse = await fetch('http://localhost:5000/api/v1/categories');
+        const categories = await categoriesResponse.json();
+        
+        // Charger les produits depuis l'API  
+        const productsResponse = await fetch('http://localhost:5000/api/v1/products');
+        const products = await productsResponse.json();
+        
+        displayProductsFromAPI(categories, products);
+      } catch (error) {
+        console.error('Erreur chargement données:', error);
+      }
+    });
+
+    // Affichage du cadenas admin
+    const userData = JSON.parse(localStorage.getItem('user'));
+    const adminAccess = document.getElementById('admin-access');
+    
+    if (userData && userData.is_admin) {
+        adminAccess.style.display = 'block';
     }
 
-    function displayProducts(products) {
-      ['fleurs', 'seches', 'composition'].forEach(id => {
-        document.getElementById(id).innerHTML = '';
-      });
-      products.forEach(product => {
-        const productCard = `
-          <div class="product-card">
-            ${product.outOfStock ? `<div class="out-of-stock-banner">Rupture de stock</div>` : ''}
-            <h3>${product.name}</h3>
-            <div class="product-colors">
-              ${product.colors.map(color => `<span class="color-dot" style="background: ${color}"></span>`).join('')}
+    // Charger les données depuis l'API
+    document.addEventListener('DOMContentLoaded', async function() {
+      try {
+        console.log('Chargement des données...');
+        
+        // Charger les catégories
+        const categoriesResponse = await fetch('http://localhost:5000/api/v1/categories');
+        if (!categoriesResponse.ok) {
+          throw new Error('Erreur chargement catégories');
+        }
+        const categories = await categoriesResponse.json();
+        console.log('Catégories chargées:', categories);
+        
+        // Charger les produits (gestion d'erreur pour is_on_sale)
+        let products = [];
+        try {
+          const productsResponse = await fetch('http://localhost:5000/api/v1/products');
+          if (productsResponse.ok) {
+            products = await productsResponse.json();
+            console.log('Produits chargés:', products);
+          }
+        } catch (error) {
+          console.warn('Erreur chargement produits:', error);
+          products = [];
+        }
+        
+        displayProductsFromAPI(categories, products);
+      } catch (error) {
+        console.error('Erreur chargement données:', error);
+        // Afficher un message d'erreur
+        const productsArea = document.getElementById('products-area');
+        productsArea.innerHTML = '<div style="text-align: center; color: #bc6288; padding: 60px 20px;"><h2>Erreur de chargement</h2><p>Impossible de charger les données depuis l\'API.</p></div>';
+      }
+    });
+
+    function displayProductsFromAPI(categories, products) {
+      const productsArea = document.getElementById('products-area');
+      productsArea.innerHTML = '';
+
+      console.log('Affichage - Catégories:', categories.length, 'Produits:', products.length);
+
+      if (categories.length === 0) {
+        productsArea.innerHTML = '<div style="text-align: center; color: #bc6288; padding: 60px 20px;"><h2>Aucune catégorie disponible</h2><p>Créez des catégories dans l\'interface admin.</p></div>';
+        return;
+      }
+
+      categories.forEach(category => {
+        console.log('Processing category:', category);
+        const categoryProducts = products.filter(p => p.category && p.category.id === category.id);
+        console.log(`Products for category ${category.name}:`, categoryProducts.length);
+        
+        const categorySection = document.createElement('section');
+        categorySection.className = 'category-section';
+        categorySection.innerHTML = `
+          <h2>${category.name} (${categoryProducts.length} produits)</h2>
+          <div class="products-carousel">
+            <button class="carousel-btn prev-btn" onclick="scrollCarousel('${category.id}', -1)">‹</button>
+            <div class="products-grid" id="category-${category.id}">
+              ${categoryProducts.length > 0 ? 
+                categoryProducts.map(product => `
+                  <div class="product-card">
+                    <h3>${product.name}</h3>
+                    <p class="product-price">${product.price}€</p>
+                    <p class="product-stock">Stock: ${product.stock || 0}</p>
+                    <button class="add-to-cart" onclick="addToCart(${JSON.stringify(product).replace(/"/g, '&quot;')})">Commander</button>
+                  </div>
+                `).join('') :
+                '<div style="text-align: center; color: #666; padding: 20px;">Aucun produit dans cette catégorie</div>'
+              }
             </div>
-            <p class="product-price">${product.price} €</p>
-            <button class="add-to-cart" ${product.outOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>Commander</button>
+            <button class="carousel-btn next-btn" onclick="scrollCarousel('${category.id}', 1)">›</button>
           </div>
         `;
-        const container = document.getElementById(product.category);
-        if (container) {
-          container.innerHTML += productCard;
-        }
+        productsArea.appendChild(categorySection);
       });
-      // Ajout listeners bouton commander
-      document.querySelectorAll('.add-to-cart').forEach((btn, idx) => {
-        btn.addEventListener('click', () => {
-          const prod = products[idx];
-          let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-          cart.push(prod);
-          localStorage.setItem('cart', JSON.stringify(cart));
-          updateCartCount();
-        });
-      });
+    }
+
+    function scrollCarousel(categoryId, direction) {
+      const grid = document.getElementById(`category-${categoryId}`);
+      const cardWidth = 280; // largeur d'une carte + gap
+      grid.scrollLeft += direction * cardWidth * 2; // scroll de 2 cartes à la fois
+    }
+
+    function addToCart(product) {
+      let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      cart.push(product);
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartCount();
+      alert('Produit ajouté au panier !');
     }
 
     // Panier badge
@@ -280,8 +354,59 @@
       updateCartCount();
     };
   </script>
+
   <style>
-    /* ...existing code... */
+    .products-carousel {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .carousel-btn {
+      background: #bc6288;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+      cursor: pointer;
+      flex-shrink: 0;
+      z-index: 2;
+    }
+
+    .carousel-btn:hover {
+      background: #ab597c;
+    }
+
+    .products-grid {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      flex: 1;
+      padding: 10px 0;
+    }
+
+    .products-grid::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .products-grid::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    .products-grid::-webkit-scrollbar-thumb {
+      background: #bc6288;
+      border-radius: 4px;
+    }
+
+    .product-card {
+      min-width: 260px;
+      flex-shrink: 0;
+    }
     .out-of-stock-banner {
       background: #bc6288;
       color: #fff;

@@ -26,6 +26,10 @@
             <span id="cart-count" style="position:absolute;top:0;right:-10px;background:#bc6288;color:#fff;font-size:13px;padding:1px 6px;border-radius:10px;display:none;">0</span>
           </a>
         </li>
+        <!-- Cadenas admin (visible uniquement pour les admins) -->
+        <li id="admin-access" style="display:none;">
+          <a href="admin.html" style="font-size:22px;vertical-align:middle;color:#bc6288;" title="Administration">🔒</a>
+        </li>
         <li style="position:relative;">
           <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
           <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;min-width:200px;">
@@ -97,6 +101,13 @@
         deleteBtn.style.display = 'block';
     }
 
+    // Vérifier si l'utilisateur est admin pour afficher le cadenas
+    const adminAccess = document.getElementById('admin-access');
+    
+    if (userData && userData.is_admin) {
+        adminAccess.style.display = 'block';
+    }
+
     // Gestion du panel
     profileLink.addEventListener('click', function(e) {
         e.preventDefault();
@@ -128,6 +139,6 @@
     }
     updateCartCount();
   });
-</script>
+  </script>
 </body>
 </html>
