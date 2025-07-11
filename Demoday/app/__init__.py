@@ -38,7 +38,7 @@ def create_app():
     migrate.init_app(app, db)
 
     # Import des modèles pour l'initialisation
-    from app.models import Category, Product, User  # Suppression de Review et Price
+    from .models import Category, Product, User
 
     # Swagger UI : ajout du header Authorization
     authorizations = {
