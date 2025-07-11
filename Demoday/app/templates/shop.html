@@ -275,14 +275,24 @@
             <button class="carousel-btn prev-btn" onclick="scrollCarousel('${category.id}', -1)">‹</button>
             <div class="products-grid" id="category-${category.id}">
               ${categoryProducts.length > 0 ? 
-                categoryProducts.map(product => `
-                  <div class="product-card">
-                    <h3>${product.name}</h3>
-                    <p class="product-price">${product.price}€</p>
-                    <p class="product-stock">Stock: ${product.stock || 0}</p>
-                    <button class="add-to-cart" onclick="addToCart(${JSON.stringify(product).replace(/"/g, '&quot;')})">Commander</button>
-                  </div>
-                `).join('') :
+                categoryProducts.map(product => {
+                  // Récupérer le statut de stock depuis localStorage
+                  const stockStatus = getProductStockStatus(product.id);
+                  const stockBanner = getStockBanner(stockStatus);
+                  const isOutOfStock = stockStatus === 'out';
+                  
+                  return `
+                    <div class="product-card">
+                      ${stockBanner}
+                      <h3>${product.name}</h3>
+                      <p class="product-price">${product.price}€</p>
+                      <button class="add-to-cart" onclick="addToCart(${JSON.stringify(product).replace(/"/g, '&quot;')})" 
+                              ${isOutOfStock ? 'disabled style="background:#ccc;cursor:not-allowed;"' : ''}>
+                        ${isOutOfStock ? 'Rupture de stock' : 'Commander'}
+                      </button>
+                    </div>
+                  `;
+                }).join('') :
                 '<div style="text-align: center; color: #666; padding: 20px;">Aucun produit dans cette catégorie</div>'
               }
             </div>
@@ -291,6 +301,23 @@
         `;
         productsArea.appendChild(categorySection);
       });
+    }
+
+    // Fonctions de gestion de stock côté shop
+    function getProductStockStatus(productId) {
+      const stockData = JSON.parse(localStorage.getItem('productStock') || '{}');
+      return stockData[productId] || 'available';
+    }
+
+    function getStockBanner(status) {
+      switch(status) {
+        case 'low':
+          return '<div class="stock-banner low-stock-banner">Bientôt épuisé !</div>';
+        case 'out':
+          return '<div class="stock-banner out-of-stock-banner">Rupture de stock !</div>';
+        default:
+          return '';
+      }
     }
 
     function scrollCarousel(categoryId, direction) {
@@ -407,17 +434,27 @@
       min-width: 260px;
       flex-shrink: 0;
     }
-    .out-of-stock-banner {
-      background: #bc6288;
-      color: #fff;
-      font-size: 1rem;
+    .stock-banner {
+      font-size: 0.85rem;
       font-weight: bold;
-      padding: 7px 0;
+      padding: 6px 0;
       border-radius: 8px 8px 0 0;
       text-align: center;
       letter-spacing: 0.04em;
       margin-bottom: 10px;
       width: 100%;
+    }
+
+    .low-stock-banner {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+
+    .out-of-stock-banner {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
     }
   </style>
 </body>

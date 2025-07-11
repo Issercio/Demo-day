@@ -61,6 +61,10 @@ def create_app():
         security='Bearer Auth'
     )
 
+    # IMPORTANT : Enregistrer les routes directes AVANT les namespaces
+    from app.routes import api_bp
+    app.register_blueprint(api_bp, url_prefix='/api/v1')
+
     # Enregistrement des namespaces
     from app.api.v1.products_restx import api as products_ns
     api.add_namespace(products_ns, path='/api/v1/products')

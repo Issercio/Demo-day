@@ -36,15 +36,11 @@ class Category(db.Model):
 class Product(db.Model):
     __tablename__ = 'products'
     
-    # COLONNES EXACTEMENT COMME DANS LA BASE
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
-    price = db.Column(db.Float, nullable=False)  # Pas DECIMAL, mais Float pour correspondre
+    price = db.Column(db.Float, nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id', ondelete='CASCADE'), nullable=True)
-    stock = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # AUCUNE autre colonne comme is_on_sale !
     
     def to_dict(self):
         category = Category.query.get(self.category_id) if self.category_id else None
@@ -52,7 +48,6 @@ class Product(db.Model):
             'id': int(self.id),
             'name': str(self.name),
             'price': float(self.price),
-            'stock': int(self.stock),
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'category': {
                 'id': int(category.id),

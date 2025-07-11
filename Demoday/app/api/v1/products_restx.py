@@ -6,12 +6,11 @@ from app import db
 
 api = Namespace('products', description='Gestion des produits')
 
-# Modèle PROPRE pour les produits - SANS is_on_sale
+# Modèle SANS stock
 product_model = api.model('Product', {
     'id': fields.Integer(required=True, description='ID du produit'),
     'name': fields.String(required=True, description='Nom du produit'),
     'price': fields.Float(required=True, description='Prix du produit'),
-    'stock': fields.Integer(description='Stock disponible'),
     'category_id': fields.Integer(description='ID de la catégorie')
 })
 
@@ -31,7 +30,6 @@ class ProductList(Resource):
                         'id': int(prod.id),
                         'name': str(prod.name),
                         'price': float(prod.price),
-                        'stock': int(prod.stock),
                         'category_id': prod.category_id
                     }
                     print(f"Produit RESTX: {product_dict}")
@@ -62,11 +60,11 @@ class ProductList(Resource):
             if not category:
                 api.abort(400, 'Catégorie non trouvée')
             
+            # PLUS de stock dans la création
             product = Product(
                 name=data['name'],
                 price=float(data['price']),
-                category_id=int(data['category_id']),
-                stock=int(data.get('stock', 0))
+                category_id=int(data['category_id'])
             )
             db.session.add(product)
             db.session.flush()
@@ -81,7 +79,6 @@ class ProductList(Resource):
                 'id': int(product.id),
                 'name': str(product.name),
                 'price': float(product.price),
-                'stock': int(product.stock),
                 'category_id': product.category_id
             }
             print(f"Produit créé RESTX: {result}")
@@ -106,7 +103,6 @@ class ProductResource(Resource):
                 'id': int(product.id),
                 'name': str(product.name),
                 'price': float(product.price),
-                'stock': int(product.stock),
                 'category_id': product.category_id
             }
             return result
@@ -127,13 +123,13 @@ class ProductResource(Resource):
                 product.name = str(data['name'])
             if 'price' in data:
                 product.price = float(data['price'])
-            if 'stock' in data:
-                product.stock = int(data['stock'])
             if 'category_id' in data:
                 category = Category.query.get(int(data['category_id']))
                 if not category:
                     api.abort(400, 'Catégorie non trouvée')
                 product.category_id = int(data['category_id'])
+            
+            # PLUS de stock dans les modifications
             
             db.session.commit()
             
@@ -141,7 +137,6 @@ class ProductResource(Resource):
                 'id': int(product.id),
                 'name': str(product.name),
                 'price': float(product.price),
-                'stock': int(product.stock),
                 'category_id': product.category_id
             }
             return result
@@ -163,6 +158,12 @@ class ProductResource(Resource):
             
             return {'message': f'Produit "{product_name}" supprimé'}, 200
             
+        except Exception as e:
+            db.session.rollback()
+            api.abort(500, f"Erreur: {str(e)}")
+        except Exception as e:
+            db.session.rollback()
+            api.abort(500, f"Erreur: {str(e)}")
         except Exception as e:
             db.session.rollback()
             api.abort(500, f"Erreur: {str(e)}")

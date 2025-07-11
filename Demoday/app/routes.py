@@ -318,7 +318,7 @@ def delete_category(category_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# Routes pour les produits - CORRIGÉE PROPREMENT
+# Routes pour les produits - SANS STOCK
 @api_bp.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
@@ -336,8 +336,8 @@ def products():
             product = Product(
                 name=data['name'],
                 price=float(data['price']),
-                category_id=int(data['category_id']),
-                stock=int(data.get('stock', 0))
+                category_id=int(data['category_id'])
+                # PLUS de stock
             )
             db.session.add(product)
             db.session.flush()
@@ -365,6 +365,48 @@ def products():
                 result.append(p.to_dict())
         return jsonify(result)
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Route PUT pour produit - CORRIGÉE SANS STOCK
+@api_bp.route('/products/<int:product_id>', methods=['PUT'])
+def update_product(product_id):
+    try:
+        print(f"=== MODIFICATION PRODUIT ===")
+        print(f"ID à modifier: {product_id}")
+        
+        data = request.get_json()
+        print(f"Nouvelles données: {data}")
+        
+        if not data:
+            return jsonify({'error': 'Données requises'}), 400
+        
+        product = Product.query.get(int(product_id))
+        if not product:
+            return jsonify({'error': 'Produit non trouvé'}), 404
+            
+        # Mise à jour des champs fournis SANS STOCK
+        if 'name' in data:
+            product.name = str(data['name'])
+        if 'price' in data:
+            product.price = float(data['price'])
+        if 'category_id' in data:
+            category = Category.query.get(int(data['category_id']))
+            if not category:
+                return jsonify({'error': 'Catégorie non trouvée'}), 404
+            product.category_id = int(data['category_id'])
+        # SUPPRIMÉ : if 'stock' in data
+            
+        db.session.commit()
+        
+        print(f"Produit modifié avec succès")
+        
+        return jsonify({
+            'message': 'Produit mis à jour avec succès',
+            'product': product.to_dict()
+        }), 200
+    except Exception as e:
+        print(f"Erreur modification produit: {str(e)}")
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 # Route DELETE pour produit - SIMPLIFIÉE
