@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloraShop - Abonnement Floral</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .subscription-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .plans-section {
+            padding: 60px 40px;
+        }
+        
+        .plans-title {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .plans-title h2 {
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .plans-title p {
+            font-size: 1.1em;
+            color: #7f8c8d;
+        }
+        
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+        
+        .plan-card {
+            background: white;
+            border: 3px solid #e9ecef;
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .plan-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .plan-card.selected {
+            border-color: #4ECDC4;
+            background: linear-gradient(145deg, #f8fdff, #e8f8f5);
+            transform: translateY(-5px);
+        }
+        
+        .plan-card.popular {
+            border-color: #FF6B6B;
+            position: relative;
+        }
+        
+        .plan-card.popular::before {
+            content: "🔥 POPULAIRE";
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #FF6B6B;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .plan-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+        
+        .plan-name {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .plan-price {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #4ECDC4;
+            margin-bottom: 5px;
+        }
+        
+        .plan-period {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        
+        .plan-features {
+            list-style: none;
+            margin-bottom: 30px;
+        }
+        
+        .plan-features li {
+            padding: 8px 0;
+            color: #495057;
+            position: relative;
+            padding-left: 25px;
+        }
+        
+        .plan-features li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4ECDC4;
+            font-weight: bold;
+        }
+        
+        .payment-section {
+            background: #f8f9fa;
+            padding: 60px 40px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .payment-form {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .payment-form h3 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+        }
+        
+        .selected-plan {
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #4ECDC4;
+            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+        }
+        
+        #card-element {
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: white;
+            transition: border-color 0.3s ease;
+        }
+        
+        #card-element:focus-within {
+            border-color: #4ECDC4;
+            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+        }
+        
+        .subscribe-button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            padding: 18px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .subscribe-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .subscribe-button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .error {
+            color: #e74c3c;
+            background: #fadbd8;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border: 1px solid #f1948a;
+        }
+        
+        .success {
+            color: #27ae60;
+            background: #d5f4e6;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 20px;
+            border: 1px solid #82e3aa;
+            text-align: center;
+        }
+        
+        .success h3 {
+            margin-bottom: 15px;
+            font-size: 2em;
+        }
+        
+        .terms {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            text-align: center;
+            margin-top: 20px;
+            line-height: 1.5;
+        }
+        
+        @media (max-width: 768px) {
+            .plans-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .plans-section,
+            .payment-section {
+                padding: 40px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="subscription-container">
+        <div class="header">
+            <h1>🌺 Abonnement Floral</h1>
+            <p>Recevez de magnifiques bouquets frais directement chez vous</p>
+        </div>
+        
+        <div class="plans-section">
+            <div class="plans-title">
+                <h2>Choisissez votre formule</h2>
+                <p>Résiliable à tout moment • Livraison gratuite • Fleurs fraîches garanties</p>
+            </div>
+            
+            <div class="plans-grid">
+                <div class="plan-card" data-plan="monthly" data-price="29.99">
+                    <div class="plan-icon">🌹</div>
+                    <div class="plan-name">Mensuel</div>
+                    <div class="plan-price">29,99 €</div>
+                    <div class="plan-period">par mois</div>
+                    <ul class="plan-features">
+                        <li>1 bouquet par mois</li>
+                        <li>5-7 fleurs par bouquet</li>
+                        <li>Livraison gratuite</li>
+                        <li>Carte personnalisée</li>
+                        <li>Résiliable à tout moment</li>
+                    </ul>
+                </div>
+                
+                <div class="plan-card popular" data-plan="quarterly" data-price="79.99">
+                    <div class="plan-icon">🌻</div>
+                    <div class="plan-name">Trimestriel</div>
+                    <div class="plan-price">79,99 €</div>
+                    <div class="plan-period">tous les 3 mois</div>
+                    <ul class="plan-features">
+                        <li>3 bouquets (1 par mois)</li>
+                        <li>7-10 fleurs par bouquet</li>
+                        <li>Livraison gratuite</li>
+                        <li>Cartes personnalisées</li>
+                        <li>10% d'économie</li>
+                        <li>Fleurs de saison premium</li>
+                    </ul>
+                </div>
+                
+                <div class="plan-card" data-plan="yearly" data-price="299.99">
+                    <div class="plan-icon">🌷</div>
+                    <div class="plan-name">Annuel</div>
+                    <div class="plan-price">299,99 €</div>
+                    <div class="plan-period">par an</div>
+                    <ul class="plan-features">
+                        <li>12 bouquets (1 par mois)</li>
+                        <li>10-15 fleurs par bouquet</li>
+                        <li>Livraison gratuite</li>
+                        <li>Cartes personnalisées</li>
+                        <li>20% d'économie</li>
+                        <li>Bouquets exclusifs</li>
+                        <li>Support prioritaire</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="payment-section" id="payment-section" style="display: none;">
+            <div class="payment-form">
+                <h3>💳 Finaliser votre abonnement</h3>
+                
+                <div class="selected-plan" id="selected-plan-info">
+                    <!-- Info du plan sélectionné -->
+                </div>
+                
+                <form id="subscription-form">
+                    <div class="form-group">
+                        <label for="email">📧 Email</label>
+                        <input type="email" id="email" required placeholder="votre.email@exemple.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="name">👤 Nom complet</label>
+                        <input type="text" id="name" required placeholder="Votre nom complet">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="address">🏠 Adresse de livraison</label>
+                        <input type="text" id="address" required placeholder="Votre adresse complète">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="card-element">💳 Informations de carte</label>
+                        <div id="card-element"></div>
+                        <div id="card-errors" class="error" style="display: none;"></div>
+                    </div>
+                    
+                    <button type="submit" id="subscribe-button" class="subscribe-button">
+                        🔒 S'abonner maintenant
+                    </button>
+                </form>
+                
+                <div class="terms">
+                    En vous abonnant, vous acceptez nos conditions d'utilisation.<br>
+                    Votre abonnement sera renouvelé automatiquement.<br>
+                    Résiliable à tout moment depuis votre espace client.
+                </div>
+                
+                <div id="subscription-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stripe = null;
+        let elements = null;
+        let card = null;
+        let selectedPlan = null;
+        
+        // Gérer la sélection des plans
+        document.querySelectorAll('.plan-card').forEach(card => {
+            card.addEventListener('click', () => {
+                // Désélectionner tous les plans
+                document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+                
+                // Sélectionner le plan cliqué
+                card.classList.add('selected');
+                
+                selectedPlan = {
+                    type: card.dataset.plan,
+                    price: parseFloat(card.dataset.price),
+                    name: card.querySelector('.plan-name').textContent,
+                    period: card.querySelector('.plan-period').textContent
+                };
+                
+                // Afficher les infos du plan sélectionné
+                document.getElementById('selected-plan-info').innerHTML = `
+                    <h4>Plan sélectionné: ${selectedPlan.name}</h4>
+                    <p style="font-size: 1.2em; margin-top: 10px;">
+                        <strong>${selectedPlan.price.toFixed(2)} € ${selectedPlan.period}</strong>
+                    </p>
+                `;
+                
+                // Afficher la section de paiement
+                document.getElementById('payment-section').style.display = 'block';
+                document.getElementById('payment-section').scrollIntoView({ 
+                    behavior: 'smooth' 
+                });
+                
+                // Initialiser Stripe si pas encore fait
+                if (!stripe) {
+                    initializeStripe();
+                }
+            });
+        });
+        
+        // Initialiser Stripe
+        async function initializeStripe() {
+            try {
+                // Créer un payment intent temporaire pour obtenir la clé publique
+                const response = await fetch('/api/v1/payments/create-payment-intent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: [{ product_id: 1, quantity: 1 }], // Item temporaire
+                        email: 'temp@example.com'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    stripe = Stripe(data.stripe_publishable_key);
+                    
+                    elements = stripe.elements();
+                    card = elements.create('card', {
+                        style: {
+                            base: {
+                                fontSize: '16px',
+                                color: '#424770',
+                                '::placeholder': {
+                                    color: '#aab7c4',
+                                },
+                            },
+                        },
+                    });
+                    card.mount('#card-element');
+                    
+                    card.on('change', ({error}) => {
+                        const displayError = document.getElementById('card-errors');
+                        if (error) {
+                            displayError.textContent = error.message;
+                            displayError.style.display = 'block';
+                        } else {
+                            displayError.style.display = 'none';
+                        }
+                    });
+                    
+                    console.log('Stripe initialisé avec succès');
+                }
+            } catch (error) {
+                console.error('Erreur initialisation Stripe:', error);
+            }
+        }
+        
+        // Gérer le formulaire d'abonnement
+        document.getElementById('subscription-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            
+            if (!selectedPlan) {
+                alert('Veuillez sélectionner un plan d\'abonnement');
+                return;
+            }
+            
+            const subscribeButton = document.getElementById('subscribe-button');
+            const email = document.getElementById('email').value;
+            const name = document.getElementById('name').value;
+            const address = document.getElementById('address').value;
+            
+            subscribeButton.disabled = true;
+            subscribeButton.textContent = '⏳ Création de votre abonnement...';
+            
+            try {
+                // Pour un abonnement, on simule avec un paiement unique
+                // Dans un vrai projet, vous utiliseriez Stripe Subscriptions
+                const response = await fetch('/api/v1/payments/create-payment-intent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: [{
+                            product_id: 999, // ID spécial pour abonnement
+                            quantity: 1
+                        }],
+                        email: email,
+                        subscription_type: selectedPlan.type,
+                        amount: selectedPlan.price
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erreur création abonnement');
+                }
+                
+                const { client_secret, order_id } = await response.json();
+                
+                // Confirmer le paiement avec Stripe
+                const {error, paymentIntent} = await stripe.confirmCardPayment(client_secret, {
+                    payment_method: {
+                        card: card,
+                        billing_details: {
+                            name: name,
+                            email: email,
+                            address: {
+                                line1: address
+                            }
+                        }
+                    }
+                });
+                
+                if (error) {
+                    throw new Error(error.message);
+                } else {
+                    // Abonnement créé avec succès !
+                    document.getElementById('subscription-result').innerHTML = `
+                        <div class="success">
+                            <h3>🎉 Abonnement activé !</h3>
+                            <p><strong>Félicitations ${name} !</strong></p>
+                            <p>Votre abonnement <strong>${selectedPlan.name}</strong> est maintenant actif</p>
+                            <p>Votre premier bouquet sera livré dans les 3-5 jours ouvrés</p>
+                            <p>Adresse de livraison: <strong>${address}</strong></p>
+                            <p>Email de confirmation envoyé à: <strong>${email}</strong></p>
+                            <p style="margin-top: 20px; font-size: 0.9em; opacity: 0.8;">
+                                ID de transaction: ${paymentIntent.id}
+                            </p>
+                        </div>
+                    `;
+                    
+                    // Masquer le formulaire
+                    document.getElementById('subscription-form').style.display = 'none';
+                }
+                
+            } catch (error) {
+                document.getElementById('subscription-result').innerHTML = `
+                    <div class="error">
+                        <h3>❌ Erreur d'abonnement</h3>
+                        <p>${error.message}</p>
+                        <p>Veuillez réessayer ou contacter notre support.</p>
+                    </div>
+                `;
+            }
+            
+            subscribeButton.disabled = false;
+            subscribeButton.textContent = '🔒 S\'abonner maintenant';
+        });
+    </script>
+</body>
+</html>

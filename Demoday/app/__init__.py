@@ -38,7 +38,7 @@ def create_app():
     migrate.init_app(app, db)
 
     # Import des modèles pour l'initialisation
-    from .models import Category, Product, User
+    from .models import Category, Product, User, Order, OrderItem
 
     # Swagger UI : ajout du header Authorization
     authorizations = {
@@ -62,8 +62,13 @@ def create_app():
     )
 
     # IMPORTANT : Enregistrer les routes directes AVANT les namespaces
-    from app.routes import api_bp
+    from app.routes import api_bp, main_bp
     app.register_blueprint(api_bp, url_prefix='/api/v1')
+    app.register_blueprint(main_bp)  # Routes principales sans préfixe
+    
+    # Enregistrement du blueprint des paiements
+    from app.api.v1.payments import payments_bp
+    app.register_blueprint(payments_bp, url_prefix='/api/v1/payments')
 
     # Enregistrement des namespaces
     from app.api.v1.products_restx import api as products_ns

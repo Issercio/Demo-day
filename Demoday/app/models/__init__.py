@@ -1,5 +1,6 @@
 from .category import Category
 from .user import User
+from .order import Order, OrderItem
 from app.extensions import db
 
 # Définition du modèle Product directement dans __init__.py

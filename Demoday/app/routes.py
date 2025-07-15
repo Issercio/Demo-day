@@ -1,10 +1,11 @@
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, render_template
 from flask_cors import CORS
 # CORRECTION : import direct depuis models
 from .models import Product, Category, User
 from . import db
 
 api_bp = Blueprint('api', __name__)
+main_bp = Blueprint('main', __name__)
 CORS(api_bp)
 
 @api_bp.route('/')
@@ -448,3 +449,51 @@ def debug_categories():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/payment')
+def payment_page():
+    """Page de test pour le système de paiement Stripe"""
+    return render_template('payment.html')
+
+@api_bp.route('/checkout')
+def checkout_page():
+    """Page de checkout pour finaliser les achats du panier"""
+    return render_template('checkout.html')
+
+@api_bp.route('/subscription')
+def subscription_page():
+    """Page d'abonnement floral avec paiement récurrent"""
+    return render_template('subscription_payment.html')
+
+# Routes principales pour les pages de paiement (sans préfixe API)
+
+@main_bp.route('/payment')
+def main_payment_page():
+    """Page de paiement principale"""
+    return render_template('payment.html')
+
+@main_bp.route('/checkout')
+def main_checkout_page():
+    """Page de checkout principale"""
+    return render_template('checkout.html')
+
+@main_bp.route('/subscription')
+def main_subscription_page():
+    """Page d'abonnement principale"""
+    return render_template('subscription_payment.html')
+
+# Route pour servir les fichiers statiques HTML
+@main_bp.route('/')
+def index():
+    """Page d'accueil"""
+    return render_template('accueil.html')
+
+@main_bp.route('/shop.html')
+def shop():
+    """Page boutique"""
+    return render_template('shop.html')
+
+@main_bp.route('/panier.html')
+def panier():
+    """Page panier"""
+    return render_template('panier.html')

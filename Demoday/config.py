@@ -21,6 +21,11 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
     ADMIN_TOKEN = "florashop_admin_2024_secure"  # Ajoutez cette ligne
+    
+    # Stripe Configuration
+    STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', 'pk_test_...')  # Clé publique de test
+    STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_...')  # Clé secrète de test
+    STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', 'whsec_...')  # Pour les webhooks
 
 class DevelopmentConfig(Config):
     """Development configuration settings.

@@ -133,8 +133,8 @@
       <div class="cart-summary" id="cart-summary" style="display:none;">
         <div class="cart-total" id="cart-total"></div>
         <div class="cart-actions">
-          <button id="choose-method-btn" class="choose-method-btn">Choisir une méthode de paiement</button>
-          <button id="pay-btn" class="pay-btn" disabled>Payer</button>
+          <button id="choose-method-btn" class="choose-method-btn">💳 Méthodes de paiement</button>
+          <button id="pay-btn" class="pay-btn">🔒 Finaliser la commande</button>
         </div>
       </div>
     </div>
@@ -195,6 +195,7 @@
       `;
       cartTotal.textContent = "Total : " + total.toFixed(2) + " €";
       cartSummary.style.display = "flex";
+      // Le bouton Payer est toujours activé s'il y a des produits
       payBtn.disabled = false;
     }
 
@@ -207,12 +208,163 @@
     }
 
     document.getElementById('pay-btn').addEventListener('click', function() {
-      alert("Fonctionnalité de paiement à venir !");
+      // Sauvegarder le panier et rediriger vers la page de checkout
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      if (cart.length === 0) {
+        alert('Votre panier est vide !');
+        return;
+      }
+      
+      // Redirection vers la page de checkout
+      window.location.href = '/app/checkout.html';
     });
 
     document.getElementById('choose-method-btn').addEventListener('click', function() {
-      alert("Choix de la méthode de paiement à venir !");
+      // Afficher le modal de choix de méthode de paiement
+      showPaymentMethodModal();
     });
+
+    // Modal de choix de méthode de paiement
+    function showPaymentMethodModal() {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      if (cart.length === 0) {
+        alert('Votre panier est vide !');
+        return;
+      }
+
+      // Créer le modal
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      `;
+
+      modal.innerHTML = `
+        <div style="
+          background: white;
+          padding: 40px;
+          border-radius: 20px;
+          max-width: 500px;
+          width: 90%;
+          text-align: center;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        ">
+          <h2 style="color: #bc6288; margin-bottom: 30px;">💳 Choisir votre méthode de paiement</h2>
+          
+          <div style="margin-bottom: 30px;">
+            <button onclick="selectPaymentMethod('card')" style="
+              display: block;
+              width: 100%;
+              padding: 20px;
+              margin-bottom: 15px;
+              background: linear-gradient(45deg, #bc6288, #d4819f);
+              color: white;
+              border: none;
+              border-radius: 15px;
+              font-size: 18px;
+              cursor: pointer;
+              transition: transform 0.2s ease;
+            " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+              💳 Carte bancaire (Stripe)
+              <br><small style="opacity: 0.8;">Paiement sécurisé</small>
+            </button>
+            
+            <button onclick="selectPaymentMethod('paypal')" style="
+              display: block;
+              width: 100%;
+              padding: 20px;
+              margin-bottom: 15px;
+              background: linear-gradient(45deg, #0070ba, #003087);
+              color: white;
+              border: none;
+              border-radius: 15px;
+              font-size: 18px;
+              cursor: pointer;
+              transition: transform 0.2s ease;
+            " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+              💳 PayPal
+              <br><small style="opacity: 0.8;">Bientôt disponible</small>
+            </button>
+            
+            <button onclick="selectPaymentMethod('saved')" style="
+              display: block;
+              width: 100%;
+              padding: 20px;
+              margin-bottom: 20px;
+              background: linear-gradient(45deg, #28a745, #20c997);
+              color: white;
+              border: none;
+              border-radius: 15px;
+              font-size: 18px;
+              cursor: pointer;
+              transition: transform 0.2s ease;
+            " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+              💾 Cartes enregistrées
+              <br><small style="opacity: 0.8;">Bientôt disponible</small>
+            </button>
+          </div>
+          
+          <button onclick="closePaymentModal()" style="
+            background: #6c757d;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+          ">
+            Annuler
+          </button>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      
+      // Fermer le modal en cliquant à l'extérieur
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+          closePaymentModal();
+        }
+      });
+    }
+
+    // Sélectionner une méthode de paiement
+    window.selectPaymentMethod = function(method) {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      
+      switch(method) {
+        case 'card':
+          // Rediriger vers la page de checkout Stripe
+          window.location.href = '/app/checkout.html';
+          break;
+          
+        case 'paypal':
+          alert('PayPal sera bientôt disponible ! 🚀\nEn attendant, utilisez le paiement par carte.');
+          break;
+          
+        case 'saved':
+          alert('Les cartes enregistrées seront bientôt disponibles ! 💾\nEn attendant, utilisez le paiement par carte.');
+          break;
+      }
+      
+      closePaymentModal();
+    };
+
+    // Fermer le modal
+    window.closePaymentModal = function() {
+      const modal = document.querySelector('div[style*="position: fixed"]');
+      if (modal) {
+        document.body.removeChild(modal);
+      }
+    };
 
     document.addEventListener('DOMContentLoaded', function() {
       renderCart();

@@ -140,7 +140,31 @@
 
             // Test du bouton
             selectButton.addEventListener('click', () => {
-                alert('Test: Abonnement sélectionné !');
+                const selectedCard = document.querySelector('.subscription-card.selected');
+                if (selectedCard) {
+                    const plan = selectedCard.dataset.plan;
+                    const price = selectedCard.querySelector('.price').textContent;
+                    const duration = selectedCard.querySelector('.duration').textContent;
+                    const title = selectedCard.querySelector('h2').textContent;
+                    
+                    // Créer l'abonnement comme un produit pour le checkout
+                    const subscriptionProduct = {
+                        id: `subscription_${plan}`,
+                        name: `Abonnement Floral ${title}`,
+                        price: parseFloat(price.replace('€', '')),
+                        quantity: 1,
+                        duration: duration,
+                        type: 'subscription'
+                    };
+                    
+                    // Sauvegarder l'abonnement dans le localStorage
+                    localStorage.setItem('subscription_cart', JSON.stringify([subscriptionProduct]));
+                    
+                    // Rediriger vers le checkout
+                    window.location.href = '/app/checkout.html';
+                } else {
+                    alert('Veuillez sélectionner un abonnement');
+                }
             });
 
             function updateCartCount() {
