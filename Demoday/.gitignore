@@ -9,6 +9,11 @@ env/
 part2/env/
 part2/env/**/
 
+# Variables d'environnement (contient les clés API)
+.env
+.env.local
+.env.production
+
 pycache/
 *.py[cod]
 *$py.class
