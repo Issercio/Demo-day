@@ -41,6 +41,8 @@ main {
     box-shadow: 0 2px 12px rgba(188, 98, 136, 0.07);
     cursor: pointer;
     transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    position: relative;
+    overflow: hidden;
 }
 
 .subscription-card:hover {
@@ -52,6 +54,44 @@ main {
 .subscription-card.selected {
     border-color: #bc6288;
     box-shadow: 0 0 0 3px rgba(188, 98, 136, 0.2), 0 8px 18px rgba(188, 98, 136, 0.16);
+    background: linear-gradient(180deg, #fff 0%, #fff8fb 100%);
+}
+
+.subscription-card::after {
+    content: "";
+    position: absolute;
+    inset: auto -30px -40px auto;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(210, 160, 181, 0.2) 0%, rgba(210, 160, 181, 0) 70%);
+    pointer-events: none;
+}
+
+.plan-badge {
+    display: inline-block;
+    margin-bottom: 0.65rem;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: #8c4f69;
+    background: #f6e8ef;
+    border: 1px solid #e9cfdb;
+    border-radius: 999px;
+    padding: 0.28rem 0.58rem;
+}
+
+.plan-badge.popular {
+    color: #ffffff;
+    background: linear-gradient(90deg, #bc6288 0%, #d281a3 100%);
+    border-color: transparent;
+}
+
+.plan-badge.premium {
+    color: #7c4a1a;
+    background: linear-gradient(90deg, #f7e3b1 0%, #f1d486 100%);
+    border-color: #e9c96e;
 }
 
 .subscription-card h2 {
@@ -71,6 +111,23 @@ main {
     font-size: 1.9rem;
     font-weight: 700;
     margin: 0.4rem 0 0.7rem;
+}
+
+.total-cost {
+    margin: 0 0 0.8rem;
+    color: #4f3a43;
+    font-size: 0.95rem;
+    font-weight: 600;
+    background: linear-gradient(90deg, #fbf4f8 0%, #f6edf2 100%);
+    border: 1px solid #ead6df;
+    border-radius: 10px;
+    padding: 0.52rem 0.72rem;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+}
+
+.total-cost strong {
+    color: #ab597c;
+    font-size: 1rem;
 }
 
 .features {

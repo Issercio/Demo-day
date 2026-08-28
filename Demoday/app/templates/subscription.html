@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abonnement Floral</title>
     <link rel="stylesheet" href="../static/css/style.css">
-    <link rel="stylesheet" href="../static/css/subscription.css">
+    <link rel="stylesheet" href="../static/css/subscription.css?v=20260828-2">
 </head>
 <body>
     <header>
@@ -41,42 +41,47 @@
         <section class="hero">
             <h1>Abonnement Floral Signature</h1>
             <p class="intro-text">
-                Recevez des créations florales fraîches tout au long de l'année.
-                Plus la durée est longue, plus le coût mensuel est avantageux.
+                Profitez d'un service floral premium avec livraison planifiée et compositions de saison.
+                Chaque formule est conçue pour offrir régularité, qualité et sérénité, au bureau comme à la maison.
             </p>
         </section>
 
         <section class="subscription-options">
             <div class="subscription-card" data-plan="monthly">
+                <span class="plan-badge">Découverte</span>
                 <h2>Éclat Mensuel</h2>
                 <p class="duration">1 mois</p>
-                <p class="price">19.99€</p>
+                <p class="price">19.99€ par mois</p>
                 <ul class="features">
-                    <li>1 composition premium par mois</li>
-                    <li>Palette de saison personnalisée</li>
-                    <li>Idéal pour découvrir le service</li>
+                    <li>1 création florale premium livrée chaque mois</li>
+                    <li>Sélection de saison préparée par nos artisanes fleuristes</li>
+                    <li>Formule flexible idéale pour démarrer sans engagement long</li>
                 </ul>
             </div>
 
             <div class="subscription-card" data-plan="semester">
+                <span class="plan-badge popular">Le plus choisi</span>
                 <h2>Harmonie Semestrielle</h2>
                 <p class="duration">6 mois</p>
-                <p class="price">24.99€</p>
+                <p class="price">24.99€ par mois</p>
+                <p class="total-cost">Total 6 mois : <strong>149.94€</strong></p>
                 <ul class="features">
-                    <li>Livraison florale continue sur 6 mois</li>
-                    <li>Sélections exclusives et variées</li>
-                    <li>Excellent rapport qualité-prix sur la durée</li>
+                    <li>6 livraisons programmées pour une décoration toujours fraîche</li>
+                    <li>Accès prioritaire à des compositions exclusives</li>
+                    <li>Excellent équilibre entre confort de service et budget</li>
                 </ul>
             </div>
 
             <div class="subscription-card" data-plan="yearly">
+                <span class="plan-badge premium">Engagement premium</span>
                 <h2>Collection Annuelle</h2>
                 <p class="duration">12 mois</p>
-                <p class="price">29.99€</p>
+                <p class="price">29.99€ par mois</p>
+                <p class="total-cost">Total 12 mois : <strong>359.88€</strong></p>
                 <ul class="features">
-                    <li>Programme floral complet sur 1 an</li>
-                    <li>Créations événementielles incluses</li>
-                    <li>La formule la plus complète et prestigieuse</li>
+                    <li>Programme floral annuel complet avec suivi personnalisé</li>
+                    <li>Créations dédiées aux temps forts de l'année incluses</li>
+                    <li>Notre expérience la plus complète pour un rendu haut de gamme</li>
                 </ul>
             </div>
         </section>
@@ -84,7 +89,7 @@
         <button id="select-plan" class="select-button" disabled>Sélectionner</button>
     </main>
     <div id="subscription-toast" class="subscription-toast" aria-live="polite" role="status"></div>
-    <script src="../static/js/api.js"></script>
+    <script src="../static/js/api.js?v=20260828-2"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const cards = document.querySelectorAll('.subscription-card');
@@ -116,7 +121,10 @@
                 }, 2000);
             }
 
-            selectButton.addEventListener('click', () => {
+            selectButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
                 const selectedCard = document.querySelector('.subscription-card.selected');
                 if (selectedCard) {
                     const plan = selectedCard.dataset.plan;
@@ -141,12 +149,12 @@
                     localStorage.setItem('subscription_cart', JSON.stringify([subscriptionProduct]));
 
                     showSubscriptionToast(`${subscriptionProduct.name} ajouté au panier`);
-                    setTimeout(() => {
-                        window.location.href = 'panier.html';
-                    }, 700);
+                    updateCartCount();
                 } else {
                     alert('Veuillez sélectionner un abonnement');
                 }
+
+                return false;
             });
 
             function updateCartCount() {

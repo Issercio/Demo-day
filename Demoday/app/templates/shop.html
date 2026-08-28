@@ -355,7 +355,7 @@
                       <div class="product-colors">
                         <span class="color-dot" title="Couleur dominante" style="background:${pickProductColor(product)};"></span>
                       </div>
-                      <p class="product-price">${product.price}€</p>
+                      <p class="product-price">${Number(product.price).toFixed(2)}€</p>
                       <button class="add-to-cart" onclick="addToCart(${JSON.stringify(product).replace(/"/g, '&quot;')})" 
                               ${isOutOfStock ? 'disabled style="background:#ccc;cursor:not-allowed;"' : ''}>
                         ${isOutOfStock ? 'Rupture de stock' : 'Commander'}
