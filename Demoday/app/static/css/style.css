@@ -53,8 +53,8 @@ header {
 }
 
 nav {
-    width: 100vw;
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
     margin: 0;
     border-radius: 0;
     box-shadow: none;
@@ -72,6 +72,9 @@ nav {
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: thin;
 }
 
 nav ul {
@@ -79,11 +82,12 @@ nav ul {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    gap: 34px;
-    margin: 0;
-    padding: 0;
+    gap: clamp(8px, 1.6vw, 34px);
+    margin: 0 auto;
+    padding: 0 18px;
     align-items: center;
     height: 90px;
+    min-width: max-content;
 }
 
 nav li { display: inline; }
@@ -112,6 +116,29 @@ nav a.active, nav a:focus {
 nav a:hover {
     color: #fff;
     background: linear-gradient(90deg, var(--vintage-main) 60%, var(--vintage-main-dark) 100%);
+}
+
+/* Panel compte toujours visible et lisible sous la navbar */
+#profile-panel {
+    position: fixed !important;
+    top: 98px !important;
+    right: 16px !important;
+    min-width: 260px !important;
+    max-width: 320px;
+    z-index: 4000 !important;
+    background: #fff;
+    border: 1.5px solid var(--vintage-main) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 24px rgba(33, 17, 17, 0.14) !important;
+}
+
+#profile-panel .cta-btn {
+    width: 100% !important;
+    margin: 0 0 8px 0 !important;
+}
+
+#user-email {
+    word-break: break-word;
 }
 
 .main-content {
@@ -245,6 +272,8 @@ nav {
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow-x: auto;
+    overflow-y: visible;
 }
 
 nav ul {
@@ -267,7 +296,7 @@ nav a {
     font-size: 18px;
     font-family: 'Inter', Arial, sans-serif;
     font-weight: 600;
-    padding: 18px 24px;
+    padding: 12px 18px;
     border-radius: 8px;
     transition: background 0.15s, color 0.15s, box-shadow 0.15s;
     display: inline-block;
@@ -421,6 +450,7 @@ body, .main-content, .shop-container {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .color-picker {
@@ -453,13 +483,62 @@ body, .main-content, .shop-container {
     margin: 0.8rem 0;
 }
 
-.color-dot {
+.preset-colors {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+}
+
+.preset-color-btn {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    border: 2px solid #e7d6d6;
+    cursor: pointer;
+    transition: transform 0.16s ease, border-color 0.16s ease;
+}
+
+.preset-color-btn:hover {
+    transform: translateY(-1px);
+    border-color: #bc6288;
+}
+
+.preset-color-btn.is-selected {
+    border-color: #bc6288;
+    box-shadow: 0 0 0 2px rgba(188, 98, 136, 0.22);
+}
+
+.filter-help {
+    color: #6f5d67;
+    font-size: 0.85rem;
+    margin-top: 0.35rem;
+}
+
+.selected-color-dot {
     width: 22px;
     height: 22px;
     border-radius: 4px;
     border: 1.5px solid #bc6288;
     cursor: pointer;
     background: #fff;
+    position: relative;
+}
+
+.selected-color-dot::after {
+    content: '×';
+    position: absolute;
+    top: -9px;
+    right: -7px;
+    font-size: 10px;
+    line-height: 1;
+    color: #fff;
+    background: #bc6288;
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    display: grid;
+    place-items: center;
 }
 
 .filter-actions {

@@ -13,7 +13,7 @@
       <ul>
         <li><a href="accueil.html">ACCUEIL</a></li>
         <li><a href="shop.html" class="active">SHOP</a></li>
-        <li><a href="evenementiel.html">ÉVÈNEMENTIEL</a></li>
+        <li><a href="evenementiel.html">ÉVÉNEMENTIEL</a></li>
         <li><a href="entreprises.html">ENTREPRISES</a></li>
         <li><a href="portfolio.html">PORTFOLIO</a></li>
         <li><a href="contact.html">CONTACT</a></li>
@@ -24,17 +24,24 @@
             <span id="cart-count" style="position:absolute;top:0;right:-10px;background:#bc6288;color:#fff;font-size:13px;padding:1px 6px;border-radius:10px;display:none;">0</span>
           </a>
         </li>
+        <!-- Cadenas admin -->
+        <li id="admin-access" style="display:none;">
+          <a href="admin.html" style="font-size:22px;vertical-align:middle;color:#bc6288;" title="Administration">🔒</a>
+        </li>
         <li style="position:relative;">
           <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
-          <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;">
-            <button id="login-btn" class="cta-btn" style="width:100%;margin-bottom:8px;">Se connecter</button>
-            <button id="logout-btn" class="cta-btn" style="width:100%;margin-bottom:8px;display:none;">Se déconnecter</button>
+          <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;min-width:200px;">
+            <div id="user-email" style="margin-bottom: 15px; color: #bc6288; font-size: 0.9em; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; display: none;"></div>
+            <button id="login-btn" class="cta-btn" style="width:100%; margin-bottom: 8px;">Se connecter</button>
+            <button id="logout-btn" class="cta-btn" style="width:100%; margin-bottom: 8px; display: none;">Déconnexion</button>
+            <button id="delete-btn" class="cta-btn" style="width:100%; background: #fff; color: #bc6288; border: 1.5px solid #bc6288; display: none;">Supprimer le compte</button>
           </div>
         </li>
       </ul>
     </nav>
   </header>
   <div class="shop-container">
+    <!-- Sidebar de filtres -->
     <aside class="sidebar-filters">
       <h2 style="font-size:1.2rem;color:#bc6288;margin-bottom:1.5rem;text-align:center;">Filtres</h2>
       <div class="filter-section">
@@ -43,7 +50,9 @@
       </div>
       <div class="filter-section">
         <h3>Catégories</h3>
-        <div class="filter-options" id="categories-filters"></div>
+        <div class="filter-options" id="categories-filters">
+          <!-- Les catégories seront chargées depuis l'API -->
+        </div>
       </div>
       <div class="filter-section">
         <h3>Prix</h3>
@@ -60,6 +69,8 @@
           <button id="addColor" class="add-color-btn">Ajouter</button>
           <button id="resetColors" class="reset-btn">Réinitialiser</button>
         </div>
+        <p class="filter-help">Astuce : cliquez sur une pastille pour l'ajouter rapidement.</p>
+        <div class="preset-colors" id="presetColors"></div>
         <div class="selected-colors"></div>
         <p class="color-counter">0/5 couleurs sélectionnées</p>
       </div>
@@ -68,48 +79,198 @@
         <button id="resetAllFilters" class="reset-all-btn">Réinitialiser tous les filtres</button>
       </div>
     </aside>
+    <!-- Zone produits -->
     <main class="products-area" id="products-area">
-      <!-- Les catégories et produits seront générés dynamiquement ici -->
+      <!-- Les catégories et produits seront chargés depuis l'API -->
+      <div style="text-align: center; color: #bc6288; padding: 60px 20px;">
+        <h2>Boutique en construction</h2>
+        <p>Les produits seront bientôt disponibles via notre API.</p>
+      </div>
     </main>
   </div>
   <script src="../static/js/api.js"></script>
   <script>
-    console.log("JS chargé !");
+    document.addEventListener('DOMContentLoaded', function() {
+      const userEmail = document.getElementById('user-email');
+      const loginBtn = document.getElementById('login-btn');
+      const logoutBtn = document.getElementById('logout-btn');
+      const deleteBtn = document.getElementById('delete-btn');
+      const profilePanel = document.getElementById('profile-panel');
+      const profileLink = document.getElementById('profile-link');
 
-    let selectedColors = [];
-    let allProducts = [];
-    let allCategories = [];
-
-    function renderCategories() {
-      const productsArea = document.getElementById('products-area');
-      productsArea.innerHTML = '';
-      allCategories.forEach(cat => {
-        const section = document.createElement('section');
-        section.className = 'category-section';
-        section.innerHTML = `
-          <h2>${cat.name}</h2>
-          <div class="products-grid" id="${cat.slug}"></div>
-        `;
-        productsArea.appendChild(section);
-      });
-
-      if (!document.getElementById('autre')) {
-        const otherSection = document.createElement('section');
-        otherSection.className = 'category-section';
-        otherSection.innerHTML = `
-          <h2>Autres</h2>
-          <div class="products-grid" id="autre"></div>
-        `;
-        productsArea.appendChild(otherSection);
+      // Vérifier la connexion
+      const userData = JSON.parse(localStorage.getItem('user'));
+      if (userData) {
+          userEmail.textContent = userData.email;
+          userEmail.style.display = 'block';
+          loginBtn.style.display = 'none';
+          logoutBtn.style.display = 'block';
+          deleteBtn.style.display = 'block';
       }
 
-      const filtersDiv = document.getElementById('categories-filters');
-      filtersDiv.innerHTML = '';
-      allCategories.forEach(cat => {
-        const label = document.createElement('label');
-        label.innerHTML = `<input type="checkbox" value="${cat.slug}" class="category-filter"> ${cat.name}`;
-        filtersDiv.appendChild(label);
+      // Gestion du panel
+      profileLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          profilePanel.style.display = profilePanel.style.display === 'block' ? 'none' : 'block';
       });
+
+      document.addEventListener('click', function(e) {
+          if (!profilePanel.contains(e.target) && e.target !== profileLink) {
+              profilePanel.style.display = 'none';
+          }
+      });
+
+      // Boutons
+      loginBtn.addEventListener('click', () => window.location.href = 'account.html');
+      logoutBtn.addEventListener('click', () => {
+          localStorage.removeItem('user');
+          localStorage.removeItem('auth_token');
+          window.location.reload();
+      });
+    });
+
+    let selectedColors = [];
+    let allCategories = [];
+    let allProducts = [];
+
+    const colorPalette = ['#f4c2c2', '#f8e16f', '#9fe2bf', '#8fb9ff', '#c8a2c8', '#ff9aa2', '#ffc75f', '#b5e48c', '#a0c4ff', '#d8b4f8', '#ffb5a7', '#84a59d'];
+
+    function normalizeHexColor(color) {
+      if (!color) {
+        return '';
+      }
+      return color.toLowerCase();
+    }
+
+    function pickProductColor(product) {
+      const customColor = product.color || product.hex_color;
+      if (customColor) {
+        return normalizeHexColor(customColor);
+      }
+
+      const seed = `${product.id || ''}-${product.name || ''}`;
+      let hash = 0;
+      for (let i = 0; i < seed.length; i += 1) {
+        hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+      }
+      return colorPalette[hash % colorPalette.length];
+    }
+
+    function parsePrice(value) {
+      if (value === null || value === undefined || String(value).trim() === '') {
+        return null;
+      }
+      const n = Number(value);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function hexToRgb(hex) {
+      const normalized = normalizeHexColor(hex).replace('#', '');
+      if (normalized.length !== 6) {
+        return null;
+      }
+      return {
+        r: parseInt(normalized.slice(0, 2), 16),
+        g: parseInt(normalized.slice(2, 4), 16),
+        b: parseInt(normalized.slice(4, 6), 16)
+      };
+    }
+
+    function isColorMatch(candidate, selected) {
+      if (candidate === selected) {
+        return true;
+      }
+
+      const c1 = hexToRgb(candidate);
+      const c2 = hexToRgb(selected);
+      if (!c1 || !c2) {
+        return false;
+      }
+
+      const distance = Math.sqrt(
+        (c1.r - c2.r) ** 2 +
+        (c1.g - c2.g) ** 2 +
+        (c1.b - c2.b) ** 2
+      );
+
+      // Tolérance pour que le picker fonctionne avec des teintes proches.
+      return distance <= 72;
+    }
+
+    function applyFiltersToProducts(products) {
+      const searchText = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+      const minPrice = parsePrice(document.getElementById('minPrice').value);
+      const maxPrice = parsePrice(document.getElementById('maxPrice').value);
+
+      return products.filter((product) => {
+        const productName = (product.name || '').toLowerCase();
+        const price = Number(product.price);
+        const productColor = pickProductColor(product);
+
+        if (searchText && !productName.includes(searchText)) {
+          return false;
+        }
+
+        if (minPrice !== null && price < minPrice) {
+          return false;
+        }
+
+        if (maxPrice !== null && price > maxPrice) {
+          return false;
+        }
+
+        if (selectedColors.length > 0) {
+          const matchesAtLeastOne = selectedColors.some((selectedColor) => isColorMatch(productColor, selectedColor));
+          if (!matchesAtLeastOne) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+    }
+
+    function refreshProductsWithCurrentFilters() {
+      const filteredProducts = applyFiltersToProducts(allProducts);
+      displayProductsFromAPI(allCategories, filteredProducts);
+    }
+
+    function addColorSelection(color, colorCounter, selectedColorsDiv, presetButtons) {
+      const normalized = color.toLowerCase();
+      if (selectedColors.includes(normalized)) {
+        return;
+      }
+      if (selectedColors.length >= 5) {
+        alert('Vous ne pouvez pas sélectionner plus de 5 couleurs');
+        return;
+      }
+
+      selectedColors.push(normalized);
+      updateSelectedColorsDisplay(colorCounter, selectedColorsDiv, presetButtons);
+    }
+
+    function updateSelectedColorsDisplay(colorCounter, selectedColorsDiv, presetButtons) {
+      selectedColorsDiv.innerHTML = '';
+      selectedColors.forEach(color => {
+        const colorDiv = document.createElement('div');
+        colorDiv.className = 'selected-color-dot';
+        colorDiv.style.background = color;
+        colorDiv.title = `${color} (cliquer pour retirer)`;
+        colorDiv.addEventListener('click', () => {
+          selectedColors = selectedColors.filter(c => c !== color);
+          updateSelectedColorsDisplay(colorCounter, selectedColorsDiv, presetButtons);
+        });
+        selectedColorsDiv.appendChild(colorDiv);
+      });
+
+      if (presetButtons) {
+        presetButtons.forEach(btn => {
+          const color = btn.dataset.color;
+          btn.classList.toggle('is-selected', selectedColors.includes(color));
+        });
+      }
+
+      colorCounter.textContent = `${selectedColors.length}/5 couleurs sélectionnées`;
     }
 
     function setupFilters() {
@@ -118,101 +279,199 @@
       const addColorBtn = document.getElementById('addColor');
       const resetColorsBtn = document.getElementById('resetColors');
       const selectedColorsDiv = document.querySelector('.selected-colors');
+      const presetColorsDiv = document.getElementById('presetColors');
+      const presetButtons = [];
+      colorPalette.forEach(color => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'preset-color-btn';
+        btn.style.background = color;
+        btn.dataset.color = color.toLowerCase();
+        btn.title = `Ajouter ${color}`;
+        btn.addEventListener('click', () => addColorSelection(color, colorCounter, selectedColorsDiv, presetButtons));
+        presetButtons.push(btn);
+        presetColorsDiv.appendChild(btn);
+      });
+      
       addColorBtn.addEventListener('click', () => {
         const color = colorPicker.value;
-        if (selectedColors.includes(color)) {
-          alert('Cette couleur est déjà sélectionnée');
-          return;
-        }
-        if (selectedColors.length >= 5) {
-          alert('Vous ne pouvez pas sélectionner plus de 5 couleurs');
-          return;
-        }
-        selectedColors.push(color);
-        updateSelectedColorsDisplay();
+        addColorSelection(color, colorCounter, selectedColorsDiv, presetButtons);
       });
+      
       resetColorsBtn.addEventListener('click', () => {
         selectedColors = [];
-        updateSelectedColorsDisplay();
+        updateSelectedColorsDisplay(colorCounter, selectedColorsDiv, presetButtons);
       });
-      function updateSelectedColorsDisplay() {
-        selectedColorsDiv.innerHTML = '';
-        selectedColors.forEach(color => {
-          const colorDiv = document.createElement('div');
-          colorDiv.className = 'color-dot';
-          colorDiv.style.background = color;
-          colorDiv.title = color;
-          colorDiv.addEventListener('click', () => {
-            selectedColors = selectedColors.filter(c => c !== color);
-            updateSelectedColorsDisplay();
-          });
-          selectedColorsDiv.appendChild(colorDiv);
-        });
-        colorCounter.textContent = `${selectedColors.length}/5 couleurs sélectionnées`;
-      }
-      document.getElementById('applyFilters').addEventListener('click', applyFilters);
+
+      colorPicker.addEventListener('change', () => {
+        addColorSelection(colorPicker.value, colorCounter, selectedColorsDiv, presetButtons);
+      });
+      
+      document.getElementById('applyFilters').addEventListener('click', () => {
+        refreshProductsWithCurrentFilters();
+      });
+      
       document.getElementById('resetAllFilters').addEventListener('click', () => {
         document.getElementById('searchInput').value = '';
-        document.querySelectorAll('.category-filter').forEach(cb => cb.checked = false);
         document.getElementById('minPrice').value = '';
         document.getElementById('maxPrice').value = '';
         selectedColors = [];
-        updateSelectedColorsDisplay();
-        displayProducts(allProducts);
+        updateSelectedColorsDisplay(colorCounter, selectedColorsDiv, presetButtons);
+        refreshProductsWithCurrentFilters();
       });
+
+      updateSelectedColorsDisplay(colorCounter, selectedColorsDiv, presetButtons);
     }
 
-    function applyFilters() {
-      const searchText = document.getElementById('searchInput').value.toLowerCase();
-      const selectedCategories = Array.from(document.querySelectorAll('.category-filter:checked')).map(cb => cb.value);
-      const minPrice = parseFloat(document.getElementById('minPrice').value) || 0;
-      const maxPrice = parseFloat(document.getElementById('maxPrice').value) || Infinity;
-      const filteredProducts = allProducts.filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchText);
-        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category_slug);
-        const matchesPrice = product.price >= minPrice && product.price <= maxPrice;
-        const matchesColor = selectedColors.length === 0 || (product.colors && product.colors.some(color => selectedColors.includes(color)));
-        return matchesSearch && matchesCategory && matchesPrice && matchesColor;
-      });
-      displayProducts(filteredProducts);
+    // Maintenant on va charger les produits depuis l'API
+    document.addEventListener('DOMContentLoaded', async function() {
+      try {
+        // Charger les catégories depuis l'API
+        const categoriesResponse = await fetch('/api/v1/categories');
+        const categories = await categoriesResponse.json();
+        
+        // Charger les produits depuis l'API  
+        const productsResponse = await fetch('/api/v1/products');
+        const products = await productsResponse.json();
+        
+        displayProductsFromAPI(categories, products);
+      } catch (error) {
+        console.error('Erreur chargement données:', error);
+      }
+    });
+
+    // Affichage du cadenas admin
+    const userData = JSON.parse(localStorage.getItem('user'));
+    const adminAccess = document.getElementById('admin-access');
+    
+    if (userData && userData.is_admin) {
+        adminAccess.style.display = 'block';
     }
 
-    function displayProducts(products) {
-      allCategories.forEach(cat => {
-        const grid = document.getElementById(cat.slug);
-        if (grid) grid.innerHTML = '';
-      });
-      const otherGrid = document.getElementById('autre');
-      if (otherGrid) otherGrid.innerHTML = '';
+    // Charger les données depuis l'API
+    document.addEventListener('DOMContentLoaded', async function() {
+      try {
+        console.log('Chargement des données...');
+        
+        // Charger les catégories
+        const categoriesResponse = await fetch('/api/v1/categories');
+        if (!categoriesResponse.ok) {
+          throw new Error('Erreur chargement catégories');
+        }
+        const categories = await categoriesResponse.json();
+        console.log('Catégories chargées:', categories);
+        
+        // Charger les produits (gestion d'erreur pour is_on_sale)
+        let products = [];
+        try {
+          const productsResponse = await fetch('/api/v1/products');
+          if (productsResponse.ok) {
+            products = await productsResponse.json();
+            console.log('Produits chargés:', products);
+          }
+        } catch (error) {
+          console.warn('Erreur chargement produits:', error);
+          products = [];
+        }
+        
+        allCategories = categories;
+        allProducts = products;
+        refreshProductsWithCurrentFilters();
+      } catch (error) {
+        console.error('Erreur chargement données:', error);
+        // Afficher un message d'erreur
+        const productsArea = document.getElementById('products-area');
+        productsArea.innerHTML = '<div style="text-align: center; color: #bc6288; padding: 60px 20px;"><h2>Erreur de chargement</h2><p>Impossible de charger les données depuis l\'API.</p></div>';
+      }
+    });
 
-      products.forEach(product => {
-        const container = document.getElementById(product.category_slug);
-        const target = container || document.getElementById('autre');
-        if (!target) return;
-        const productCard = `
-          <div class="product-card">
-            ${product.outOfStock ? `<div class="out-of-stock-banner">Rupture de stock</div>` : ''}
-            <h3>${product.name}</h3>
-            <div class="product-colors">
-              ${(product.colors || []).map(color => `<span class="color-dot" style="background: ${color}"></span>`).join('')}
+    function displayProductsFromAPI(categories, products) {
+      const productsArea = document.getElementById('products-area');
+      productsArea.innerHTML = '';
+
+      console.log('Affichage - Catégories:', categories.length, 'Produits:', products.length);
+
+      if (categories.length === 0) {
+        productsArea.innerHTML = '<div style="text-align: center; color: #bc6288; padding: 60px 20px;"><h2>Aucune catégorie disponible</h2><p>Créez des catégories dans l\'interface admin.</p></div>';
+        return;
+      }
+
+      categories.forEach(category => {
+        console.log('Processing category:', category);
+        const categoryProducts = products.filter(p => p.category && p.category.id === category.id);
+        console.log(`Products for category ${category.name}:`, categoryProducts.length);
+        
+        const categorySection = document.createElement('section');
+        categorySection.className = 'category-section';
+        categorySection.innerHTML = `
+          <h2>${category.name} (${categoryProducts.length} ${categoryProducts.length > 1 ? 'produits' : 'produit'})</h2>
+          <div class="products-carousel">
+            <button class="carousel-btn prev-btn" onclick="scrollCarousel('${category.id}', -1)">‹</button>
+            <div class="products-grid" id="category-${category.id}">
+              ${categoryProducts.length > 0 ? 
+                categoryProducts.map(product => {
+                  // Récupérer le statut de stock depuis localStorage
+                  const stockStatus = getProductStockStatus(product.id);
+                  const stockBanner = getStockBanner(stockStatus);
+                  const isOutOfStock = stockStatus === 'out';
+                  
+                  return `
+                    <div class="product-card">
+                      ${stockBanner}
+                      <h3>${product.name}</h3>
+                      <div class="product-colors">
+                        <span class="color-dot" title="Couleur dominante" style="background:${pickProductColor(product)};"></span>
+                      </div>
+                      <p class="product-price">${product.price}€</p>
+                      <button class="add-to-cart" onclick="addToCart(${JSON.stringify(product).replace(/"/g, '&quot;')})" 
+                              ${isOutOfStock ? 'disabled style="background:#ccc;cursor:not-allowed;"' : ''}>
+                        ${isOutOfStock ? 'Rupture de stock' : 'Commander'}
+                      </button>
+                    </div>
+                  `;
+                }).join('') :
+                '<div style="text-align: center; color: #666; padding: 20px;">Aucun produit dans cette catégorie</div>'
+              }
             </div>
-            <p class="product-price">${product.price} €</p>
-            <button class="add-to-cart" ${product.outOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>Commander</button>
+            <button class="carousel-btn next-btn" onclick="scrollCarousel('${category.id}', 1)">›</button>
           </div>
         `;
-        target.innerHTML += productCard;
-      });
-      document.querySelectorAll('.add-to-cart').forEach((btn, idx) => {
-        btn.addEventListener('click', () => {
-          const prod = products[idx];
-          let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-          cart.push(prod);
-          localStorage.setItem('cart', JSON.stringify(cart));
-          updateCartCount();
-        });
+        productsArea.appendChild(categorySection);
       });
     }
 
+    // Fonctions de gestion de stock côté shop
+    function getProductStockStatus(productId) {
+      const stockData = JSON.parse(localStorage.getItem('productStock') || '{}');
+      return stockData[productId] || 'available';
+    }
+
+    function getStockBanner(status) {
+      switch(status) {
+        case 'low':
+          return '<div class="stock-banner low-stock-banner">Bientôt épuisé !</div>';
+        case 'out':
+          return '<div class="stock-banner out-of-stock-banner">Rupture de stock !</div>';
+        default:
+          return '';
+      }
+    }
+
+    function scrollCarousel(categoryId, direction) {
+      const grid = document.getElementById(`category-${categoryId}`);
+      const cardWidth = 280; // largeur d'une carte + gap
+      grid.scrollLeft += direction * cardWidth * 2; // scroll de 2 cartes à la fois
+    }
+
+    function addToCart(product) {
+      let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      cart.push(product);
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartCount();
+      alert('Produit ajouté au panier !');
+    }
+
+    // Panier badge
     function updateCartCount() {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       const badge = document.getElementById('cart-count');
@@ -221,100 +480,72 @@
         badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
       }
     }
+    document.addEventListener('DOMContentLoaded', updateCartCount);
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      updateCartCount();
+    // Le panel profil et la déconnexion sont gérés en haut de page + api.js
 
-      // Récupère les catégories depuis l'API
-      const categoriesResp = await apiService.getCategories();
-      const rawCategories = categoriesResp.data || categoriesResp;
-      console.log("Catégories brutes :", rawCategories);
-
-      // Utilise le nom comme identifiant temporaire
-      allCategories = rawCategories.map(cat => ({
-        id: cat.name,
-        name: cat.name,
-        slug: cat.slug || cat.name.toLowerCase().replace(/ /g, '_').replace(/[^\w-]/g, '')
-      }));
-
-      console.log("Catégories traitées :", allCategories);
-
-      renderCategories();
-
-      // Récupère les produits depuis l'API
-      const productsResp = await apiService.getProducts();
-      const rawProducts = (productsResp.data || productsResp);
-      console.log("Produits bruts :", rawProducts);
-      console.log("Premier produit :", rawProducts[0]);
-
-      // Mapping produit : on prend le nom de la catégorie depuis l'objet category
-      allProducts = rawProducts.map(prod => {
-        let catName = null;
-        if (prod.category && typeof prod.category === "object" && "name" in prod.category) {
-          catName = prod.category.name;
-        } else if (typeof prod.category === "string") {
-          catName = prod.category;
-        } else if (prod.category_name) {
-          catName = prod.category_name;
-        }
-        let cat = allCategories.find(c => c.name === catName);
-        return {
-          ...prod,
-          category_slug: cat ? cat.slug : 'autre'
-        };
-      });
-
-      console.log("Produits traités :", allProducts);
-
+    document.addEventListener('DOMContentLoaded', () => {
       setupFilters();
-      displayProducts(allProducts);
-    });
-
-    // Panel profil + gestion connexion/déconnexion
-    document.addEventListener('DOMContentLoaded', function() {
-      const profileLink = document.getElementById('profile-link');
-      const profilePanel = document.getElementById('profile-panel');
-      const loginBtn = document.getElementById('login-btn');
-      const logoutBtn = document.getElementById('logout-btn');
-
-      profileLink.addEventListener('click', function(e) {
-        e.preventDefault();
-        profilePanel.style.display = profilePanel.style.display === 'block' ? 'none' : 'block';
-      });
-      document.addEventListener('click', function(e) {
-        if (!profilePanel.contains(e.target) && e.target !== profileLink) {
-          profilePanel.style.display = 'none';
-        }
-      });
-
-      loginBtn.onclick = function() {
-        window.location.href = "account.html";
-      };
-
-      logoutBtn.onclick = function() {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        window.location.reload();
-      };
-
-      // Affichage conditionnel des boutons selon l'état de connexion
-      const user = localStorage.getItem('user');
-      if (user) {
-        loginBtn.style.display = 'none';
-        logoutBtn.style.display = '';
-      } else {
-        loginBtn.style.display = '';
-        logoutBtn.style.display = 'none';
-      }
+      updateCartCount();
     });
   </script>
+
   <style>
-    .out-of-stock-banner {
+    .products-carousel {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .carousel-btn {
       background: #bc6288;
-      color: #fff;
-      font-size: 1rem;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+      cursor: pointer;
+      flex-shrink: 0;
+      z-index: 2;
+    }
+
+    .carousel-btn:hover {
+      background: #ab597c;
+    }
+
+    .products-grid {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      flex: 1;
+      padding: 10px 0;
+    }
+
+    .products-grid::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .products-grid::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    .products-grid::-webkit-scrollbar-thumb {
+      background: #bc6288;
+      border-radius: 4px;
+    }
+
+    .product-card {
+      min-width: 260px;
+      flex-shrink: 0;
+    }
+    .stock-banner {
+      font-size: 0.85rem;
       font-weight: bold;
-      padding: 7px 0;
+      padding: 6px 0;
       border-radius: 8px 8px 0 0;
       text-align: center;
       letter-spacing: 0.04em;
@@ -322,169 +553,17 @@
       width: 100%;
     }
 
-    .sidebar-filters {
-  background: #fff7fa;
-  border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(188,98,136,0.08);
-  padding: 32px 20px 24px 20px;
-  margin: 32px 20px 32px 0;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  min-width: 220px;
-  max-width: 320px;
-  width: 260px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  position: sticky;
-  top: 110px;
-  z-index: 1100;
-}
-.sidebar-filters h2 {
-  color: #bc6288;
-  font-size: 1.5rem;
-  margin-bottom: 2rem;
-  text-align: center;
-  font-weight: bold;
-  letter-spacing: 0.03em;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-}
-.filter-section {
-  background: #f8f5f2;
-  border-radius: 10px;
-  padding: 1.1rem 1rem;
-  border: 1px solid #e7d6d6;
-  margin-bottom: 0;
-}
-.filter-section h3 {
-  color: #bc6288;
-  font-size: 1rem;
-  letter-spacing: 0.05rem;
-  margin-bottom: 1rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-.search-input,
-.price-inputs input[type="number"] {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1.5px solid #e6b5c9;
-  border-radius: 7px;
-  font-size: 1rem;
-  margin-bottom: 7px;
-  background: #fff;
-  transition: border 0.2s;
-}
-.search-input:focus,
-.price-inputs input[type="number"]:focus {
-  border-color: #bc6288;
-  outline: none;
-}
-.price-inputs {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.color-selection {
-  display: flex;
-  justify-content: center; /* centre horizontalement */
-  gap: 10px; /* espace entre les boutons et le picker */
-  margin-bottom: 7px;
-}
+    .low-stock-banner {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
 
-.color-picker {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: none;
-  cursor: pointer;
-}
-.add-color-btn, .reset-btn {
-  background: #e6b5c9;
-  color: #bc6288;
-  border: none;
-  border-radius: 6px;
-  padding: 5px 10px; /* réduit la taille verticale et horizontale */
-  font-size: 0.85em; /* taille de police plus petite */
-  cursor: pointer;
-  transition: background 0.2s;
-  min-width: 80px; /* largeur minimale pour garder un bon clic */
-  text-align: center;
-}
-.add-color-btn:hover, .reset-btn:hover {
-  background: #bc6288;
-  color: #fff;
-}
-.selected-colors {
-  display: flex;
-  gap: 7px;
-  margin-bottom: 7px;
-}
-.selected-colors .color-dot {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 1px 4px rgba(188,98,136,0.13);
-  cursor: pointer;
-  transition: border 0.2s;
-}
-.selected-colors .color-dot:hover {
-  border: 2px solid #bc6288;
-}
-.color-counter {
-  font-size: 0.93em;
-  color: #bc6288;
-  margin-bottom: 0;
-}
-.filter-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 1.5rem;
-}
-.apply-filters-btn, .reset-all-btn {
-  width: 100%;
-  padding: 11px;
-  border: none;
-  border-radius: 7px;
-  font-size: 1.05em;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.apply-filters-btn {
-  background: #bc6288;
-  color: #fff;
-}
-.apply-filters-btn:hover {
-  background: #a04f6f;
-}
-.reset-all-btn {
-  background: #fff;
-  color: #bc6288;
-  border: 1.5px solid #bc6288;
-}
-.reset-all-btn:hover {
-  background: #ffe6f0;
-}
-/* Responsive pour mobile */
-@media (max-width: 900px) {
-  .sidebar-filters {
-    width: 100%;
-    margin: 0 0 20px 0;
-    min-width: unset;
-    max-width: unset;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(188,98,136,0.08);
-    padding: 22px 12px;
-    position: static;
-    top: 0;
-  }
-}
-    /* Ajoute ici tes styles .product-card, .products-grid, .category-section, etc. */
+    .out-of-stock-banner {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
   </style>
 </body>
 </html>

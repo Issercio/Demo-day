@@ -1,33 +1,59 @@
-from werkzeug.security import generate_password_hash, check_password_hash
+from . import db
 from datetime import datetime
-from app import db
 
 class User(db.Model):
     __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256))
+    password = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    @property
-    def password(self):
-        raise AttributeError('password is not a readable attribute')
-
-    @password.setter
-    def password(self, value):
-        self.password_hash = generate_password_hash(value)
-
-    def check_password(self, value):
-        if self.password_hash is None:
-            return False
-        return check_password_hash(self.password_hash, value)
-
+    
     def to_dict(self):
         return {
-            'id': self.id,
-            'username': self.username,
-            'email': self.email,
-            'is_admin': self.is_admin
+            'id': int(self.id),
+            'username': str(self.username),
+            'email': str(self.email),
+            'is_admin': bool(self.is_admin)
+        }
+
+class Category(db.Model):
+    __tablename__ = 'categories'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': int(self.id),
+            'name': str(self.name),
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class Product(db.Model):
+    __tablename__ = 'products'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(255), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id', ondelete='CASCADE'), nullable=True)
+    is_on_sale = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        category = Category.query.get(self.category_id) if self.category_id else None
+        return {
+            'id': int(self.id),
+            'name': str(self.name),
+            'price': float(self.price),
+            'category_id': int(self.category_id) if self.category_id else None,
+            'is_on_sale': bool(self.is_on_sale) if hasattr(self, 'is_on_sale') else False,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'category': {
+                'id': int(category.id),
+                'name': str(category.name)
+            } if category else None
         }

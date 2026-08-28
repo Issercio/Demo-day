@@ -1,4 +1,4 @@
-from flask import Flask, redirect
+from flask import Flask
 from flask_cors import CORS
 from flask_migrate import Migrate
 from app.extensions import db
@@ -38,7 +38,7 @@ def create_app():
     migrate.init_app(app, db)
 
     # Import des modèles pour l'initialisation
-    from app.models import Category, Product, User  # Suppression de Review et Price
+    from .models import Category, Product, User, Order, OrderItem
 
     # Swagger UI : ajout du header Authorization
     authorizations = {
@@ -61,6 +61,15 @@ def create_app():
         security='Bearer Auth'
     )
 
+    # IMPORTANT : Enregistrer les routes directes AVANT les namespaces
+    from app.routes import api_bp, main_bp
+    app.register_blueprint(api_bp, url_prefix='/api/v1')
+    app.register_blueprint(main_bp)  # Routes principales sans préfixe
+    
+    # Enregistrement du blueprint des paiements
+    from app.api.v1.payments import payments_bp
+    app.register_blueprint(payments_bp, url_prefix='/api/v1/payments')
+
     # Enregistrement des namespaces
     from app.api.v1.products_restx import api as products_ns
     api.add_namespace(products_ns, path='/api/v1/products')
@@ -74,11 +83,6 @@ def create_app():
     from app.api.v1.auth import api as auth_ns
     api.add_namespace(auth_ns, path='/api/v1/auth')
     # Suppression de reviews_restx
-    
-    # Redirection de la racine vers Swagger UI
-    @app.route('/')
-    def index():
-        return redirect('/api/v1')
     
     return app
 
@@ -147,7 +151,5 @@ def test_database_connection():
     
     return True
 
-if __name__ == "__main__":
-    test_database_connection()
 if __name__ == "__main__":
     test_database_connection()

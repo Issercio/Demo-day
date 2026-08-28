@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloraShop - Finaliser votre commande</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .checkout-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            padding: 40px;
+        }
+        
+        .order-summary {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .order-summary h3 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .item-details {
+            flex-grow: 1;
+        }
+        
+        .item-name {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .item-price {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        
+        .item-quantity {
+            background: #3498db;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-right: 10px;
+        }
+        
+        .total-section {
+            border-top: 2px solid #dee2e6;
+            padding-top: 20px;
+            margin-top: 20px;
+        }
+        
+        .total-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .total-final {
+            font-weight: bold;
+            font-size: 1.3em;
+            color: #2c3e50;
+            border-top: 1px solid #dee2e6;
+            padding-top: 10px;
+        }
+        
+        .payment-form {
+            background: #fff;
+        }
+        
+        .payment-form h3 {
+            color: #495057;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #4ECDC4;
+            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+        }
+        
+        #card-element {
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: white;
+            transition: border-color 0.3s ease;
+        }
+        
+        #card-element:focus-within {
+            border-color: #4ECDC4;
+            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+        }
+        
+        .pay-button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            padding: 18px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 30px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .pay-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .pay-button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .error {
+            color: #e74c3c;
+            background: #fadbd8;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border: 1px solid #f1948a;
+        }
+        
+        .success {
+            color: #27ae60;
+            background: #d5f4e6;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+            border: 1px solid #82e3aa;
+            text-align: center;
+        }
+        
+        .success h3 {
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #3498db;
+            padding: 20px;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(52, 152, 219, 0.3);
+            border-radius: 50%;
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .empty-cart {
+            text-align: center;
+            padding: 50px;
+            color: #7f8c8d;
+        }
+        
+        .empty-cart h3 {
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        
+        .back-to-shop {
+            background: #3498db;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            transition: background 0.3s ease;
+        }
+        
+        .back-to-shop:hover {
+            background: #2980b9;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="checkout-container">
+        <div class="header">
+            <h1>🌸 Finaliser votre commande</h1>
+            <p>Paiement sécurisé avec Stripe</p>
+        </div>
+        
+        <div class="content" id="checkout-content">
+            <div class="order-summary">
+                <h3>📋 Résumé de votre commande</h3>
+                <div id="cart-items">
+                    <!-- Les items du panier seront chargés ici -->
+                </div>
+                
+                <div class="total-section">
+                    <div class="total-line">
+                        <span>Sous-total:</span>
+                        <span id="subtotal">0.00 €</span>
+                    </div>
+                    <div class="total-line">
+                        <span>Livraison:</span>
+                        <span>Gratuite 🚚</span>
+                    </div>
+                    <div class="total-line total-final">
+                        <span>Total:</span>
+                        <span id="total">0.00 €</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="payment-form">
+                <h3>💳 Informations de paiement</h3>
+                
+                <form id="payment-form">
+                    <div class="form-group">
+                        <label for="email">📧 Email de confirmation</label>
+                        <input type="email" id="email" required placeholder="votre.email@exemple.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="name">👤 Nom complet</label>
+                        <input type="text" id="name" required placeholder="Votre nom complet">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="card-element">💳 Informations de carte</label>
+                        <div id="card-element"></div>
+                        <div id="card-errors" class="error" style="display: none;"></div>
+                    </div>
+                    
+                    <button type="submit" id="pay-button" class="pay-button">
+                        🔒 Payer <span id="pay-amount">0.00 €</span>
+                    </button>
+                </form>
+                
+                <div id="payment-result"></div>
+            </div>
+        </div>
+        
+        <!-- Contenu pour panier vide -->
+        <div class="empty-cart" id="empty-cart" style="display: none;">
+            <h3>🛒 Votre panier est vide</h3>
+            <p>Ajoutez des produits à votre panier pour continuer</p>
+            <a href="/app/templates/shop.html" class="back-to-shop">Retourner à la boutique</a>
+        </div>
+    </div>
+
+    <script>
+        let stripe = null;
+        let elements = null;
+        let card = null;
+        let cartItems = [];
+        
+        // Simuler le chargement du panier depuis localStorage ou API
+        function loadCartFromStorage() {
+            try {
+                cartItems = [];
+                
+                // Charger le panier normal
+                const savedCart = localStorage.getItem('cart');
+                if (savedCart) {
+                    const cart = JSON.parse(savedCart);
+                    cartItems = cart.map(item => ({
+                        product_id: item.id || item.product_id || 1,
+                        quantity: item.quantity || 1,
+                        product: item
+                    }));
+                }
+                
+                // Charger l'abonnement sélectionné
+                const savedSubscription = localStorage.getItem('subscription_cart');
+                if (savedSubscription) {
+                    const subscription = JSON.parse(savedSubscription);
+                    cartItems = cartItems.concat(subscription.map(item => ({
+                        product_id: item.id,
+                        quantity: item.quantity || 1,
+                        product: item
+                    })));
+                    // Nettoyer l'abonnement temporaire
+                    localStorage.removeItem('subscription_cart');
+                }
+                
+                console.log('Panier chargé:', cartItems);
+            } catch (e) {
+                console.error('Erreur chargement panier:', e);
+                cartItems = [];
+            }
+        }
+        
+        // Charger les produits du panier avec détails depuis l'API
+        async function loadCartDetails() {
+            if (cartItems.length === 0) {
+                showEmptyCart();
+                return;
+            }
+            
+            try {
+                // EN MODE STATIQUE : utiliser les données du localStorage directement
+                const detailedItems = cartItems.map(item => ({
+                    product_id: item.id || item.product_id || 1,
+                    quantity: item.quantity || 1,
+                    product: {
+                        id: item.id || item.product_id || 1,
+                        name: item.name || item.title || 'Produit',
+                        price: item.price || 29.99
+                    }
+                }));
+                
+                cartItems = detailedItems;
+                displayCartItems();
+                
+            } catch (error) {
+                console.error('Erreur chargement détails:', error);
+                // En cas d'erreur, utiliser les données du localStorage
+                displayCartItems();
+            }
+        }
+        
+        // Afficher le panier vide
+        function showEmptyCart() {
+            document.getElementById('checkout-content').style.display = 'none';
+            document.getElementById('empty-cart').style.display = 'block';
+        }
+        
+        // Afficher les items du panier
+        function displayCartItems() {
+            const cartContainer = document.getElementById('cart-items');
+            const subtotalElement = document.getElementById('subtotal');
+            const totalElement = document.getElementById('total');
+            const payAmountElement = document.getElementById('pay-amount');
+            
+            if (cartItems.length === 0) {
+                showEmptyCart();
+                return;
+            }
+            
+            let total = 0;
+            cartContainer.innerHTML = '';
+            
+            cartItems.forEach(item => {
+                const itemTotal = item.product.price * item.quantity;
+                total += itemTotal;
+                
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'cart-item';
+                
+                // Affichage spécial pour les abonnements
+                if (item.product.type === 'subscription') {
+                    itemDiv.innerHTML = `
+                        <div class="item-details">
+                            <div class="item-name">🌸 ${item.product.name}</div>
+                            <div class="item-price">${item.product.price.toFixed(2)} €/mois (${item.product.duration})</div>
+                        </div>
+                        <div class="item-quantity">ABONNEMENT</div>
+                        <div style="font-weight: bold; color: #2c3e50;">${itemTotal.toFixed(2)} €</div>
+                    `;
+                } else {
+                    itemDiv.innerHTML = `
+                        <div class="item-details">
+                            <div class="item-name">${item.product.name}</div>
+                            <div class="item-price">${item.product.price.toFixed(2)} € × ${item.quantity}</div>
+                        </div>
+                        <div class="item-quantity">×${item.quantity}</div>
+                        <div style="font-weight: bold; color: #2c3e50;">${itemTotal.toFixed(2)} €</div>
+                    `;
+                }
+                cartContainer.appendChild(itemDiv);
+            });
+            
+            subtotalElement.textContent = `${total.toFixed(2)} €`;
+            totalElement.textContent = `${total.toFixed(2)} €`;
+            payAmountElement.textContent = `${total.toFixed(2)} €`;
+        }
+        
+        // Initialiser Stripe
+        async function initializeStripe() {
+            try {
+                // EN MODE STATIQUE : utiliser directement votre clé publique
+                stripe = Stripe('pk_test_51RkySOQxTWwJHWrqXz2TWSoWDh1LHpL9ZKIhFATI35k8KQdyedgzkF7B9OS6XqhH46YiEPHLf4GSHdV9frNI2Z2c00ur9QL3KW');
+                
+                elements = stripe.elements();
+                card = elements.create('card', {
+                    style: {
+                        base: {
+                            fontSize: '16px',
+                            color: '#424770',
+                            '::placeholder': {
+                                color: '#aab7c4',
+                            },
+                        },
+                    },
+                });
+                card.mount('#card-element');
+                
+                card.on('change', ({error}) => {
+                    const displayError = document.getElementById('card-errors');
+                    if (error) {
+                        displayError.textContent = error.message;
+                        displayError.style.display = 'block';
+                    } else {
+                        displayError.style.display = 'none';
+                    }
+                });
+                
+                console.log('Stripe initialisé avec succès');
+            } catch (error) {
+                console.error('Erreur initialisation Stripe:', error);
+            }
+        }
+        
+        // Gérer le formulaire de paiement
+        document.getElementById('payment-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            
+            if (cartItems.length === 0) {
+                alert('Votre panier est vide !');
+                return;
+            }
+            
+            const payButton = document.getElementById('pay-button');
+            const email = document.getElementById('email').value;
+            const name = document.getElementById('name').value;
+            
+            payButton.disabled = true;
+            payButton.innerHTML = '<span class="spinner"></span> Traitement du paiement...';
+            
+            try {
+                // EN MODE STATIQUE : Simuler un paiement réussi
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Simulation de traitement
+                
+                // Simuler une confirmation de paiement réussie
+                const orderId = Math.floor(Math.random() * 10000);
+                const transactionId = 'pi_test_' + Math.random().toString(36).substr(2, 9);
+                
+                // Vérifier si c'est un abonnement
+                const hasSubscription = cartItems.some(item => item.product.type === 'subscription');
+                const subscriptionText = hasSubscription ? 
+                    '<p>🌸 <strong>Votre abonnement floral est activé !</strong> Vous recevrez vos fleurs selon la périodicité choisie.</p>' : '';
+                
+                // Paiement réussi !
+                document.getElementById('payment-result').innerHTML = `
+                    <div class="success">
+                        <h3>✅ Paiement réussi !</h3>
+                        <p><strong>Commande #${orderId}</strong> confirmée</p>
+                        ${subscriptionText}
+                        <p>Merci ${name} pour votre achat !</p>
+                        <p>Un email de confirmation sera envoyé à <strong>${email}</strong></p>
+                        <p>ID de transaction: ${transactionId}</p>
+                        <p><em>⚠️ Mode test - Aucun paiement réel n'a été effectué</em></p>
+                        <br>
+                        <button onclick="window.location.href='/app/templates/shop.html'" class="back-to-shop" style="background: #28a745; color: white; padding: 15px 30px; border: none; border-radius: 25px; font-size: 16px; cursor: pointer; margin-top: 20px;">
+                            🛍️ Continuer mes achats
+                        </button>
+                        <button onclick="window.location.href='/app/templates/accueil.html'" class="back-to-shop" style="background: #007bff; color: white; padding: 15px 30px; border: none; border-radius: 25px; font-size: 16px; cursor: pointer; margin-top: 20px; margin-left: 10px;">
+                            🏠 Retour à l'accueil
+                        </button>
+                    </div>
+                `;
+                
+                // Vider le panier
+                localStorage.removeItem('cart');
+                cartItems = [];
+                
+                // Masquer le formulaire
+                document.getElementById('payment-form').style.display = 'none';
+                document.querySelector('.order-summary').style.display = 'none';
+                
+            } catch (error) {
+                document.getElementById('payment-result').innerHTML = `
+                    <div class="error">
+                        <h3>❌ Erreur de paiement</h3>
+                        <p>${error.message}</p>
+                        <p>Veuillez réessayer ou contacter notre support.</p>
+                    </div>
+                `;
+            }
+            
+            payButton.disabled = false;
+            payButton.innerHTML = '🔒 Payer <span id="pay-amount">0.00 €</span>';
+        });
+        
+        // Initialiser la page
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadCartFromStorage();
+            await loadCartDetails();
+            await initializeStripe();
+        });
+    </script>
+</body>
+</html>

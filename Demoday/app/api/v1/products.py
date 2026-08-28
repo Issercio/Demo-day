@@ -13,6 +13,7 @@ def get_product(product_id):
         return jsonify({
             'id': product.id,
             'name': product.name,
+            'price': product.price,
             'category': {
                 'id': product.category.id,
                 'name': product.category.name
