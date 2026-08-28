@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abonnement Floral</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="stylesheet" href="../static/css/subscription.css">
+</head>
+<body>
+    <header>
+      <img class="logo" src="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6~mv2.png/v1/crop/x_748,y_1016,w_3355,h_2788/fill/w_239,h_198,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20P%26L%20Rond%20neutre%20pour%20fond%20clairsans%20fond%20-%20by%20fadamentalpics.png" alt="Logo pivoine & lilas, artisan fleuriste" width="120" height="100">
+      <nav>
+        <ul>
+          <li><a href="accueil.html">ACCUEIL</a></li>
+          <li><a href="shop.html">SHOP</a></li>
+          <li><a href="evenementiel.html">ÉVÈNEMENTIEL</a></li>
+          <li><a href="entreprises.html">ENTREPRISES</a></li>
+          <li><a href="portfolio.html">PORTFOLIO</a></li>
+          <li><a href="contact.html">CONTACT</a></li>
+          <li><a href="subscription.html" class="active">ABONNEMENT</a></li>
+          <li>
+            <a href="panier.html" id="cart-link" style="position:relative;">
+              <span style="font-size:22px;vertical-align:middle;">🛒</span>
+              <span id="cart-count" style="position:absolute;top:0;right:-10px;background:#bc6288;color:#fff;font-size:13px;padding:1px 6px;border-radius:10px;display:none;">0</span>
+            </a>
+          </li>
+          <li style="position:relative;">
+            <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
+            <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;min-width:200px;">
+              <div id="user-email" style="margin-bottom: 15px; color: #bc6288; font-size: 0.9em; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; display: none;"></div>
+              <button id="login-btn" class="cta-btn" style="width:100%; margin-bottom: 8px;">Se connecter</button>
+              <button id="logout-btn" class="cta-btn" style="width:100%; margin-bottom: 8px; display: none;">Déconnexion</button>
+              <button id="delete-btn" class="cta-btn" style="width:100%; background: #fff; color: #bc6288; border: 1.5px solid #bc6288; display: none;">Supprimer le compte</button>
+            </div>
+          </li>
+        </ul>
+      </nav>
+    </header>
+    <main>
+        <section class="hero">
+            <h1>Abonnement Floral Signature</h1>
+            <p class="intro-text">
+                Recevez des créations florales fraîches tout au long de l'année.
+                Plus la durée est longue, plus le coût mensuel est avantageux.
+            </p>
+        </section>
+
+        <section class="subscription-options">
+            <div class="subscription-card" data-plan="monthly">
+                <h2>Éclat Mensuel</h2>
+                <p class="duration">1 mois</p>
+                <p class="price">19.99€</p>
+                <ul class="features">
+                    <li>1 composition premium par mois</li>
+                    <li>Palette de saison personnalisée</li>
+                    <li>Idéal pour découvrir le service</li>
+                </ul>
+            </div>
+
+            <div class="subscription-card" data-plan="semester">
+                <h2>Harmonie Semestrielle</h2>
+                <p class="duration">6 mois</p>
+                <p class="price">24.99€</p>
+                <ul class="features">
+                    <li>Livraison florale continue sur 6 mois</li>
+                    <li>Sélections exclusives et variées</li>
+                    <li>Excellent rapport qualité-prix sur la durée</li>
+                </ul>
+            </div>
+
+            <div class="subscription-card" data-plan="yearly">
+                <h2>Collection Annuelle</h2>
+                <p class="duration">12 mois</p>
+                <p class="price">29.99€</p>
+                <ul class="features">
+                    <li>Programme floral complet sur 1 an</li>
+                    <li>Créations événementielles incluses</li>
+                    <li>La formule la plus complète et prestigieuse</li>
+                </ul>
+            </div>
+        </section>
+
+        <button id="select-plan" class="select-button" disabled>Sélectionner</button>
+    </main>
+    <div id="subscription-toast" class="subscription-toast" aria-live="polite" role="status"></div>
+    <script src="../static/js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.subscription-card');
+            const selectButton = document.getElementById('select-plan');
+
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    cards.forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    selectButton.disabled = false;
+                });
+            });
+
+            let subscriptionToastTimer = null;
+            function showSubscriptionToast(message) {
+                const toast = document.getElementById('subscription-toast');
+                if (!toast) {
+                    return;
+                }
+                toast.textContent = message;
+                toast.classList.add('is-visible');
+
+                if (subscriptionToastTimer) {
+                    clearTimeout(subscriptionToastTimer);
+                }
+
+                subscriptionToastTimer = setTimeout(() => {
+                    toast.classList.remove('is-visible');
+                }, 2000);
+            }
+
+            selectButton.addEventListener('click', () => {
+                const selectedCard = document.querySelector('.subscription-card.selected');
+                if (selectedCard) {
+                    const plan = selectedCard.dataset.plan;
+                    const price = selectedCard.querySelector('.price').textContent;
+                    const duration = selectedCard.querySelector('.duration').textContent;
+                    const title = selectedCard.querySelector('h2').textContent;
+
+                    const subscriptionProduct = {
+                        id: `subscription_${plan}`,
+                        name: `Abonnement ${title}`,
+                        price: parseFloat(price.replace('€', '')),
+                        quantity: 1,
+                        duration: duration,
+                        type: 'subscription',
+                        category: { name: 'Abonnement' }
+                    };
+
+                    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+                    const cartWithoutOldSubscription = existingCart.filter(item => !(item.type === 'subscription'));
+                    cartWithoutOldSubscription.push(subscriptionProduct);
+                    localStorage.setItem('cart', JSON.stringify(cartWithoutOldSubscription));
+                    localStorage.setItem('subscription_cart', JSON.stringify([subscriptionProduct]));
+
+                    showSubscriptionToast(`${subscriptionProduct.name} ajouté au panier`);
+                    setTimeout(() => {
+                        window.location.href = 'panier.html';
+                    }, 700);
+                } else {
+                    alert('Veuillez sélectionner un abonnement');
+                }
+            });
+
+            function updateCartCount() {
+              const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+              const badge = document.getElementById('cart-count');
+              if (badge) {
+                badge.textContent = cart.length;
+                badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
+              }
+            }
+            document.addEventListener('DOMContentLoaded', updateCartCount);
+        });
+    </script>
+</body>
+</html>

@@ -1,55 +1,43 @@
--- Suppression des tables existantes
-DROP TABLE IF EXISTS Place_Amenity;
-DROP TABLE IF EXISTS Review;
-DROP TABLE IF EXISTS Place;
-DROP TABLE IF EXISTS Amenity;
-DROP TABLE IF EXISTS User;
-
--- Création de la table User
-CREATE TABLE User (
-    id CHAR(36) PRIMARY KEY,
-    first_name VARCHAR(255) NOT NULL,
-    last_name VARCHAR(255) NOT NULL,
+-- Tables principales
+CREATE TABLE users (
+    id UUID PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
     is_admin BOOLEAN DEFAULT FALSE
 );
 
--- Création de la table Place
-CREATE TABLE Place (
-    id CHAR(36) PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
+CREATE TABLE categories (
+    id UUID PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE products (
+    id UUID PRIMARY KEY,
+    category_id UUID REFERENCES categories(id),
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
     description TEXT,
-    price DECIMAL(10, 2) NOT NULL,
-    latitude FLOAT,
-    longitude FLOAT,
-    owner_id CHAR(36),
-    FOREIGN KEY (owner_id) REFERENCES User(id)
+    image_url VARCHAR(255),
+    stock INTEGER NOT NULL DEFAULT 0,
+    delivery_available BOOLEAN DEFAULT TRUE,
+    click_collect_available BOOLEAN DEFAULT TRUE
 );
 
--- Création de la table Review
-CREATE TABLE Review (
-    id CHAR(36) PRIMARY KEY,
-    text TEXT NOT NULL,
-    rating INT CHECK (rating BETWEEN 1 AND 5),
-    user_id CHAR(36),
-    place_id CHAR(36),
-    FOREIGN KEY (user_id) REFERENCES User(id),
-    FOREIGN KEY (place_id) REFERENCES Place(id),
-    UNIQUE (user_id, place_id)
+CREATE TABLE prices (
+    id UUID PRIMARY KEY,
+    product_id UUID REFERENCES products(id),
+    amount DECIMAL(10,2) NOT NULL,
+    effective_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
 );
 
--- Création de la table Amenity
-CREATE TABLE Amenity (
-    id CHAR(36) PRIMARY KEY,
-    name VARCHAR(255) UNIQUE NOT NULL
-);
-
--- Création de la table Place_Amenity
-CREATE TABLE Place_Amenity (
-    place_id CHAR(36),
-    amenity_id CHAR(36),
-    PRIMARY KEY (place_id, amenity_id),
-    FOREIGN KEY (place_id) REFERENCES Place(id),
-    FOREIGN KEY (amenity_id) REFERENCES Amenity(id)
+-- Table de test
+CREATE TABLE test_table (
+    id UUID PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
 );
