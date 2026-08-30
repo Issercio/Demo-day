@@ -216,15 +216,30 @@ form {
     max-width: 420px;
 }
 
-footer {
+footer,
+.site-footer {
     text-align: center;
-    color: var(--vintage-text);
-    font-size: 15px;
+    color: #f9edf2;
+    font-size: 16px;
     margin-top: 60px;
-    padding: 20px 0 10px 0;
-    background: #f5f5f5;
-    border-top: 1.5px solid var(--vintage-border);
+    padding: 18px 12px;
+    background: linear-gradient(90deg, #7f3f5a 0%, #bc6288 100%);
+    border-top: 2px solid #d7a9bd;
     letter-spacing: 0.01em;
+    font-weight: 600;
+}
+
+footer a,
+.site-footer a {
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-weight: 700;
+}
+
+footer a:hover,
+.site-footer a:hover {
+    color: #ffe8f1;
 }
 
 img, video {
