@@ -248,6 +248,29 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="admin-section">
+            <h2>Commandes et paiements</h2>
+            <p style="margin-bottom: 16px; color: #6c4a58;">Les paiements validés apparaissent ici avec le montant recalculé côté serveur.</p>
+            <table class="data-table" id="orders-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Date</th>
+                        <th>Client</th>
+                        <th>Total</th>
+                        <th>Statut</th>
+                        <th>Méthode</th>
+                        <th>Articles</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-list">
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #bc6288;">Chargement...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
@@ -321,11 +344,57 @@
                 renderCategories();
                 renderProducts();
                 updateCategoryOptions();
+                await loadOrders();
                 
                 console.log('=== FIN CHARGEMENT ===');
             } catch (error) {
                 console.error('Erreur lors du chargement des données:', error);
                 alert('Erreur lors du chargement des données: ' + error.message);
+            }
+        }
+
+        async function loadOrders() {
+            const body = document.getElementById('orders-list');
+            try {
+                const response = await fetch('/api/v1/payments/orders', {
+                    headers: getAdminHeaders()
+                });
+                if (redirectIfForbidden(response)) {
+                    return;
+                }
+                if (!response.ok) {
+                    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#dc3545;">Impossible de charger les commandes</td></tr>';
+                    return;
+                }
+                const payload = await response.json();
+                const orders = payload.orders || [];
+                if (orders.length === 0) {
+                    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#bc6288;">Aucune commande pour le moment</td></tr>';
+                    return;
+                }
+                body.innerHTML = orders.map((order) => {
+                    const items = (order.items || []).map((item) => {
+                        const name = (item.product && item.product.name) || `Produit #${item.product_id}`;
+                        return `${name} × ${item.quantity}`;
+                    }).join('<br>');
+                    const statusColor = order.status === 'paid' ? '#155724' : (order.status === 'failed' ? '#721c24' : '#856404');
+                    const method = order.payment_method || '-';
+                    const last4 = order.card_last4 ? ` •••• ${order.card_last4}` : '';
+                    const created = order.created_at ? order.created_at.replace('T', ' ').slice(0, 16) : '';
+                    return `
+                        <tr>
+                            <td>#${order.id}</td>
+                            <td>${created}</td>
+                            <td>${order.customer_name || '-'}<br><small>${order.email}</small></td>
+                            <td><strong>${Number(order.total_amount).toFixed(2)} €</strong></td>
+                            <td style="color:${statusColor};font-weight:700;">${order.status}</td>
+                            <td>${method}${last4}<br><small>${order.payment_reference || ''}</small></td>
+                            <td>${items}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#dc3545;">${error.message}</td></tr>`;
             }
         }
 

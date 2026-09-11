@@ -23,3 +23,5 @@ flask-bcrypt==1.0.1
 flask-jwt-extended==4.7.1
 sqlalchemy==2.0.23
 Flask-Migrate==4.1.0
+flask-cors==5.0.1
+PyJWT==2.10.1

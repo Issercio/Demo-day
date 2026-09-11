@@ -140,17 +140,14 @@
                     const subscriptionProduct = {
                         id: `subscription_${plan}`,
                         name: `Abonnement ${title}`,
-                        price: parseFloat(price.replace('€', '')),
+                        price: parseFloat(String(price).replace(',', '.').replace(/[^\d.]/g, '')),
                         quantity: 1,
                         duration: duration,
                         type: 'subscription',
-                        category: { name: 'Abonnement' }
+                        category: { name: 'Abonnements' }
                     };
 
-                    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-                    const cartWithoutOldSubscription = existingCart.filter(item => !(item.type === 'subscription'));
-                    cartWithoutOldSubscription.push(subscriptionProduct);
-                    localStorage.setItem('cart', JSON.stringify(cartWithoutOldSubscription));
+                    FloraCart.add(subscriptionProduct);
                     localStorage.setItem('subscription_cart', JSON.stringify([subscriptionProduct]));
 
                     showSubscriptionToast(`${subscriptionProduct.name} ajouté au panier`);
@@ -163,12 +160,13 @@
             });
 
             function updateCartCount() {
-              const cart = JSON.parse(localStorage.getItem('cart') || '[]');
               const badge = document.getElementById('cart-count');
-              if (badge) {
-                badge.textContent = cart.length;
-                badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
+              if (!badge) {
+                return;
               }
+              const total = FloraCart.count();
+              badge.textContent = String(total);
+              badge.style.display = total > 0 ? 'inline-block' : 'none';
             }
             updateCartCount();
         });

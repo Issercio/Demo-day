@@ -29,8 +29,11 @@ def create_app():
         SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'postgresql://postgres:root@localhost:5432/florashop'),
         SQLALCHEMY_TRACK_MODIFICATIONS = False,
         JSON_AS_ASCII = False,
-        SECRET_KEY = 'dev_secret_key_123',  # Clé pour JWT
-        ADMIN_TOKEN = 'florashop_admin_2024_secure'
+        SECRET_KEY = os.environ.get('SECRET_KEY', 'dev_secret_key_123'),
+        ADMIN_TOKEN = 'florashop_admin_2024_secure',
+        STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', ''),
+        STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', ''),
+        STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', ''),
     )
 
     # Initialisation des extensions
@@ -83,6 +86,13 @@ def create_app():
     from app.api.v1.auth import api as auth_ns
     api.add_namespace(auth_ns, path='/api/v1/auth')
     # Suppression de reviews_restx
+
+    with app.app_context():
+        try:
+            from app.services.checkout_service import ensure_runtime_schema
+            ensure_runtime_schema()
+        except Exception as exc:
+            app.logger.warning('Initialisation schéma paiement ignorée: %s', exc)
     
     return app
 

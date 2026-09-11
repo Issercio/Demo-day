@@ -333,10 +333,10 @@
             </div>
             
             <div class="plans-grid">
-                <div class="plan-card" data-plan="monthly" data-price="29.99">
+                <div class="plan-card" data-plan="monthly" data-price="19.99">
                     <div class="plan-icon">🌹</div>
-                    <div class="plan-name">Mensuel</div>
-                    <div class="plan-price">29,99 €</div>
+                    <div class="plan-name">Éclat Mensuel</div>
+                    <div class="plan-price">19,99 €</div>
                     <div class="plan-period">par mois</div>
                     <ul class="plan-features">
                         <li>1 bouquet par mois</li>
@@ -347,11 +347,11 @@
                     </ul>
                 </div>
                 
-                <div class="plan-card popular" data-plan="quarterly" data-price="79.99">
+                <div class="plan-card popular" data-plan="semester" data-price="17.99">
                     <div class="plan-icon">🌻</div>
-                    <div class="plan-name">Trimestriel</div>
-                    <div class="plan-price">79,99 €</div>
-                    <div class="plan-period">tous les 3 mois</div>
+                    <div class="plan-name">Harmonie Semestrielle</div>
+                    <div class="plan-price">17,99 €</div>
+                    <div class="plan-period">par mois · 6 mois</div>
                     <ul class="plan-features">
                         <li>3 bouquets (1 par mois)</li>
                         <li>7-10 fleurs par bouquet</li>
@@ -362,11 +362,11 @@
                     </ul>
                 </div>
                 
-                <div class="plan-card" data-plan="yearly" data-price="299.99">
+                <div class="plan-card" data-plan="yearly" data-price="14.99">
                     <div class="plan-icon">🌷</div>
-                    <div class="plan-name">Annuel</div>
-                    <div class="plan-price">299,99 €</div>
-                    <div class="plan-period">par an</div>
+                    <div class="plan-name">Collection Annuelle</div>
+                    <div class="plan-price">14,99 €</div>
+                    <div class="plan-period">par mois · 12 mois</div>
                     <ul class="plan-features">
                         <li>12 bouquets (1 par mois)</li>
                         <li>10-15 fleurs par bouquet</li>
@@ -405,9 +405,14 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="card-element">💳 Informations de carte</label>
-                        <div id="card-element"></div>
+                        <label for="card-number">💳 Numéro de carte</label>
+                        <input type="text" id="card-number" required placeholder="4242 4242 4242 4242">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+                            <input type="text" id="card-expiry" required placeholder="MM/AA">
+                            <input type="text" id="card-cvc" required placeholder="CVC">
+                        </div>
                         <div id="card-errors" class="error" style="display: none;"></div>
+                        <p style="margin-top:10px;font-size:0.9rem;color:#6a5200;">Carte de test : 4242 4242 4242 4242 — expiration future — CVC 123</p>
                     </div>
                     
                     <button type="submit" id="subscribe-button" class="subscribe-button">
@@ -431,183 +436,91 @@
     </footer>
 
     <script>
-        let stripe = null;
-        let elements = null;
-        let card = null;
         let selectedPlan = null;
-        
-        // Gérer la sélection des plans
-        document.querySelectorAll('.plan-card').forEach(card => {
-            card.addEventListener('click', () => {
-                // Désélectionner tous les plans
+
+        document.querySelectorAll('.plan-card').forEach(cardEl => {
+            cardEl.addEventListener('click', () => {
                 document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
-                
-                // Sélectionner le plan cliqué
-                card.classList.add('selected');
-                
+                cardEl.classList.add('selected');
+
                 selectedPlan = {
-                    type: card.dataset.plan,
-                    price: parseFloat(card.dataset.price),
-                    name: card.querySelector('.plan-name').textContent,
-                    period: card.querySelector('.plan-period').textContent
+                    type: cardEl.dataset.plan,
+                    price: parseFloat(cardEl.dataset.price),
+                    name: cardEl.querySelector('.plan-name').textContent,
+                    period: cardEl.querySelector('.plan-period').textContent
                 };
-                
-                // Afficher les infos du plan sélectionné
+
                 document.getElementById('selected-plan-info').innerHTML = `
                     <h4>Plan sélectionné: ${selectedPlan.name}</h4>
                     <p style="font-size: 1.2em; margin-top: 10px;">
                         <strong>${selectedPlan.price.toFixed(2)} € ${selectedPlan.period}</strong>
                     </p>
                 `;
-                
-                // Afficher la section de paiement
+
                 document.getElementById('payment-section').style.display = 'block';
-                document.getElementById('payment-section').scrollIntoView({ 
-                    behavior: 'smooth' 
-                });
-                
-                // Initialiser Stripe si pas encore fait
-                if (!stripe) {
-                    initializeStripe();
-                }
+                document.getElementById('payment-section').scrollIntoView({ behavior: 'smooth' });
             });
         });
-        
-        // Initialiser Stripe
-        async function initializeStripe() {
-            try {
-                // Créer un payment intent temporaire pour obtenir la clé publique
-                const response = await fetch('/api/v1/payments/create-payment-intent', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        items: [{ product_id: 1, quantity: 1 }], // Item temporaire
-                        email: 'temp@example.com'
-                    })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    stripe = Stripe(data.stripe_publishable_key);
-                    
-                    elements = stripe.elements();
-                    card = elements.create('card', {
-                        style: {
-                            base: {
-                                fontSize: '16px',
-                                color: '#424770',
-                                '::placeholder': {
-                                    color: '#aab7c4',
-                                },
-                            },
-                        },
-                    });
-                    card.mount('#card-element');
-                    
-                    card.on('change', ({error}) => {
-                        const displayError = document.getElementById('card-errors');
-                        if (error) {
-                            displayError.textContent = error.message;
-                            displayError.style.display = 'block';
-                        } else {
-                            displayError.style.display = 'none';
-                        }
-                    });
-                    
-                    console.log('Stripe initialisé avec succès');
-                }
-            } catch (error) {
-                console.error('Erreur initialisation Stripe:', error);
-            }
-        }
-        
-        // Gérer le formulaire d'abonnement
+
         document.getElementById('subscription-form').addEventListener('submit', async (event) => {
             event.preventDefault();
-            
+
             if (!selectedPlan) {
                 alert('Veuillez sélectionner un plan d\'abonnement');
                 return;
             }
-            
+
             const subscribeButton = document.getElementById('subscribe-button');
             const email = document.getElementById('email').value;
             const name = document.getElementById('name').value;
-            const address = document.getElementById('address').value;
-            
+            const resultBox = document.getElementById('subscription-result');
+
             subscribeButton.disabled = true;
             subscribeButton.textContent = '⏳ Création de votre abonnement...';
-            
+            resultBox.innerHTML = '';
+
             try {
-                // Pour un abonnement, on simule avec un paiement unique
-                // Dans un vrai projet, vous utiliseriez Stripe Subscriptions
-                const response = await fetch('/api/v1/payments/create-payment-intent', {
+                const response = await fetch('/api/v1/payments/checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        email,
+                        name,
+                        payment_method: 'card',
+                        card_number: document.getElementById('card-number').value,
+                        card_expiry: document.getElementById('card-expiry').value,
+                        card_cvc: document.getElementById('card-cvc').value,
                         items: [{
-                            product_id: 999, // ID spécial pour abonnement
-                            quantity: 1
-                        }],
-                        email: email,
-                        subscription_type: selectedPlan.type,
-                        amount: selectedPlan.price
+                            product_id: 'subscription_' + selectedPlan.type,
+                            quantity: 1,
+                            type: 'subscription'
+                        }]
                     })
                 });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Erreur création abonnement');
-                }
-                
-                const { client_secret, order_id } = await response.json();
-                
-                // Confirmer le paiement avec Stripe
-                const {error, paymentIntent} = await stripe.confirmCardPayment(client_secret, {
-                    payment_method: {
-                        card: card,
-                        billing_details: {
-                            name: name,
-                            email: email,
-                            address: {
-                                line1: address
-                            }
-                        }
-                    }
-                });
-                
-                if (error) {
-                    throw new Error(error.message);
-                } else {
-                    // Abonnement créé avec succès !
-                    document.getElementById('subscription-result').innerHTML = `
+                const data = await response.json().catch(() => ({}));
+                if (response.status === 201 && data.order) {
+                    resultBox.innerHTML = `
                         <div class="success">
                             <h3>🎉 Abonnement activé !</h3>
                             <p><strong>Félicitations ${name} !</strong></p>
                             <p>Votre abonnement <strong>${selectedPlan.name}</strong> est maintenant actif</p>
-                            <p>Votre premier bouquet sera livré dans les 3-5 jours ouvrés</p>
-                            <p>Adresse de livraison: <strong>${address}</strong></p>
-                            <p>Email de confirmation envoyé à: <strong>${email}</strong></p>
-                            <p style="margin-top: 20px; font-size: 0.9em; opacity: 0.8;">
-                                ID de transaction: ${paymentIntent.id}
-                            </p>
+                            <p>Commande #${data.order.id} — ${Number(data.order.total_amount).toFixed(2)} €</p>
+                            <p>Référence: ${data.order.payment_reference}</p>
                         </div>
                     `;
-                    
-                    // Masquer le formulaire
                     document.getElementById('subscription-form').style.display = 'none';
+                    return;
                 }
-                
+                throw new Error(data.error || 'Erreur création abonnement');
             } catch (error) {
-                document.getElementById('subscription-result').innerHTML = `
+                resultBox.innerHTML = `
                     <div class="error">
                         <h3>❌ Erreur d'abonnement</h3>
                         <p>${error.message}</p>
-                        <p>Veuillez réessayer ou contacter notre support.</p>
                     </div>
                 `;
             }
-            
+
             subscribeButton.disabled = false;
             subscribeButton.textContent = '🔒 S\'abonner maintenant';
         });

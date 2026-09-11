@@ -152,17 +152,21 @@
             box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
         }
         
-        #card-element {
-            padding: 15px;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            background: white;
-            transition: border-color 0.3s ease;
+        .card-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
         }
-        
-        #card-element:focus-within {
-            border-color: #4ECDC4;
-            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+
+        .test-cards {
+            margin-top: 10px;
+            padding: 12px;
+            background: #fff8e7;
+            border: 1px solid #f1d48a;
+            border-radius: 10px;
+            color: #6a5200;
+            font-size: 0.9rem;
+            line-height: 1.45;
         }
         
         .pay-button {
@@ -298,7 +302,7 @@
     <div class="checkout-container">
         <div class="header">
             <h1>🌸 Finaliser votre commande</h1>
-            <p>Paiement sécurisé avec Stripe</p>
+            <p>Paiement sécurisé — les prix sont recalculés par le serveur</p>
         </div>
         
         <div class="content" id="checkout-content">
@@ -339,10 +343,26 @@
                         <input type="text" id="name" required placeholder="Votre nom complet">
                     </div>
                     
-                    <div class="form-group">
-                        <label for="card-element">💳 Informations de carte</label>
-                        <div id="card-element"></div>
+                    <div class="form-group" id="card-fields">
+                        <label for="card-number">💳 Numéro de carte</label>
+                        <input type="text" id="card-number" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242">
+                        <div class="card-row" style="margin-top: 12px;">
+                            <div>
+                                <label for="card-expiry">Expiration</label>
+                                <input type="text" id="card-expiry" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA">
+                            </div>
+                            <div>
+                                <label for="card-cvc">CVC</label>
+                                <input type="text" id="card-cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="123">
+                            </div>
+                        </div>
                         <div id="card-errors" class="error" style="display: none;"></div>
+                        <div class="test-cards" id="test-cards-help">
+                            Cartes de test : <strong>4242 4242 4242 4242</strong> (acceptée),
+                            <strong>4000 0000 0000 0002</strong> (refusée),
+                            <strong>4000 0000 0000 9995</strong> (fonds insuffisants).
+                            Expiration future + CVC 123.
+                        </div>
                     </div>
                     
                     <button type="submit" id="pay-button" class="pay-button">
@@ -358,7 +378,7 @@
         <div class="empty-cart" id="empty-cart" style="display: none;">
             <h3>🛒 Votre panier est vide</h3>
             <p>Ajoutez des produits à votre panier pour continuer</p>
-            <a href="/shop.html" class="back-to-shop">Retourner à la boutique</a>
+            <a href="shop.html" class="back-to-shop">Retourner à la boutique</a>
         </div>
     </div>
     <footer class="site-footer">
@@ -367,11 +387,17 @@
     </footer>
 
     <script>
-        let stripe = null;
-        let elements = null;
-        let card = null;
         let cartItems = [];
         let selectedPaymentMethod = 'card';
+        let paymentMode = 'test';
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
 
         function normalizeLocalProduct(rawItem) {
             const quantity = Number(rawItem.quantity || 1);
@@ -405,42 +431,51 @@
             if (method === 'saved') {
                 return 'Cartes enregistrées';
             }
-            return 'Carte bancaire (Stripe)';
+            return 'Carte bancaire';
         }
 
         function configurePaymentFormForMethod() {
-            const cardGroup = document.getElementById('card-element').closest('.form-group');
+            const cardFields = document.getElementById('card-fields');
             const note = document.getElementById('payment-method-note');
             const payButton = document.getElementById('pay-button');
             const methodLabel = getMethodLabel(selectedPaymentMethod);
+            const cardRequired = selectedPaymentMethod === 'card';
+
+            ['card-number', 'card-expiry', 'card-cvc'].forEach((id) => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.required = cardRequired;
+                }
+            });
 
             if (selectedPaymentMethod === 'card') {
-                note.innerHTML = `Mode sélectionné : <strong>${methodLabel}</strong>`;
-                cardGroup.style.display = 'block';
+                note.innerHTML = `Mode sélectionné : <strong>${methodLabel}</strong> — le serveur valide la carte et enregistre la commande.`;
+                cardFields.style.display = 'block';
             } else if (selectedPaymentMethod === 'paypal') {
-                note.innerHTML = 'Mode sélectionné : <strong>PayPal</strong><br>Validation rapide de la commande sans saisie de carte.';
-                cardGroup.style.display = 'none';
+                note.innerHTML = 'Mode sélectionné : <strong>PayPal</strong> (sandbox). La commande est créée côté serveur.';
+                cardFields.style.display = 'none';
             } else {
-                note.innerHTML = 'Mode sélectionné : <strong>Cartes enregistrées</strong><br>Paiement express activé sur cette commande.';
-                cardGroup.style.display = 'none';
+                note.innerHTML = 'Mode sélectionné : <strong>Carte enregistrée</strong> (sandbox, se termine par 4242).';
+                cardFields.style.display = 'none';
             }
 
             payButton.innerHTML = `🔒 Payer avec ${methodLabel} <span id="pay-amount">0.00 €</span>`;
-            // Recalcule le libellé montant après réécriture du bouton.
             displayCartItems();
         }
 
-        function renderSuccessPayment(modeLabel, name, email, transactionId) {
-            const safeName = name || 'client';
-            const safeEmail = email || 'adresse non renseignée';
-
+        function renderSuccessPayment(order) {
+            const methodLabel = getMethodLabel(order.payment_method || selectedPaymentMethod);
+            const last4 = order.card_last4 ? ` •••• ${order.card_last4}` : '';
             document.getElementById('payment-result').innerHTML = `
                 <div class="success">
                     <h3>✅ Paiement validé</h3>
-                    <p><strong>Méthode :</strong> ${modeLabel}</p>
-                    <p>Merci ${safeName} pour votre achat !</p>
-                    <p>Confirmation envoyée à <strong>${safeEmail}</strong></p>
-                    <p>Référence: ${transactionId}</p>
+                    <p><strong>Commande #${order.id}</strong></p>
+                    <p><strong>Méthode :</strong> ${escapeHtml(methodLabel)}${last4}</p>
+                    <p>Merci ${escapeHtml(order.customer_name || 'client')} pour votre achat !</p>
+                    <p>Confirmation : <strong>${escapeHtml(order.email)}</strong></p>
+                    <p>Montant : <strong>${Number(order.total_amount).toFixed(2)} €</strong></p>
+                    <p>Référence : ${escapeHtml(order.payment_reference || '')}</p>
+                    <p style="margin-top:16px;"><a class="back-to-shop" href="shop.html">Retour boutique</a></p>
                 </div>
             `;
 
@@ -459,20 +494,17 @@
             payButton.innerHTML = `🔒 Payer avec ${methodLabel} <span id="pay-amount">0.00 €</span>`;
             displayCartItems();
         }
-        
-        // Simuler le chargement du panier depuis localStorage ou API
+
         function loadCartFromStorage() {
             try {
-                const savedCart = localStorage.getItem('cart'); // Même clé que panier.html
+                const savedCart = localStorage.getItem('cart');
                 if (savedCart) {
                     const cart = JSON.parse(savedCart);
-                    // Convertir le format du panier vers le format attendu par l'API
                     cartItems = cart.map(item => ({
-                        product_id: item.id || item.product_id || 1, // Adapter selon votre format
+                        product_id: item.id || item.product_id,
                         quantity: item.quantity || 1,
-                        product: item // Garder l'objet produit original
+                        product: item
                     }));
-                    console.log('Panier chargé:', cartItems);
                 }
             } catch (e) {
                 console.error('Erreur chargement panier:', e);
@@ -480,26 +512,27 @@
             }
         }
 
-        function getStripeItemsPayload() {
-            return cartItems
-                .filter(item => Number.isInteger(Number(item.product_id)))
-                .map(item => ({
-                    product_id: Number(item.product_id),
-                    quantity: Number(item.quantity || 1)
-                }))
-                .filter(item => item.product_id > 0 && item.quantity > 0);
+        function checkoutItemsPayload() {
+            return cartItems.map((item) => {
+                const local = normalizeLocalProduct(item.product || item);
+                return {
+                    product_id: local.id,
+                    quantity: local.quantity,
+                    type: local.type,
+                    name: local.name
+                };
+            });
         }
-        
-        // Charger les produits du panier avec détails depuis l'API
+
         async function loadCartDetails() {
             if (cartItems.length === 0) {
                 showEmptyCart();
                 return;
             }
-            
+
             try {
                 const detailedItems = [];
-                
+
                 for (const item of cartItems) {
                     const localProduct = normalizeLocalProduct(item.product || item);
                     const productId = Number(item.product_id);
@@ -535,10 +568,9 @@
                         });
                     }
                 }
-                
+
                 cartItems = detailedItems;
                 displayCartItems();
-                
             } catch (error) {
                 console.error('Erreur chargement détails:', error);
                 cartItems = cartItems.map(item => {
@@ -552,41 +584,39 @@
                 displayCartItems();
             }
         }
-        
-        // Afficher le panier vide
+
         function showEmptyCart() {
             document.getElementById('checkout-content').style.display = 'none';
             document.getElementById('empty-cart').style.display = 'block';
         }
-        
-        // Afficher les items du panier
+
         function displayCartItems() {
             const cartContainer = document.getElementById('cart-items');
             const subtotalElement = document.getElementById('subtotal');
             const totalElement = document.getElementById('total');
             const payAmountElement = document.getElementById('pay-amount');
-            
+
             if (cartItems.length === 0) {
                 showEmptyCart();
                 return;
             }
-            
+
             let total = 0;
             cartContainer.innerHTML = '';
-            
+
             cartItems.forEach(item => {
                 const unitPrice = Number(item.product.price || 0);
                 const quantity = Number(item.quantity || 1);
                 const itemTotal = unitPrice * quantity;
                 total += itemTotal;
-                
+
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'cart-item';
                 if (item.product.type === 'subscription') {
                     itemDiv.innerHTML = `
                         <div class="item-details">
-                            <div class="item-name">🌸 ${item.product.name}</div>
-                            <div class="item-price">${unitPrice.toFixed(2)} €/mois${item.product.duration ? ` (${item.product.duration})` : ''}</div>
+                            <div class="item-name">🌸 ${escapeHtml(item.product.name)}</div>
+                            <div class="item-price">${unitPrice.toFixed(2)} €/mois${item.product.duration ? ` (${escapeHtml(item.product.duration)})` : ''}</div>
                         </div>
                         <div class="item-quantity">ABONNEMENT</div>
                         <div style="font-weight: bold; color: #2c3e50;">${itemTotal.toFixed(2)} €</div>
@@ -594,7 +624,7 @@
                 } else {
                     itemDiv.innerHTML = `
                         <div class="item-details">
-                            <div class="item-name">${item.product.name}</div>
+                            <div class="item-name">${escapeHtml(item.product.name)}</div>
                             <div class="item-price">${unitPrice.toFixed(2)} € × ${quantity}</div>
                         </div>
                         <div class="item-quantity">×${quantity}</div>
@@ -603,181 +633,135 @@
                 }
                 cartContainer.appendChild(itemDiv);
             });
-            
+
             subtotalElement.textContent = `${total.toFixed(2)} €`;
             totalElement.textContent = `${total.toFixed(2)} €`;
-            payAmountElement.textContent = `${total.toFixed(2)} €`;
-        }
-        
-        // Initialiser Stripe
-        async function initializeStripe() {
-            if (selectedPaymentMethod !== 'card') {
-                return;
-            }
-
-            try {
-                const stripeItems = getStripeItemsPayload();
-                if (stripeItems.length === 0) {
-                    return;
-                }
-
-                // Créer un payment intent temporaire pour obtenir la clé publique
-                const response = await fetch('/api/v1/payments/create-payment-intent', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        items: stripeItems,
-                        email: 'temp@example.com'
-                    })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    stripe = Stripe(data.stripe_publishable_key);
-                    
-                    elements = stripe.elements();
-                    card = elements.create('card', {
-                        style: {
-                            base: {
-                                fontSize: '16px',
-                                color: '#424770',
-                                '::placeholder': {
-                                    color: '#aab7c4',
-                                },
-                            },
-                        },
-                    });
-                    card.mount('#card-element');
-                    
-                    card.on('change', ({error}) => {
-                        const displayError = document.getElementById('card-errors');
-                        if (error) {
-                            displayError.textContent = error.message;
-                            displayError.style.display = 'block';
-                        } else {
-                            displayError.style.display = 'none';
-                        }
-                    });
-                    
-                    console.log('Stripe initialisé avec succès');
-                }
-            } catch (error) {
-                console.error('Erreur initialisation Stripe:', error);
+            if (payAmountElement) {
+                payAmountElement.textContent = `${total.toFixed(2)} €`;
             }
         }
-        
-        // Gérer le formulaire de paiement
+
+        function formatCardNumber(value) {
+            return value.replace(/\D/g, '').slice(0, 19).replace(/(.{4})/g, '$1 ').trim();
+        }
+
+        function formatExpiry(value) {
+            const digits = value.replace(/\D/g, '').slice(0, 4);
+            if (digits.length <= 2) {
+                return digits;
+            }
+            return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+        }
+
         document.getElementById('payment-form').addEventListener('submit', async (event) => {
             event.preventDefault();
-            
+
             if (cartItems.length === 0) {
                 alert('Votre panier est vide !');
                 return;
             }
-            
+
             const payButton = document.getElementById('pay-button');
             const email = document.getElementById('email').value;
             const name = document.getElementById('name').value;
-            
+            const resultBox = document.getElementById('payment-result');
+
             payButton.disabled = true;
             payButton.innerHTML = '<span class="spinner"></span> Traitement du paiement...';
-            let paymentCompleted = false;
+            resultBox.innerHTML = '';
 
-            if (selectedPaymentMethod === 'paypal') {
-                renderSuccessPayment('PayPal', name, email, `PAYPAL-${Date.now()}`);
-                paymentCompleted = true;
-                return;
+            const payload = {
+                email,
+                name,
+                payment_method: selectedPaymentMethod,
+                items: checkoutItemsPayload()
+            };
+
+            if (selectedPaymentMethod === 'card') {
+                payload.card_number = document.getElementById('card-number').value;
+                payload.card_expiry = document.getElementById('card-expiry').value;
+                payload.card_cvc = document.getElementById('card-cvc').value;
             }
 
-            if (selectedPaymentMethod === 'saved') {
-                renderSuccessPayment('Carte enregistrée', name, email, `SAVED-${Date.now()}`);
-                paymentCompleted = true;
-                return;
+            const headers = { 'Content-Type': 'application/json' };
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
             }
-            
+
             try {
-                const stripeItems = getStripeItemsPayload();
+                const response = await fetch('/api/v1/payments/checkout', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json().catch(() => ({}));
 
-                if (stripeItems.length === 0 || !stripe || !card) {
-                    renderSuccessPayment('Carte bancaire (mode test)', name, email, `CARD-${Date.now()}`);
-                    paymentCompleted = true;
+                if (response.status === 201 && data.order) {
+                    renderSuccessPayment(data.order);
                     return;
                 }
 
-                // Créer le Payment Intent
-                const response = await fetch('/api/v1/payments/create-payment-intent', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        items: stripeItems,
-                        email: email
-                    })
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Erreur création payment intent');
-                }
-                
-                const { client_secret, order_id } = await response.json();
-                
-                // Confirmer le paiement avec Stripe
-                const {error, paymentIntent} = await stripe.confirmCardPayment(client_secret, {
-                    payment_method: {
-                        card: card,
-                        billing_details: {
-                            name: name,
-                            email: email
-                        }
-                    }
-                });
-                
-                if (error) {
-                    throw new Error(error.message);
-                } else {
-                    // Paiement réussi !
-                    document.getElementById('payment-result').innerHTML = `
-                        <div class="success">
-                            <h3>✅ Paiement réussi !</h3>
-                            <p><strong>Commande #${order_id}</strong> confirmée</p>
-                            <p>Merci ${name} pour votre achat !</p>
-                            <p>Un email de confirmation sera envoyé à <strong>${email}</strong></p>
-                            <p>ID de transaction: ${paymentIntent.id}</p>
-                        </div>
-                    `;
-                    
-                    // Vider le panier
-                    localStorage.removeItem('cart'); // Même clé que panier.html
-                    cartItems = [];
-                    paymentCompleted = true;
-                    
-                    // Masquer le formulaire
-                    document.getElementById('payment-form').style.display = 'none';
-                    document.querySelector('.order-summary').style.display = 'none';
-                }
-                
+                const message = data.error || 'Le paiement a échoué.';
+                resultBox.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Paiement refusé</h3>
+                        <p>${escapeHtml(message)}</p>
+                        ${data.order ? `<p>Commande #${data.order.id} enregistrée comme ${escapeHtml(data.order.status)}.</p>` : ''}
+                    </div>
+                `;
             } catch (error) {
-                document.getElementById('payment-result').innerHTML = `
+                resultBox.innerHTML = `
                     <div class="error">
                         <h3>❌ Erreur de paiement</h3>
-                        <p>${error.message}</p>
-                        <p>Veuillez réessayer ou contacter notre support.</p>
+                        <p>${escapeHtml(error.message)}</p>
                     </div>
                 `;
             }
-            
-            if (!paymentCompleted) {
-                restorePayButton();
-            }
+
+            restorePayButton();
         });
-        
-        // Initialiser la page
+
         document.addEventListener('DOMContentLoaded', async () => {
             selectedPaymentMethod = getPaymentMethodFromContext();
+            try {
+                const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+                if (storedUser && storedUser.email) {
+                    document.getElementById('email').value = storedUser.email;
+                    if (storedUser.username) {
+                        document.getElementById('name').value = storedUser.username;
+                    }
+                }
+            } catch (e) {}
+
+            const cardNumber = document.getElementById('card-number');
+            const cardExpiry = document.getElementById('card-expiry');
+            const cardCvc = document.getElementById('card-cvc');
+            cardNumber.addEventListener('input', () => {
+                cardNumber.value = formatCardNumber(cardNumber.value);
+            });
+            cardExpiry.addEventListener('input', () => {
+                cardExpiry.value = formatExpiry(cardExpiry.value);
+            });
+            cardCvc.addEventListener('input', () => {
+                cardCvc.value = cardCvc.value.replace(/\D/g, '').slice(0, 4);
+            });
+
+            try {
+                const configResponse = await fetch('/api/v1/payments/config');
+                if (configResponse.ok) {
+                    const config = await configResponse.json();
+                    paymentMode = config.mode || 'test';
+                    if (paymentMode === 'stripe') {
+                        document.getElementById('test-cards-help').textContent =
+                            'Stripe est configuré. Vous pouvez aussi utiliser les cartes de test Stripe.';
+                    }
+                }
+            } catch (e) {}
+
             loadCartFromStorage();
             await loadCartDetails();
             configurePaymentFormForMethod();
-            await initializeStripe();
         });
     </script>
 </body>

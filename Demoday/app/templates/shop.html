@@ -305,8 +305,8 @@
           products = await productsResponse.json();
         }
 
-        allCategories = categories;
-        allProducts = products;
+        allCategories = categories.filter((category) => category.name !== 'Abonnements');
+        allProducts = products.filter((product) => !(product.category && product.category.name === 'Abonnements'));
 
         const userData = JSON.parse(localStorage.getItem('user'));
         const adminAccess = document.getElementById('admin-access');
@@ -401,9 +401,7 @@
     }
 
     function addToCart(product) {
-      let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      cart.push(product);
-      localStorage.setItem('cart', JSON.stringify(cart));
+      FloraCart.add({ ...product, quantity: 1 });
       updateCartCount();
       showCartToast(`${product.name} a été ajouté au panier`);
     }
@@ -427,12 +425,13 @@
 
     // Panier badge
     function updateCartCount() {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       const badge = document.getElementById('cart-count');
-      if (badge) {
-        badge.textContent = cart.length;
-        badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
+      if (!badge) {
+        return;
       }
+      const total = FloraCart.count();
+      badge.textContent = String(total);
+      badge.style.display = total > 0 ? 'inline-block' : 'none';
     }
     document.addEventListener('DOMContentLoaded', updateCartCount);
 

@@ -7,8 +7,12 @@ class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Peut être null pour invités
     email = db.Column(db.String(120), nullable=False)  # Email du client
+    customer_name = db.Column(db.String(120), nullable=True)
     total_amount = db.Column(db.Float, nullable=False)  # Montant total en euros
     stripe_payment_intent_id = db.Column(db.String(255), nullable=True)  # ID du paiement Stripe
+    payment_method = db.Column(db.String(50), nullable=True)
+    card_last4 = db.Column(db.String(4), nullable=True)
+    payment_reference = db.Column(db.String(64), nullable=True)
     status = db.Column(db.String(50), default='pending')  # pending, paid, failed, cancelled
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -20,8 +24,12 @@ class Order(db.Model):
             'id': self.id,
             'user_id': self.user_id,
             'email': self.email,
+            'customer_name': self.customer_name,
             'total_amount': float(self.total_amount),
             'stripe_payment_intent_id': self.stripe_payment_intent_id,
+            'payment_method': self.payment_method,
+            'card_last4': self.card_last4,
+            'payment_reference': self.payment_reference,
             'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'items': [item.to_dict() for item in self.order_items]

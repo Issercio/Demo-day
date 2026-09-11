@@ -92,8 +92,9 @@
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const badge = document.getElementById('cart-count');
     if (badge) {
-      badge.textContent = cart.length;
-      badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
+      const total = window.FloraCart ? FloraCart.count(cart) : cart.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+      badge.textContent = String(total);
+      badge.style.display = total > 0 ? 'inline-block' : 'none';
     }
   });
   </script>

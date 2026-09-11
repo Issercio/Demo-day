@@ -251,6 +251,62 @@ class ApiService {
     }
 }
 
+window.FloraCart = {
+    get() {
+        try {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            return Array.isArray(cart) ? cart : [];
+        } catch (error) {
+            return [];
+        }
+    },
+    save(cart) {
+        localStorage.setItem('cart', JSON.stringify(cart));
+    },
+    itemKey(item) {
+        if (!item) {
+            return '';
+        }
+        if (item.type === 'subscription' || String(item.id || '').startsWith('subscription_')) {
+            return `sub:${item.id || item.plan || item.name}`;
+        }
+        return `p:${item.id || item.product_id}`;
+    },
+    count(cart) {
+        const items = cart || this.get();
+        return items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+    },
+    add(product) {
+        const cart = this.get();
+        const incomingQty = Number(product.quantity) || 1;
+        if (product.type === 'subscription') {
+            const withoutOld = cart.filter((item) => item.type !== 'subscription');
+            withoutOld.push({ ...product, quantity: 1 });
+            this.save(withoutOld);
+            return withoutOld;
+        }
+        const key = this.itemKey(product);
+        const existing = cart.find((item) => this.itemKey(item) === key);
+        if (existing) {
+            existing.quantity = (Number(existing.quantity) || 1) + incomingQty;
+        } else {
+            cart.push({ ...product, quantity: incomingQty });
+        }
+        this.save(cart);
+        return cart;
+    }
+};
+
+function updateCartCount() {
+    const badge = document.getElementById('cart-count');
+    if (!badge) {
+        return;
+    }
+    const total = window.FloraCart.count();
+    badge.textContent = String(total);
+    badge.style.display = total > 0 ? 'inline-block' : 'none';
+}
+
 // Exporter une instance du service
 const apiService = new ApiService();
 
@@ -282,6 +338,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', () => {
     apiService.updateProfileUI();
+    if (typeof updateCartCount === 'function') {
+        updateCartCount();
+    }
     
     // Gestionnaires d'événements pour le panel profil
     const logoutBtn = document.getElementById('logout-btn');
