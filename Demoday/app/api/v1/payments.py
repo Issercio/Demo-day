@@ -1,52 +1,100 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from flask_cors import CORS
-from app.services.stripe_service import StripeService
 from app.models import Order
+from app.api.v1.auth_utils import admin_required_response, get_token_payload
+from app.services.checkout_service import (
+    PaymentDeclined,
+    checkout,
+    payment_config,
+    stripe_configured,
+)
 import logging
 
 payments_bp = Blueprint('payments', __name__)
 CORS(payments_bp)
 
+logger = logging.getLogger(__name__)
+
+
 def get_stripe_service():
     """Créer une instance du service Stripe avec le contexte de l'app"""
+    from app.services.stripe_service import StripeService
     return StripeService()
+
+
+def _current_user_id():
+    payload, error = get_token_payload()
+    if error or not payload:
+        return None
+    try:
+        return int(payload.get('sub'))
+    except (TypeError, ValueError):
+        return None
+
+
+@payments_bp.route('/config', methods=['GET'])
+def get_payment_config():
+    return jsonify(payment_config()), 200
+
+
+@payments_bp.route('/checkout', methods=['POST'])
+def create_checkout():
+    """
+    Enregistre une commande réelle et traite le paiement.
+
+    Sans clés Stripe, le processeur de test accepte 4242...4242
+    et refuse 4000...0002 / 4000...9995.
+    """
+    try:
+        data = request.get_json() or {}
+        order = checkout(data, user_id=_current_user_id())
+        return jsonify({
+            'message': 'Paiement confirmé',
+            'order': order.to_dict(),
+        }), 201
+    except PaymentDeclined as exc:
+        payload = {'error': str(exc)}
+        if exc.order is not None:
+            payload['order'] = exc.order.to_dict()
+        return jsonify(payload), 402
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    except Exception as exc:
+        logger.exception('Erreur checkout: %s', exc)
+        return jsonify({'error': 'Erreur interne du serveur'}), 500
+
 
 @payments_bp.route('/create-payment-intent', methods=['POST'])
 def create_payment_intent():
     """
-    Crée un Payment Intent pour initier un paiement
-    
-    Body: {
-        "items": [{"product_id": 1, "quantity": 2}],
-        "email": "client@example.com",
-        "user_id": 1 (optionnel)
-    }
+    Crée un Payment Intent Stripe. Nécessite des clés Stripe valides.
     """
+    if not stripe_configured():
+        return jsonify({
+            'error': 'Stripe n\'est pas configuré. Utilisez POST /api/v1/payments/checkout en mode test.',
+            'mode': 'test',
+        }), 503
+
     try:
         data = request.get_json()
         
-        # Validation des données
         if not data or 'items' not in data or 'email' not in data:
             return jsonify({'error': 'Items et email requis'}), 400
         
         if not data['items']:
             return jsonify({'error': 'Au moins un item requis'}), 400
         
-        # Validation de chaque item
         for item in data['items']:
             if 'product_id' not in item or 'quantity' not in item:
                 return jsonify({'error': 'Chaque item doit avoir product_id et quantity'}), 400
             if item['quantity'] <= 0:
                 return jsonify({'error': 'La quantité doit être positive'}), 400
-        
-        print(f"=== CRÉATION PAYMENT INTENT ===")
-        print(f"Données reçues: {data}")
-        
-        # Créer le Payment Intent
+
+        if not data.get('user_id'):
+            data['user_id'] = _current_user_id()
+
         stripe_service = get_stripe_service()
         result = stripe_service.create_payment_intent(data)
-        
-        print(f"Payment Intent créé: {result['order_id']}")
         
         return jsonify({
             'message': 'Payment Intent créé avec succès',
@@ -57,35 +105,28 @@ def create_payment_intent():
         }), 201
         
     except ValueError as e:
-        print(f"Erreur validation: {str(e)}")
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        print(f"Erreur création payment intent: {str(e)}")
+        logger.exception('Erreur création payment intent: %s', e)
         return jsonify({'error': 'Erreur interne du serveur'}), 500
+
 
 @payments_bp.route('/confirm-payment', methods=['POST'])
 def confirm_payment():
     """
     Confirme un paiement après validation côté client
-    
-    Body: {
-        "payment_intent_id": "pi_..."
-    }
     """
+    if not stripe_configured():
+        return jsonify({'error': 'Stripe n\'est pas configuré'}), 503
+
     try:
         data = request.get_json()
         
         if not data or 'payment_intent_id' not in data:
             return jsonify({'error': 'payment_intent_id requis'}), 400
         
-        print(f"=== CONFIRMATION PAIEMENT ===")
-        print(f"Payment Intent ID: {data['payment_intent_id']}")
-        
-        # Confirmer le paiement
         stripe_service = get_stripe_service()
         result = stripe_service.confirm_payment(data['payment_intent_id'])
-        
-        print(f"Paiement confirmé: {result['status']}")
         
         return jsonify({
             'message': 'Paiement confirmé',
@@ -94,17 +135,20 @@ def confirm_payment():
         }), 200
         
     except ValueError as e:
-        print(f"Erreur validation: {str(e)}")
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        print(f"Erreur confirmation paiement: {str(e)}")
+        logger.exception('Erreur confirmation paiement: %s', e)
         return jsonify({'error': 'Erreur interne du serveur'}), 500
+
 
 @payments_bp.route('/webhook', methods=['POST'])
 def stripe_webhook():
     """
     Endpoint pour recevoir les webhooks Stripe
     """
+    if not stripe_configured():
+        return jsonify({'error': 'Stripe n\'est pas configuré'}), 503
+
     try:
         payload = request.get_data()
         sig_header = request.headers.get('Stripe-Signature')
@@ -112,22 +156,17 @@ def stripe_webhook():
         if not sig_header:
             return jsonify({'error': 'Signature manquante'}), 400
         
-        print(f"=== WEBHOOK STRIPE ===")
-        
-        # Traiter le webhook
         stripe_service = get_stripe_service()
         result = stripe_service.handle_webhook(payload, sig_header)
-        
-        print(f"Webhook traité avec succès")
         
         return jsonify(result), 200
         
     except ValueError as e:
-        print(f"Erreur signature webhook: {str(e)}")
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        print(f"Erreur webhook: {str(e)}")
+        logger.exception('Erreur webhook: %s', e)
         return jsonify({'error': 'Erreur interne du serveur'}), 500
+
 
 @payments_bp.route('/orders/<int:order_id>', methods=['GET'])
 def get_order(order_id):
@@ -144,14 +183,18 @@ def get_order(order_id):
         }), 200
         
     except Exception as e:
-        print(f"Erreur récupération commande: {str(e)}")
+        logger.exception('Erreur récupération commande: %s', e)
         return jsonify({'error': 'Erreur interne du serveur'}), 500
+
 
 @payments_bp.route('/orders', methods=['GET'])
 def get_orders():
     """
     Récupère toutes les commandes (pour admin)
     """
+    denied = admin_required_response()
+    if denied:
+        return denied
     try:
         orders = Order.query.order_by(Order.created_at.desc()).all()
         
@@ -160,5 +203,5 @@ def get_orders():
         }), 200
         
     except Exception as e:
-        print(f"Erreur récupération commandes: {str(e)}")
+        logger.exception('Erreur récupération commandes: %s', e)
         return jsonify({'error': 'Erreur interne du serveur'}), 500

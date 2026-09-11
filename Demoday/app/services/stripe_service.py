@@ -5,7 +5,10 @@ from app.extensions import db
 
 class StripeService:
     def __init__(self):
-        stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
+        secret = (current_app.config.get('STRIPE_SECRET_KEY') or '').strip()
+        if not secret:
+            raise ValueError('Clé Stripe secrète manquante')
+        stripe.api_key = secret
     
     def create_payment_intent(self, order_data):
         """

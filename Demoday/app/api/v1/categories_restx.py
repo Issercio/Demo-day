@@ -4,6 +4,7 @@ from flask import request
 from app.models import Category
 from app import db
 from sqlalchemy import text
+from app.api.v1.auth_utils import require_admin_token
 
 api = Namespace('categories', description='Gestion des catégories')
 
@@ -40,6 +41,7 @@ class CategoryList(Resource):
 
     @api.expect(category_model)
     @api.marshal_with(category_model, code=201)
+    @require_admin_token
     def post(self):
         """Créer une nouvelle catégorie"""
         try:
@@ -103,6 +105,7 @@ class CategoryResource(Resource):
 
     @api.expect(category_model)
     @api.marshal_with(category_model)
+    @require_admin_token
     def put(self, category_id):
         """Modifier une catégorie"""
         try:
@@ -143,6 +146,7 @@ class CategoryResource(Resource):
             db.session.rollback()
             api.abort(500, f"Erreur: {str(e)}")
 
+    @require_admin_token
     def delete(self, category_id):
         """Supprimer une catégorie"""
         try:

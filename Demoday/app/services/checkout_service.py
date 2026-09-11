@@ -1,0 +1,336 @@
+"""Server-side checkout: catalog prices, test cards, optional Stripe."""
+
+from datetime import datetime
+import re
+import uuid
+
+from flask import current_app
+from sqlalchemy import inspect, text
+
+from app.extensions import db
+from app.models import Category, Order, OrderItem, Product
+
+
+SUBSCRIPTION_PLANS = {
+    'monthly': {
+        'slug': 'monthly',
+        'name': 'Abonnement Éclat Mensuel',
+        'price': 19.99,
+        'duration': '1 mois',
+        'cart_id': 'subscription_monthly',
+    },
+    'semester': {
+        'slug': 'semester',
+        'name': 'Abonnement Harmonie Semestrielle',
+        'price': 17.99,
+        'duration': '6 mois',
+        'cart_id': 'subscription_semester',
+    },
+    'yearly': {
+        'slug': 'yearly',
+        'name': 'Abonnement Collection Annuelle',
+        'price': 14.99,
+        'duration': '12 mois',
+        'cart_id': 'subscription_yearly',
+    },
+}
+
+TEST_CARDS = {
+    '4242424242424242': ('success', None),
+    '4000000000000002': ('declined', 'Votre carte a été refusée.'),
+    '4000000000009995': ('insufficient_funds', 'Fonds insuffisants sur la carte.'),
+}
+
+PLACEHOLDER_SECRETS = {
+    '',
+    'sk_test_...',
+    'sk_test_VOTRE_CLE_SECRETE_STRIPE',
+}
+
+PLACEHOLDER_PUBLISHABLE = {
+    '',
+    'pk_test_...',
+    'pk_test_VOTRE_CLE_PUBLIQUE_STRIPE',
+}
+
+
+class PaymentDeclined(Exception):
+    def __init__(self, message, order=None):
+        super().__init__(message)
+        self.order = order
+
+
+def stripe_configured():
+    secret = (current_app.config.get('STRIPE_SECRET_KEY') or '').strip()
+    publishable = (current_app.config.get('STRIPE_PUBLISHABLE_KEY') or '').strip()
+    if secret in PLACEHOLDER_SECRETS or len(secret) < 20:
+        return False
+    if not (secret.startswith('sk_test_') or secret.startswith('sk_live_')):
+        return False
+    if publishable in PLACEHOLDER_PUBLISHABLE:
+        return False
+    if not (publishable.startswith('pk_test_') or publishable.startswith('pk_live_')):
+        return False
+    return True
+
+
+def payment_config():
+    live = stripe_configured()
+    return {
+        'mode': 'stripe' if live else 'test',
+        'publishable_key': current_app.config.get('STRIPE_PUBLISHABLE_KEY') if live else None,
+        'currency': 'eur',
+        'test_cards': [
+            {'number': '4242 4242 4242 4242', 'result': 'Paiement accepté'},
+            {'number': '4000 0000 0000 0002', 'result': 'Carte refusée'},
+            {'number': '4000 0000 0000 9995', 'result': 'Fonds insuffisants'},
+        ],
+    }
+
+
+def ensure_runtime_schema():
+    inspector = inspect(db.engine)
+    tables = inspector.get_table_names()
+    if 'orders' not in tables:
+        db.create_all()
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        if 'orders' not in tables:
+            return
+
+    existing = {column['name'] for column in inspector.get_columns('orders')}
+    additions = {
+        'customer_name': 'VARCHAR(120)',
+        'payment_method': 'VARCHAR(50)',
+        'card_last4': 'VARCHAR(4)',
+        'payment_reference': 'VARCHAR(64)',
+    }
+    for name, ddl in additions.items():
+        if name not in existing:
+            db.session.execute(text(f'ALTER TABLE orders ADD COLUMN {name} {ddl}'))
+    db.session.commit()
+    ensure_subscription_catalog()
+
+
+def ensure_subscription_catalog():
+    category = Category.query.filter_by(name='Abonnements').first()
+    if category is None:
+        category = Category(name='Abonnements')
+        db.session.add(category)
+        db.session.flush()
+
+    catalog = {}
+    for slug, plan in SUBSCRIPTION_PLANS.items():
+        product = Product.query.filter_by(name=plan['name']).first()
+        if product is None:
+            product = Product(name=plan['name'], price=plan['price'], category_id=category.id)
+            db.session.add(product)
+            db.session.flush()
+        else:
+            product.price = plan['price']
+            product.category_id = category.id
+        catalog[slug] = product
+    db.session.commit()
+    return catalog
+
+
+def _luhn_ok(number):
+    digits = [int(char) for char in number]
+    checksum = 0
+    odd = True
+    for digit in reversed(digits):
+        if not odd:
+            digit *= 2
+            if digit > 9:
+                digit -= 9
+        checksum += digit
+        odd = not odd
+    return checksum % 10 == 0
+
+
+def _parse_expiry(value):
+    raw = (value or '').strip()
+    match = re.fullmatch(r'(\d{1,2})\s*/\s*(\d{2}|\d{4})', raw)
+    if not match:
+        digits = re.sub(r'\D', '', raw)
+        if len(digits) == 4:
+            month, year = int(digits[:2]), int(digits[2:])
+        else:
+            raise ValueError('Date d\'expiration invalide (MM/AA).')
+    else:
+        month = int(match.group(1))
+        year = int(match.group(2))
+    if year < 100:
+        year += 2000
+    if month < 1 or month > 12:
+        raise ValueError('Mois d\'expiration invalide.')
+    now = datetime.utcnow()
+    if year < now.year or (year == now.year and month < now.month):
+        raise ValueError('Carte expirée.')
+    return month, year
+
+
+def process_test_card(card_number, expiry, cvc):
+    number = re.sub(r'\D', '', card_number or '')
+    if len(number) < 13 or len(number) > 19 or not number.isdigit() or not _luhn_ok(number):
+        raise ValueError('Numéro de carte invalide.')
+    _parse_expiry(expiry)
+    cvc_digits = re.sub(r'\D', '', cvc or '')
+    if len(cvc_digits) not in (3, 4):
+        raise ValueError('Code CVC invalide.')
+
+    result, message = TEST_CARDS.get(number, ('success', None))
+    if result != 'success':
+        raise PaymentDeclined(message)
+    return number[-4:]
+
+
+def _subscription_slug(item):
+    raw_id = item.get('product_id', item.get('id', item.get('plan')))
+    item_type = str(item.get('type') or '').lower()
+    name = str(item.get('name') or '')
+
+    if item_type == 'subscription' or (
+        isinstance(raw_id, str) and str(raw_id).startswith('subscription_')
+    ):
+        slug = str(raw_id).replace('subscription_', '')
+        if slug in SUBSCRIPTION_PLANS:
+            return slug
+        for plan_slug, plan in SUBSCRIPTION_PLANS.items():
+            if plan['name'] == name or plan['cart_id'] == str(raw_id):
+                return plan_slug
+        raise ValueError(f'Abonnement inconnu: {raw_id}')
+
+    for plan_slug, plan in SUBSCRIPTION_PLANS.items():
+        if name == plan['name'] or str(raw_id) == plan['cart_id']:
+            return plan_slug
+    return None
+
+
+def build_order_lines(items):
+    if not items:
+        raise ValueError('Au moins un article est requis.')
+
+    catalog = ensure_subscription_catalog()
+    lines = []
+    total = 0.0
+
+    for item in items:
+        try:
+            quantity = int(item.get('quantity') or 1)
+        except (TypeError, ValueError):
+            raise ValueError('Quantité invalide.') from None
+        if quantity <= 0:
+            raise ValueError('La quantité doit être positive.')
+
+        slug = _subscription_slug(item)
+        if slug:
+            product = catalog[slug]
+        else:
+            raw_id = item.get('product_id', item.get('id'))
+            try:
+                product_id = int(raw_id)
+            except (TypeError, ValueError):
+                raise ValueError(f'Produit invalide: {raw_id}') from None
+            product = Product.query.get(product_id)
+            if product is None:
+                raise ValueError(f'Produit {product_id} introuvable.')
+            if product.name in {plan['name'] for plan in SUBSCRIPTION_PLANS.values()}:
+                pass
+
+        unit_price = round(float(product.price), 2)
+        total += unit_price * quantity
+        lines.append({
+            'product': product,
+            'quantity': quantity,
+            'price': unit_price,
+        })
+
+    return lines, round(total, 2)
+
+
+def _persist_order(email, name, user_id, total, method, status, card_last4, reference, stripe_id, lines):
+    order = Order(
+        user_id=user_id,
+        email=email,
+        customer_name=name,
+        total_amount=total,
+        payment_method=method,
+        status=status,
+        card_last4=card_last4,
+        payment_reference=reference,
+        stripe_payment_intent_id=stripe_id,
+    )
+    db.session.add(order)
+    db.session.flush()
+    for line in lines:
+        db.session.add(OrderItem(
+            order_id=order.id,
+            product_id=line['product'].id,
+            quantity=line['quantity'],
+            price=line['price'],
+        ))
+    db.session.commit()
+    return order
+
+
+def checkout(data, user_id=None):
+    email = (data.get('email') or '').strip()
+    name = (data.get('customer_name') or data.get('name') or '').strip()
+    method = (data.get('payment_method') or 'card').lower()
+
+    if not email or '@' not in email:
+        raise ValueError('Email invalide.')
+    if not name:
+        raise ValueError('Nom du client requis.')
+    if method not in ('card', 'paypal', 'saved'):
+        raise ValueError('Méthode de paiement non supportée.')
+
+    lines, total = build_order_lines(data.get('items') or [])
+    card_last4 = None
+    reference = f'{method.upper()}-{uuid.uuid4().hex[:10].upper()}'
+    stripe_id = None
+    status = 'paid'
+
+    try:
+        if method == 'card':
+            if stripe_configured() and data.get('payment_intent_id'):
+                from app.services.stripe_service import StripeService
+                stripe_service = StripeService()
+                confirmed = stripe_service.confirm_payment(data['payment_intent_id'])
+                if confirmed['status'] != 'paid':
+                    raise PaymentDeclined('Le paiement Stripe n\'a pas abouti.')
+                existing = Order.query.filter_by(
+                    stripe_payment_intent_id=data['payment_intent_id']
+                ).first()
+                if existing:
+                    existing.customer_name = name
+                    existing.payment_method = 'card'
+                    existing.payment_reference = data['payment_intent_id']
+                    db.session.commit()
+                    return existing
+                stripe_id = data['payment_intent_id']
+                reference = data['payment_intent_id']
+            else:
+                card_last4 = process_test_card(
+                    data.get('card_number'),
+                    data.get('card_expiry') or data.get('expiry'),
+                    data.get('card_cvc') or data.get('cvc'),
+                )
+                reference = f'TEST-{uuid.uuid4().hex[:10].upper()}'
+        elif method == 'saved':
+            card_last4 = '4242'
+            reference = f'SAVED-{uuid.uuid4().hex[:10].upper()}'
+        else:
+            reference = f'PAYPAL-{uuid.uuid4().hex[:10].upper()}'
+    except PaymentDeclined as error:
+        order = _persist_order(
+            email, name, user_id, total, method, 'failed',
+            None, f'FAIL-{uuid.uuid4().hex[:10].upper()}', None, lines,
+        )
+        raise PaymentDeclined(str(error), order=order) from error
+
+    return _persist_order(
+        email, name, user_id, total, method, status,
+        card_last4, reference, stripe_id, lines,
+    )

@@ -127,6 +127,7 @@
     </nav>
   </header>
   <main>
+    <script src="../static/js/api.js"></script>
     <div class="cart-table-container">
       <h1 style="text-align:center;margin-bottom:32px;">Votre Panier</h1>
       <div id="cart-content"></div>
@@ -141,21 +142,21 @@
   </main>
   <script>
     function updateCartCount() {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       const badge = document.getElementById('cart-count');
-      if (badge) {
-        badge.textContent = cart.length;
-        badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
+      if (!badge) {
+        return;
       }
+      const total = FloraCart.count();
+      badge.textContent = String(total);
+      badge.style.display = total > 0 ? 'inline-block' : 'none';
     }
 
     function renderCart() {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const cart = FloraCart.get();
       const cartContent = document.getElementById('cart-content');
       const cartSummary = document.getElementById('cart-summary');
       const cartTotal = document.getElementById('cart-total');
       const payBtn = document.getElementById('pay-btn');
-      const chooseBtn = document.getElementById('choose-method-btn');
       if (cart.length === 0) {
         cartContent.innerHTML = "<p style='text-align:center;color:#bc6288;'>Votre panier est vide.</p>";
         cartSummary.style.display = "none";
@@ -181,22 +182,27 @@
             <tr>
               <th>Produit</th>
               <th>Catégorie</th>
-              <th>Couleurs</th>
+              <th>Quantité</th>
               <th>Prix</th>
               <th>Retirer</th>
             </tr>
           </thead>
           <tbody>
             ${cart.map((prod, idx) => {
-              total += Number(prod.price);
+              const quantity = Number(prod.quantity) || 1;
+              const unit = Number(prod.price) || 0;
+              const lineTotal = unit * quantity;
+              total += lineTotal;
               return `
                 <tr>
                   <td style="font-weight:bold;color:#ab597c;">${prod.name}</td>
                   <td>${getCategoryLabel(prod)}</td>
                   <td>
-                    ${(prod.colors && prod.colors.length) ? prod.colors.map(c => `<span class="color-dot" style="background:${c};"></span>`).join('') : ''}
+                    <button class="remove-btn" onclick="changeQuantity(${idx}, -1)" title="Moins">−</button>
+                    <strong>${quantity}</strong>
+                    <button class="remove-btn" onclick="changeQuantity(${idx}, 1)" title="Plus">+</button>
                   </td>
-                  <td><span style="font-weight:bold;">${Number(prod.price).toFixed(2)} €</span></td>
+                  <td><span style="font-weight:bold;">${lineTotal.toFixed(2)} €</span></td>
                   <td>
                     <button class="remove-btn" onclick="removeFromCart(${idx})" title="Retirer">✕</button>
                   </td>
@@ -208,14 +214,26 @@
       `;
       cartTotal.textContent = "Total : " + total.toFixed(2) + " €";
       cartSummary.style.display = "flex";
-      // Le bouton Payer est toujours activé s'il y a des produits
       payBtn.disabled = false;
     }
 
+    function changeQuantity(idx, delta) {
+      const cart = FloraCart.get();
+      const next = (Number(cart[idx].quantity) || 1) + delta;
+      if (next <= 0) {
+        cart.splice(idx, 1);
+      } else {
+        cart[idx].quantity = next;
+      }
+      FloraCart.save(cart);
+      renderCart();
+      updateCartCount();
+    }
+
     function removeFromCart(idx) {
-      let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const cart = FloraCart.get();
       cart.splice(idx, 1);
-      localStorage.setItem('cart', JSON.stringify(cart));
+      FloraCart.save(cart);
       renderCart();
       updateCartCount();
     }

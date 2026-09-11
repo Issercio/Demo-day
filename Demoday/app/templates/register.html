@@ -6,7 +6,6 @@
     <title>Création de compte</title>
     <link rel="stylesheet" href="../static/css/style.css">
     <link rel="stylesheet" href="../static/css/account.css">
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
     <header>
@@ -59,10 +58,6 @@
                 <input type="password" id="confirm-password" required>
             </div>
 
-            <div class="form-group">
-                <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
-            </div>
-
             <button type="submit" class="login-button">Créer mon compte</button>
 
             <div class="help-links">
@@ -99,8 +94,8 @@
           const cart = JSON.parse(localStorage.getItem('cart') || '[]');
           const badge = document.getElementById('cart-count');
           if (badge) {
-            badge.textContent = cart.length;
-            badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
+            badge.textContent = String((window.FloraCart ? FloraCart.count(cart) : cart.reduce((s, i) => s + (Number(i.quantity) || 1), 0)));
+            badge.style.display = (window.FloraCart ? FloraCart.count(cart) : cart.reduce((s, i) => s + (Number(i.quantity) || 1), 0)) > 0 ? 'inline-block' : 'none';
           }
         }
         document.addEventListener('DOMContentLoaded', updateCartCount);

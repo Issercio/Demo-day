@@ -3,6 +3,7 @@ from flask import request, current_app
 from app.extensions import db
 from app.models.user import User
 from werkzeug.security import generate_password_hash
+from app.api.v1.auth_utils import require_admin_token, require_self_or_admin
 
 api = Namespace('users', description='Gestion des utilisateurs')
 
@@ -33,7 +34,7 @@ user_update_model = api.model('UserUpdate', {
 @api.route('')
 class UserList(Resource):
     @api.marshal_list_with(user_public_model)
-    # @require_admin_token  # Active si tu veux restreindre la liste aux admins
+    @require_admin_token
     def get(self):
         """Liste tous les utilisateurs (admin uniquement)"""
         return User.query.all()
@@ -71,14 +72,14 @@ class UserList(Resource):
 @api.route('/<int:user_id>')
 class UserResource(Resource):
     @api.marshal_with(user_public_model)
-    # @require_admin_token
+    @require_self_or_admin
     def get(self, user_id):
         """Affiche un utilisateur (admin uniquement)"""
         return User.query.get_or_404(user_id)
 
     @api.expect(user_update_model)
     @api.marshal_with(user_public_model)
-    # @require_admin_token
+    @require_admin_token
     def put(self, user_id):
         """Modifie un utilisateur (admin uniquement)"""
         user = User.query.get_or_404(user_id)
@@ -96,7 +97,7 @@ class UserResource(Resource):
         db.session.commit()
         return user
 
-    # @require_admin_token
+    @require_self_or_admin
     def delete(self, user_id):
         """Supprime un utilisateur (admin uniquement)"""
         user = User.query.get_or_404(user_id)
