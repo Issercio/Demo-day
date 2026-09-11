@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FloraShop - Finaliser votre commande</title>
-    <script src="https://js.stripe.com/v3/"></script>
     <style>
         * {
             margin: 0;
@@ -332,28 +331,28 @@
                 <h3>💳 Informations de paiement</h3>
                 <div id="payment-method-note" style="margin: 0 0 16px 0; padding: 12px 14px; border-radius: 10px; background: #eef7ff; border: 1px solid #d4e8ff; color: #234; font-size: 0.95rem;"></div>
                 
-                <form id="payment-form">
+                <form id="payment-form" novalidate>
                     <div class="form-group">
                         <label for="email">📧 Email de confirmation</label>
-                        <input type="email" id="email" required placeholder="votre.email@exemple.com">
+                        <input type="email" id="email" name="email" placeholder="votre.email@exemple.com" autocomplete="email">
                     </div>
                     
                     <div class="form-group">
                         <label for="name">👤 Nom complet</label>
-                        <input type="text" id="name" required placeholder="Votre nom complet">
+                        <input type="text" id="name" name="customer_name" placeholder="Votre nom complet" autocomplete="name">
                     </div>
                     
                     <div class="form-group" id="card-fields">
                         <label for="card-number">💳 Numéro de carte</label>
-                        <input type="text" id="card-number" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242">
+                        <input type="text" id="card-number" name="card_number" inputmode="numeric" autocomplete="off" placeholder="4242 4242 4242 4242">
                         <div class="card-row" style="margin-top: 12px;">
                             <div>
                                 <label for="card-expiry">Expiration</label>
-                                <input type="text" id="card-expiry" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA">
+                                <input type="text" id="card-expiry" name="card_expiry" inputmode="numeric" autocomplete="off" placeholder="MM/AA">
                             </div>
                             <div>
                                 <label for="card-cvc">CVC</label>
-                                <input type="text" id="card-cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="123">
+                                <input type="text" id="card-cvc" name="card_cvc" inputmode="numeric" autocomplete="off" placeholder="123">
                             </div>
                         </div>
                         <div id="card-errors" class="error" style="display: none;"></div>
@@ -362,6 +361,7 @@
                             <strong>4000 0000 0000 0002</strong> (refusée),
                             <strong>4000 0000 0000 9995</strong> (fonds insuffisants).
                             Expiration future + CVC 123.
+                            <button type="button" id="fill-test-card" class="back-to-shop" style="display:block;margin-top:10px;background:#bc6288;">Remplir la carte de test 4242</button>
                         </div>
                     </div>
                     
@@ -440,13 +440,7 @@
             const payButton = document.getElementById('pay-button');
             const methodLabel = getMethodLabel(selectedPaymentMethod);
             const cardRequired = selectedPaymentMethod === 'card';
-
-            ['card-number', 'card-expiry', 'card-cvc'].forEach((id) => {
-                const input = document.getElementById(id);
-                if (input) {
-                    input.required = cardRequired;
-                }
-            });
+            cardFields.style.display = cardRequired ? 'block' : 'none';
 
             if (selectedPaymentMethod === 'card') {
                 note.innerHTML = `Mode sélectionné : <strong>${methodLabel}</strong> — le serveur valide la carte et enregistre la commande.`;
@@ -662,9 +656,14 @@
             }
 
             const payButton = document.getElementById('pay-button');
-            const email = document.getElementById('email').value;
-            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value.trim();
+            const name = document.getElementById('name').value.trim();
             const resultBox = document.getElementById('payment-result');
+
+            if (!email || !name) {
+                resultBox.innerHTML = '<div class="error"><p>Email et nom sont requis.</p></div>';
+                return;
+            }
 
             payButton.disabled = true;
             payButton.innerHTML = '<span class="spinner"></span> Traitement du paiement...';
@@ -681,6 +680,11 @@
                 payload.card_number = document.getElementById('card-number').value;
                 payload.card_expiry = document.getElementById('card-expiry').value;
                 payload.card_cvc = document.getElementById('card-cvc').value;
+                if (!payload.card_number || !payload.card_expiry || !payload.card_cvc) {
+                    resultBox.innerHTML = '<div class="error"><p>Numéro de carte, expiration et CVC sont requis.</p></div>';
+                    restorePayButton();
+                    return;
+                }
             }
 
             const headers = { 'Content-Type': 'application/json' };
@@ -746,6 +750,14 @@
             cardCvc.addEventListener('input', () => {
                 cardCvc.value = cardCvc.value.replace(/\D/g, '').slice(0, 4);
             });
+            const fillTestCard = document.getElementById('fill-test-card');
+            if (fillTestCard) {
+                fillTestCard.addEventListener('click', () => {
+                    cardNumber.value = formatCardNumber('4242424242424242');
+                    cardExpiry.value = '12/34';
+                    cardCvc.value = '123';
+                });
+            }
 
             try {
                 const configResponse = await fetch('/api/v1/payments/config');
