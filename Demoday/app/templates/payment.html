@@ -166,7 +166,6 @@
         
         <div class="cart-items">
             <h3>Votre panier</h3>
-            <button class="add-product" onclick="addRandomProduct()">Ajouter un produit aléatoire</button>
             <div id="cart-items-list"></div>
             <div class="total" id="total">Total: 0.00 €</div>
         </div>
@@ -201,46 +200,27 @@
         let elements = null;
         let card = null;
         let cartItems = [];
-        let availableProducts = [];
         
-        // Charger les produits disponibles
-        async function loadProducts() {
-            try {
-                const response = await fetch('/api/v1/products');
-                if (response.ok) {
-                    availableProducts = await response.json();
-                    console.log('Produits chargés:', availableProducts);
-                } else {
-                    console.error('Erreur chargement produits');
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-            }
+        function loadCartFromStorage() {
+            const stored = JSON.parse(localStorage.getItem('cart') || '[]');
+            cartItems = stored.map((item) => ({
+                product_id: item.id || item.product_id,
+                product: {
+                    id: item.id || item.product_id,
+                    name: item.name || 'Produit',
+                    price: Number(item.price) || 0
+                },
+                quantity: Number(item.quantity) || 1
+            }));
         }
-        
-        // Ajouter un produit aléatoire au panier
-        function addRandomProduct() {
-            if (availableProducts.length === 0) {
-                alert('Aucun produit disponible');
-                return;
-            }
-            
-            const randomProduct = availableProducts[Math.floor(Math.random() * availableProducts.length)];
-            
-            // Vérifier si le produit est déjà dans le panier
-            const existingItem = cartItems.find(item => item.product_id === randomProduct.id);
-            
-            if (existingItem) {
-                existingItem.quantity += 1;
-            } else {
-                cartItems.push({
-                    product_id: randomProduct.id,
-                    product: randomProduct,
-                    quantity: 1
-                });
-            }
-            
-            updateCartDisplay();
+
+        function persistCartToStorage() {
+            localStorage.setItem('cart', JSON.stringify(cartItems.map((item) => ({
+                id: item.product_id,
+                name: item.product.name,
+                price: item.product.price,
+                quantity: item.quantity
+            }))));
         }
         
         // Mettre à jour l'affichage du panier
@@ -292,12 +272,14 @@
             if (cartItems[index].quantity <= 0) {
                 cartItems.splice(index, 1);
             }
+            persistCartToStorage();
             updateCartDisplay();
         }
         
         // Supprimer un item
         function removeItem(index) {
             cartItems.splice(index, 1);
+            persistCartToStorage();
             updateCartDisplay();
         }
         
@@ -399,6 +381,7 @@
                     
                     // Vider le panier
                     cartItems = [];
+                    persistCartToStorage();
                     updateCartDisplay();
                     
                     // Masquer le formulaire
@@ -420,9 +403,9 @@
         
         // Initialiser la page
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadProducts();
-            await initializeStripe();
+            loadCartFromStorage();
             updateCartDisplay();
+            await initializeStripe();
         });
     </script>
 </body>

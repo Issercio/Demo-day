@@ -38,10 +38,6 @@
       </nav>
     </header>
     <main>
-        <footer class="site-footer">
-            &copy; 2024 by Pivoine &amp; Lilas - Siren 522 234 871 -
-            <a href="cgv.html">Conditions générales de vente</a>
-        </footer>
         <section class="hero">
             <h1>Abonnement Floral Signature</h1>
             <p class="intro-text">
@@ -93,6 +89,10 @@
 
         <button id="select-plan" class="select-button" disabled>Sélectionner</button>
     </main>
+    <footer class="site-footer">
+        &copy; 2024 by Pivoine &amp; Lilas - Siren 522 234 871 -
+        <a href="cgv.html">Conditions générales de vente</a>
+    </footer>
     <div id="subscription-toast" class="subscription-toast" aria-live="polite" role="status"></div>
     <script src="../static/js/api.js?v=20260828-2"></script>
     <script>
@@ -123,7 +123,7 @@
 
                 subscriptionToastTimer = setTimeout(() => {
                     toast.classList.remove('is-visible');
-                }, 2000);
+                }, 3000);
             }
 
             selectButton.addEventListener('click', (event) => {
@@ -170,7 +170,7 @@
                 badge.style.display = cart.length > 0 ? 'inline-block' : 'none';
               }
             }
-            document.addEventListener('DOMContentLoaded', updateCartCount);
+            updateCartCount();
         });
     </script>
 </body>

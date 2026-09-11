@@ -3,6 +3,7 @@ from flask_cors import CORS
 # CORRECTION : import direct depuis models
 from .models import Product, Category, User
 from . import db
+from app.api.v1.auth_utils import admin_required_response, self_or_admin_required_response
 
 api_bp = Blueprint('api', __name__)
 main_bp = Blueprint('main', __name__)
@@ -89,18 +90,27 @@ def api_index():
         }
     })
 
-# Route GET spécifique pour un utilisateur
-@api_bp.route('/users/<int:user_id>', methods=['GET'])
+# Route GET / DELETE spécifique pour un utilisateur
+@api_bp.route('/users/<int:user_id>', methods=['GET', 'DELETE'])
 def get_user(user_id):
+    denied = self_or_admin_required_response(user_id)
+    if denied:
+        return denied
+
     user = User.query.get(user_id)
     if not user:
         return jsonify({'error': 'Utilisateur non trouvé'}), 404
+
+    if request.method == 'DELETE':
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Utilisateur supprimé'}), 200
+
     return jsonify({
         'id': user.id,
         'username': user.username,
         'email': user.email,
-        'is_admin': user.is_admin,
-        'password': user.password
+        'is_admin': user.is_admin
     })
 
 # Route GET spécifique pour un produit
@@ -185,6 +195,9 @@ def users():
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
 
+    denied = admin_required_response()
+    if denied:
+        return denied
     try:
         users = User.query.all()
         return jsonify([user.to_dict() for user in users])
@@ -195,6 +208,9 @@ def users():
 @api_bp.route('/categories', methods=['GET', 'POST'])
 def categories():
     if request.method == 'POST':
+        denied = admin_required_response()
+        if denied:
+            return denied
         try:
             data = request.get_json()
             print(f"=== CREATION CATEGORIE ===")
@@ -266,6 +282,9 @@ def categories():
 # Route PUT pour catégorie - AVEC VALIDATION
 @api_bp.route('/categories/<int:category_id>', methods=['PUT'])
 def update_category(category_id):
+    denied = admin_required_response()
+    if denied:
+        return denied
     try:
         print(f"=== MODIFICATION CATEGORIE ===")
         print(f"ID reçu: {category_id} (type: {type(category_id)})")
@@ -320,6 +339,9 @@ def update_category(category_id):
 # Route DELETE pour catégorie - AVEC VALIDATION
 @api_bp.route('/categories/<int:category_id>', methods=['DELETE'])
 def delete_category(category_id):
+    denied = admin_required_response()
+    if denied:
+        return denied
     try:
         print(f"=== SUPPRESSION CATEGORIE ===")
         print(f"ID reçu: {category_id} (type: {type(category_id)})")
@@ -363,6 +385,9 @@ def delete_category(category_id):
 @api_bp.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
+        denied = admin_required_response()
+        if denied:
+            return denied
         try:
             data = request.get_json()
             required_fields = ['name', 'price', 'category_id']
@@ -411,6 +436,9 @@ def products():
 # Route PUT pour produit - CORRIGÉE SANS STOCK
 @api_bp.route('/products/<int:product_id>', methods=['PUT'])
 def update_product(product_id):
+    denied = admin_required_response()
+    if denied:
+        return denied
     try:
         print(f"=== MODIFICATION PRODUIT ===")
         print(f"ID à modifier: {product_id}")
@@ -453,6 +481,9 @@ def update_product(product_id):
 # Route DELETE pour produit - SIMPLIFIÉE
 @api_bp.route('/products/<int:product_id>', methods=['DELETE'])
 def delete_product(product_id):
+    denied = admin_required_response()
+    if denied:
+        return denied
     try:
         product = Product.query.get(product_id)
         if not product:
@@ -470,6 +501,9 @@ def delete_product(product_id):
 # ENDPOINT DE DEBUG pour diagnostiquer les IDs
 @api_bp.route('/debug/categories', methods=['GET'])
 def debug_categories():
+    denied = admin_required_response()
+    if denied:
+        return denied
     try:
         categories = Category.query.all()
         debug_info = []

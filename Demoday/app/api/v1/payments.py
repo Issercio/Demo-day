@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_cors import CORS
 from app.services.stripe_service import StripeService
 from app.models import Order
+from app.api.v1.auth_utils import admin_required_response
 import logging
 
 payments_bp = Blueprint('payments', __name__)
@@ -152,6 +153,9 @@ def get_orders():
     """
     Récupère toutes les commandes (pour admin)
     """
+    denied = admin_required_response()
+    if denied:
+        return denied
     try:
         orders = Order.query.order_by(Order.created_at.desc()).all()
         

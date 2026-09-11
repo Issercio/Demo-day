@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interface Admin - FloraShop</title>
+    <script>
+      (function guardAdminPage() {
+        try {
+          var user = JSON.parse(localStorage.getItem('user') || 'null');
+          var token = localStorage.getItem('auth_token');
+          if (!user || !user.is_admin || !token) {
+            window.location.replace('accueil.html');
+          }
+        } catch (e) {
+          window.location.replace('accueil.html');
+        }
+      })();
+    </script>
     <link rel="stylesheet" href="../static/css/style.css">
     <style>
         .admin-container {
@@ -241,6 +254,40 @@
         let categories = [];
         let products = [];
 
+        function getAdminHeaders() {
+            const token = localStorage.getItem('auth_token') || '';
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : ''
+            };
+        }
+
+        function apiErrorMessage(payload, fallback) {
+            if (!payload) {
+                return fallback;
+            }
+            return payload.error || payload.message || fallback;
+        }
+
+        function redirectIfForbidden(response) {
+            if (response.status === 401 || response.status === 403) {
+                alert('Accès réservé aux administrateurs');
+                window.location.replace('accueil.html');
+                return true;
+            }
+            return false;
+        }
+
+        function isAdminSession() {
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                const token = localStorage.getItem('auth_token');
+                return !!(user && user.is_admin && token);
+            } catch (e) {
+                return false;
+            }
+        }
+
         // CHARGEMENT DES DONNÉES
         async function loadData() {
             try {
@@ -296,13 +343,14 @@
                 
                 const response = await fetch('/api/v1/categories', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: getAdminHeaders(),
                     body: JSON.stringify({ name: name })
                 });
 
                 console.log('Réponse status:', response.status);
+                if (redirectIfForbidden(response)) {
+                    return;
+                }
                 const responseText = await response.text();
                 console.log('Réponse text:', responseText);
                 
@@ -316,7 +364,7 @@
                     let errorMessage = 'Erreur inconnue';
                     try {
                         const error = JSON.parse(responseText);
-                        errorMessage = error.error || errorMessage;
+                        errorMessage = error.error || error.message || errorMessage;
                     } catch (e) {
                         errorMessage = responseText || errorMessage;
                     }
@@ -346,9 +394,7 @@
                 
                 const response = await fetch('/api/v1/products', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: getAdminHeaders(),
                     body: JSON.stringify({
                         name: name,
                         price: parseFloat(price),
@@ -357,6 +403,9 @@
                 });
 
                 console.log('Réponse status:', response.status);
+                if (redirectIfForbidden(response)) {
+                    return;
+                }
                 const responseText = await response.text();
                 console.log('Réponse text:', responseText);
                 
@@ -372,7 +421,7 @@
                     let errorMessage = 'Erreur inconnue';
                     try {
                         const error = JSON.parse(responseText);
-                        errorMessage = error.error || errorMessage;
+                        errorMessage = error.error || error.message || errorMessage;
                     } catch (e) {
                         errorMessage = responseText || errorMessage;
                     }
@@ -475,16 +524,20 @@
             try {
                 const response = await fetch(`/api/v1/categories/${id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAdminHeaders(),
                     body: JSON.stringify({ name: newName })
                 });
+
+                if (redirectIfForbidden(response)) {
+                    return;
+                }
                 
                 if (response.ok) {
                     await loadData();
                     alert('Catégorie modifiée avec succès !');
                 } else {
                     const error = await response.json();
-                    alert('Erreur: ' + error.error);
+                    alert('Erreur: ' + apiErrorMessage(error, 'Erreur inconnue'));
                 }
             } catch (error) {
                 console.error('Erreur modification catégorie:', error);
@@ -496,15 +549,20 @@
             if (confirm('Supprimer cette catégorie ?')) {
                 try {
                     const response = await fetch(`/api/v1/categories/${id}`, {
-                        method: 'DELETE'
+                        method: 'DELETE',
+                        headers: getAdminHeaders()
                     });
+
+                    if (redirectIfForbidden(response)) {
+                        return;
+                    }
                     
                     if (response.ok) {
                         await loadData();
                         alert('Catégorie supprimée avec succès !');
                     } else {
                         const error = await response.json();
-                        alert('Erreur: ' + error.error);
+                        alert('Erreur: ' + apiErrorMessage(error, 'Erreur inconnue'));
                     }
                 } catch (error) {
                     console.error('Erreur suppression catégorie:', error);
@@ -553,20 +611,24 @@
             try {
                 const response = await fetch(`/api/v1/products/${id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAdminHeaders(),
                     body: JSON.stringify({ 
                         name: newName,
                         price: parseFloat(newPrice),
                         category_id: parseInt(newCategoryId)
                     })
                 });
+
+                if (redirectIfForbidden(response)) {
+                    return;
+                }
                 
                 if (response.ok) {
                     await loadData();
                     alert('Produit modifié avec succès !');
                 } else {
                     const error = await response.json();
-                    alert('Erreur: ' + error.error);
+                    alert('Erreur: ' + apiErrorMessage(error, 'Erreur inconnue'));
                 }
             } catch (error) {
                 console.error('Erreur modification produit:', error);
@@ -578,15 +640,20 @@
             if (confirm('Supprimer ce produit ?')) {
                 try {
                     const response = await fetch(`/api/v1/products/${id}`, {
-                        method: 'DELETE'
+                        method: 'DELETE',
+                        headers: getAdminHeaders()
                     });
+
+                    if (redirectIfForbidden(response)) {
+                        return;
+                    }
                     
                     if (response.ok) {
                         await loadData();
                         alert('Produit supprimé avec succès !');
                     } else {
                         const error = await response.json();
-                        alert('Erreur: ' + error.error);
+                        alert('Erreur: ' + apiErrorMessage(error, 'Erreur inconnue'));
                     }
                 } catch (error) {
                     console.error('Erreur suppression produit:', error);
@@ -611,6 +678,10 @@
 
         // EVENT LISTENERS
         document.addEventListener('DOMContentLoaded', function() {
+            if (!isAdminSession()) {
+                window.location.replace('accueil.html');
+                return;
+            }
             console.log('=== PAGE ADMIN CHARGÉE ===');
             loadData();
 

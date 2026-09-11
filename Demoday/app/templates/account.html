@@ -6,7 +6,6 @@
     <title>Connexion</title>
     <link rel="stylesheet" href="../static/css/style.css">
     <link rel="stylesheet" href="../static/css/account.css">
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
     <header>
@@ -50,11 +49,6 @@
             <div class="form-group">
                 <label for="password">Mot de passe</label>
                 <input type="password" id="password" required>
-            </div>
-
-            <!-- Remplacer l'ancien captcha par reCAPTCHA -->
-            <div class="form-group">
-                <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
             </div>
 
             <button type="submit" class="login-button">Se connecter</button>

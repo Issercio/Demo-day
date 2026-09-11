@@ -18,7 +18,7 @@ def create_app():
     # Configuration CORS plus permissive
     CORS(app, resources={
         r"/api/*": {
-            "origins": ["http://localhost:8000", "http://localhost:5000"],
+            "origins": ["http://localhost:8000", "http://localhost:5000", "http://127.0.0.1:5000"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
         }
@@ -26,7 +26,7 @@ def create_app():
     
     # Configuration de la base de données et autres paramètres
     app.config.update(
-        SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:root@localhost:5432/florashop',
+        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'postgresql://postgres:root@localhost:5432/florashop'),
         SQLALCHEMY_TRACK_MODIFICATIONS = False,
         JSON_AS_ASCII = False,
         SECRET_KEY = 'dev_secret_key_123',  # Clé pour JWT

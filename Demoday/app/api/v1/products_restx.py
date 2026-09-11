@@ -3,6 +3,7 @@ from flask import request
 # CORRECTION : import direct depuis models
 from app.models import Product, Category
 from app import db
+from app.api.v1.auth_utils import require_admin_token
 
 api = Namespace('products', description='Gestion des produits')
 
@@ -43,6 +44,7 @@ class ProductList(Resource):
 
     @api.expect(product_model)
     @api.marshal_with(product_model, code=201)
+    @require_admin_token
     def post(self):
         """Créer un nouveau produit"""
         try:
@@ -111,6 +113,7 @@ class ProductResource(Resource):
 
     @api.expect(product_model)
     @api.marshal_with(product_model)
+    @require_admin_token
     def put(self, product_id):
         """Modifier un produit"""
         try:
@@ -145,6 +148,7 @@ class ProductResource(Resource):
             db.session.rollback()
             api.abort(500, f"Erreur: {str(e)}")
 
+    @require_admin_token
     def delete(self, product_id):
         """Supprimer un produit"""
         try:

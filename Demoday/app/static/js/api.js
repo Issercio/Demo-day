@@ -95,6 +95,31 @@ class ApiService {
         }
     }
 
+    async deleteAccount() {
+        if (!this.user || !this.user.id) {
+            return { success: false, error: 'Aucun compte connecté' };
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${this.user.id}`, {
+                method: 'DELETE',
+                headers: this.getHeaders()
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok) {
+                this.logout();
+                return { success: true };
+            }
+            return {
+                success: false,
+                error: data.message || data.error || 'Impossible de supprimer le compte'
+            };
+        } catch (error) {
+            console.error('Erreur suppression compte:', error);
+            return { success: false, error: 'Erreur de communication avec le serveur' };
+        }
+    }
+
     logout() {
         this.token = null;
         this.user = null;
@@ -276,8 +301,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const deleteBtn = document.getElementById('delete-btn');
     if (deleteBtn) {
-        deleteBtn.addEventListener('click', () => {
-            alert('Suppression du compte (fonctionnalité à venir)');
+        deleteBtn.addEventListener('click', async () => {
+            if (!confirm('Voulez-vous vraiment supprimer votre compte ? Cette action est irréversible.')) {
+                return;
+            }
+            const result = await apiService.deleteAccount();
+            if (result.success) {
+                alert('Votre compte a été supprimé.');
+                window.location.href = 'accueil.html';
+            } else {
+                alert(result.error || 'Impossible de supprimer le compte');
+            }
         });
     }
 });
