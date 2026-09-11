@@ -1,0 +1,19 @@
+{
+  "name": "FloraShop (Demo-day)",
+  "user": "ubuntu",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "flask",
+      "command": "cd Demoday && source .venv/bin/activate && python3 run.py",
+      "description": "FloraShop Flask dev server on http://localhost:5000"
+    }
+  ],
+  "ports": [
+    {
+      "name": "web",
+      "port": 5000
+    }
+  ]
+}
