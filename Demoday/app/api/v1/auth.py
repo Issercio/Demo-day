@@ -1,5 +1,6 @@
 from flask_restx import Namespace, Resource, fields
 from flask import request, current_app
+from sqlalchemy import func
 from app.models.user import User
 from app.extensions import db
 import jwt
@@ -45,12 +46,12 @@ class Login(Resource):
             if not email or not password:
                 return {'success': False, 'message': 'Email et mot de passe requis'}, 400
 
-            user = User.query.filter_by(email=email).first()
+            user = User.query.filter(func.lower(User.email) == email.lower()).first()
             if not user or not user.check_password(password):
                 return {'success': False, 'message': 'Email ou mot de passe incorrect'}, 401
 
-            # Migration douce : si le hash n'existait pas encore, on le crée maintenant.
-            if user.password and not user.password.startswith(('pbkdf2:', 'scrypt:', 'argon2:')):
+            # Migration douce : bcrypt / mot de passe en clair → hash Werkzeug.
+            if not user.has_modern_hash():
                 user.set_password(password)
                 db.session.commit()
 

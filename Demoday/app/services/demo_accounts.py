@@ -1,5 +1,7 @@
 """Comptes de démo créés au démarrage s'ils n'existent pas encore."""
 
+from sqlalchemy import func
+
 from app.extensions import db
 from app.models.user import User
 
@@ -14,7 +16,7 @@ DEMO_ACCOUNTS = (
 def ensure_demo_accounts():
     created = []
     for username, email, password, is_admin in DEMO_ACCOUNTS:
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter(func.lower(User.email) == email.lower()).first()
         if user is None:
             user = User.query.filter_by(username=username).first()
         if user is None:
@@ -23,9 +25,8 @@ def ensure_demo_accounts():
             db.session.add(user)
             created.append(email)
             continue
-        # Ancien compte en clair : on le re-hash sans changer le mot de passe connu.
-        if user.password and not user.password.startswith(('pbkdf2:', 'scrypt:', 'argon2:')):
-            if user.check_password(password):
-                user.set_password(password)
+        # Compte démo déjà là mais hash incompatible (bcrypt, etc.) → on rétablit marie123 / admin123.
+        if not user.check_password(password) or not user.has_modern_hash():
+            user.set_password(password)
     db.session.commit()
     return created

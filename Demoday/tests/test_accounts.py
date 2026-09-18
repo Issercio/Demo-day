@@ -44,7 +44,7 @@ class AccountsTestCase(unittest.TestCase):
         payload = response.get_json()
         self.assertNotIn('password', payload['data']['user'])
         user = User.query.filter_by(email='lea@test.com').first()
-        self.assertTrue(user.password.startswith(('pbkdf2:', 'scrypt:', 'argon2:')))
+        self.assertTrue(user.has_modern_hash())
         self.assertNotEqual(user.password, 'lea12345')
         self.assertTrue(user.check_password('lea12345'))
 
@@ -58,7 +58,32 @@ class AccountsTestCase(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 200, response.get_json())
         user = db.session.get(User, user.id)
-        self.assertTrue(user.password.startswith(('pbkdf2:', 'scrypt:', 'argon2:')))
+        self.assertTrue(user.has_modern_hash())
+
+    def test_login_accepts_legacy_bcrypt_hash(self):
+        import bcrypt
+        hashed = bcrypt.hashpw(b'marie123', bcrypt.gensalt()).decode('utf-8')
+        user = User(username='marie', email='marie@test.com', password=hashed, is_admin=False)
+        db.session.add(user)
+        db.session.commit()
+        response = self.client.post('/api/v1/auth/login', json={
+            'email': 'marie@test.com',
+            'password': 'marie123',
+        })
+        self.assertEqual(response.status_code, 200, response.get_json())
+
+    def test_demo_seed_resets_unusable_marie_password(self):
+        user = User(
+            username='marie',
+            email='marie@test.com',
+            password='$2b$12$not-a-valid-hash-xxxxxxxxxxxx',
+            is_admin=False,
+        )
+        db.session.add(user)
+        db.session.commit()
+        ensure_demo_accounts()
+        user = User.query.filter_by(email='marie@test.com').first()
+        self.assertTrue(user.check_password('marie123'))
 
 
 if __name__ == '__main__':
