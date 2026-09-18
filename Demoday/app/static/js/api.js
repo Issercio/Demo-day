@@ -170,7 +170,7 @@ class ApiService {
                 logoutBtn.style.display = 'block';
             }
             if (deleteBtn) {
-                deleteBtn.style.display = 'block';
+                deleteBtn.style.display = this.isAdmin() ? 'none' : 'block';
             }
         } else {
             if (userEmail) {
@@ -191,6 +191,10 @@ class ApiService {
 
     syncAdminControls() {
         const isAdmin = this.isAdmin();
+        const onAdminPage = /\/admin\.html$/i.test(window.location.pathname)
+            || document.body.classList.contains('admin-page');
+        document.body.classList.toggle('admin-session', isAdmin);
+
         let adminAccess = document.getElementById('admin-access');
         if (!adminAccess) {
             const profileLink = document.getElementById('profile-link');
@@ -202,7 +206,7 @@ class ApiService {
                 link.href = 'admin.html';
                 link.className = 'admin-nav-link';
                 link.title = 'Administration';
-                link.textContent = 'ADMIN';
+                link.textContent = 'Administration';
                 adminAccess.appendChild(link);
                 const profileItem = profileLink.closest('li');
                 navList.insertBefore(adminAccess, profileItem);
@@ -210,6 +214,23 @@ class ApiService {
         }
         if (adminAccess) {
             adminAccess.style.display = isAdmin ? '' : 'none';
+            const adminLink = adminAccess.querySelector('a');
+            if (adminLink) {
+                adminLink.textContent = 'Administration';
+                if (onAdminPage) {
+                    adminLink.classList.add('active');
+                }
+            }
+        }
+        if (isAdmin) {
+            const homeLink = document.querySelector('nav a[href="accueil.html"]');
+            const shopLink = document.querySelector('nav a[href="shop.html"]');
+            if (homeLink) {
+                homeLink.textContent = 'Accueil';
+            }
+            if (shopLink) {
+                shopLink.textContent = 'Boutique';
+            }
         }
 
         const panel = document.getElementById('profile-panel');
@@ -221,7 +242,6 @@ class ApiService {
             adminBtn = document.createElement('button');
             adminBtn.id = 'admin-btn';
             adminBtn.type = 'button';
-            adminBtn.className = 'cta-btn';
             adminBtn.textContent = 'Gérer le catalogue';
             const logoutBtn = document.getElementById('logout-btn');
             if (logoutBtn) {
@@ -230,7 +250,11 @@ class ApiService {
                 panel.appendChild(adminBtn);
             }
         }
-        adminBtn.style.display = isAdmin ? 'block' : 'none';
+        adminBtn.style.display = (isAdmin && !onAdminPage) ? 'block' : 'none';
+        const deleteBtn = document.getElementById('delete-btn');
+        if (deleteBtn && isAdmin) {
+            deleteBtn.style.display = 'none';
+        }
     }
 
     // Gestion des produits

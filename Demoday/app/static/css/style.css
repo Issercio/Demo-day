@@ -102,14 +102,64 @@ nav li:has(#profile-link) {
     top: calc(100% + 8px) !important;
     right: 0 !important;
     left: auto !important;
-    min-width: 240px !important;
-    max-width: 280px;
+    min-width: 220px !important;
+    max-width: 260px;
     z-index: 5000 !important;
     background: #fff;
     border: 1.5px solid var(--vintage-main) !important;
     border-radius: 10px !important;
     box-shadow: 0 10px 24px rgba(33, 17, 17, 0.14) !important;
-    padding: 12px 14px !important;
+    padding: 12px !important;
+}
+
+nav a#profile-link,
+nav a#profile-link:hover,
+nav a#profile-link:focus,
+nav a#cart-link:focus {
+    background: none !important;
+    color: var(--vintage-main-dark) !important;
+    box-shadow: none !important;
+    padding: 8px 12px;
+}
+
+#profile-panel button,
+#profile-panel .cta-btn {
+    display: block;
+    width: 100% !important;
+    margin: 0 0 8px 0 !important;
+    padding: 9px 12px !important;
+    font-size: 0.92rem !important;
+    line-height: 1.25;
+    white-space: nowrap;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: var(--vintage-main-dark) !important;
+    border: 1.5px solid var(--vintage-main) !important;
+}
+
+#profile-panel button:last-child,
+#profile-panel .cta-btn:last-child {
+    margin-bottom: 0 !important;
+}
+
+#profile-panel button:hover,
+#profile-panel .cta-btn:hover {
+    background: var(--vintage-main) !important;
+    color: #fff !important;
+}
+
+body.admin-session nav li:has(a[href="evenementiel.html"]),
+body.admin-session nav li:has(a[href="entreprises.html"]),
+body.admin-session nav li:has(a[href="portfolio.html"]),
+body.admin-session nav li:has(a[href="contact.html"]),
+body.admin-session nav li:has(a[href="subscription.html"]),
+body.admin-session nav li:has(#cart-link) {
+    display: none !important;
+}
+
+body.admin-session nav a {
+    padding: 10px 18px;
+    font-size: 17px;
 }
 
 #admin-access a,

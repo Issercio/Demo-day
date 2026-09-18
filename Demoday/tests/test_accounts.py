@@ -120,6 +120,16 @@ class AccountsTestCase(unittest.TestCase):
         account = Path(__file__).resolve().parents[1].joinpath('app/templates/account.html').read_text()
         self.assertIn("user.is_admin ? 'admin.html'", account)
 
+    def test_admin_session_hides_marketing_nav_and_compacts_profile(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        css = root.joinpath('app/static/css/style.css').read_text()
+        js = root.joinpath('app/static/js/api.js').read_text()
+        self.assertIn('body.admin-session nav li:has(a[href="evenementiel.html"])', css)
+        self.assertIn('nav a#profile-link:focus', css)
+        self.assertIn("classList.toggle('admin-session', isAdmin)", js)
+        self.assertIn('isAdmin && !onAdminPage', js)
+
 
 if __name__ == '__main__':
     unittest.main()
