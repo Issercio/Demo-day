@@ -93,11 +93,12 @@ Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
 | Customer | Keep a cart that does not leak to another account | Must have |
 | Customer | Subscribe to a floral plan (monthly, semester, yearly) | Should have |
 | Customer | Filter the catalog by minimum and maximum price | Shop filter |
+| Customer | Choose a season or event theme on the home page and see matching flowers | Shop filter |
 | Florist | Add, update and delete products and categories | Must have |
 | Florist | Review paid orders | Must have |
 | Florist | Keep the back-office for administrators only | Must have |
 
-Evidence: `/account.html`, `/shop.html`, `/checkout.html`, `/subscription.html`, `/admin.html`, and the REST routes under `/api/v1`.
+Evidence: `/account.html`, `/shop.html`, `/checkout.html`, `/subscription.html`, `/admin.html`, `/accueil.html` themes, and the REST routes under `/api/v1`.
 
 ---
 

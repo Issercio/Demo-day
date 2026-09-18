@@ -5,7 +5,7 @@
   <title>Pivoine &amp; Lilas, artisan fleuriste : une rencontre différente avec la nature</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="twitter:image" content="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6%7Emv2.png/v1/fit/w_2500,h_1330,al_c/8010bb_ce18a16c3f664b8ab22c97455e707ce6%7Emv2.png"/>
-  <link rel="stylesheet" href="../static/css/style.css?v=20260918-nav6">
+  <link rel="stylesheet" href="../static/css/style.css?v=20260918-themes1">
 </head>
 <body>
   <!-- Navbar commune -->
@@ -44,12 +44,28 @@
 
   <!-- Contenu spécifique à la page d'accueil -->
   <main class="main-content">
-    <h1 style="font-size:40px; color:#ab597c; text-align:center; margin-bottom: 30px;">
+    <h1 style="font-size:40px; color:#ab597c; text-align:center; margin-bottom: 18px;">
       Bienvenue chez<br>Pivoine &amp; Lilas, artisan fleuriste
     </h1>
-    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 30px;">
-      <img src="https://static.wixstatic.com/media/8010bb_df6c4762ff7e473a880854bb0c0077a3~mv2.jpg/v1/fill/w_415,h_277,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_5619_JPG.jpg" alt="Bouquet de fleurs fraîches, pivoines, hortensia, roses, fête des mères" width="415" height="277" style="border-radius: 8px;">
-    </div>
+    <section class="home-themes" id="themes" aria-labelledby="themes-title">
+      <h2 id="themes-title">Quel moment voulez-vous fleurir ?</h2>
+      <p class="home-themes-lead">Choisissez une saison ou un événement : l’atelier compose avec les fleurs qui lui correspondent.</p>
+      <div class="theme-groups">
+        <div>
+          <h3>Saisons</h3>
+          <div class="theme-chips" id="theme-chips-saison"></div>
+        </div>
+        <div>
+          <h3>Événements</h3>
+          <div class="theme-chips" id="theme-chips-event"></div>
+        </div>
+      </div>
+      <p class="theme-blurb" id="theme-blurb"></p>
+      <div class="products-grid home-theme-grid" id="theme-products"></div>
+      <div class="theme-stage-actions">
+        <a class="theme-shop-link" id="theme-shop-link" href="shop.html">Voir ces bouquets</a>
+      </div>
+    </section>
     <section style="margin-top: 40px;">
       <h2 style="font-size:31px; color:#bc6288; text-align:center; font-weight:bold;">
         Retrouvez nous à l'adresse suivante :<br>
@@ -80,6 +96,7 @@
     <a href="cgv.html" style="color:#fff;text-decoration:underline;">Conditions générales de vente</a> -
     <a href="https://www.pivoine-et-lilas.com/politique-de-confidentialite" target="_blank" style="color:#fff;text-decoration:underline;">Politique de confidentialité</a>
   </footer>
+  <div id="cart-toast" class="cart-toast" aria-live="polite" role="status"></div>
   <script src="../static/js/api.js?v=20260918-nav6"></script>
   <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -93,7 +110,145 @@
       badge.textContent = String(total);
       badge.style.display = total > 0 ? 'inline-block' : 'none';
     }
+    setupHomeThemes();
   });
+
+  const THEME_STORAGE_KEY = 'florashop_theme';
+  let homeThemes = [];
+  let homeProductsByName = {};
+
+  function productImage(product) {
+    if (product && product.image) {
+      return product.image;
+    }
+    const slug = String((product && product.name) || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return slug ? `/static/img/products/${slug}.jpg` : '';
+  }
+
+  function showHomeToast(message) {
+    const toast = document.getElementById('cart-toast');
+    if (!toast) {
+      return;
+    }
+    toast.textContent = message;
+    toast.classList.add('is-visible');
+    window.clearTimeout(showHomeToast.timer);
+    showHomeToast.timer = window.setTimeout(() => toast.classList.remove('is-visible'), 2200);
+  }
+
+  function renderThemeChips(selectedId) {
+    ['saison', 'evenement'].forEach((kind) => {
+      const box = document.getElementById(kind === 'saison' ? 'theme-chips-saison' : 'theme-chips-event');
+      if (!box) {
+        return;
+      }
+      box.innerHTML = homeThemes.filter((theme) => theme.kind === kind).map((theme) => `
+        <button type="button" class="theme-chip${theme.id === selectedId ? ' is-selected' : ''}" data-theme="${escapeHtml(theme.id)}" style="--theme-accent:${escapeHtml(theme.accent)}">
+          ${escapeHtml(theme.label)}
+        </button>
+      `).join('');
+      box.querySelectorAll('button').forEach((button) => {
+        button.addEventListener('click', () => selectHomeTheme(button.dataset.theme));
+      });
+    });
+  }
+
+  function selectHomeTheme(themeId) {
+    const theme = homeThemes.find((item) => item.id === themeId) || homeThemes[0];
+    if (!theme) {
+      return;
+    }
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme.id);
+    } catch (err) {
+      /* ignore quota */
+    }
+    renderThemeChips(theme.id);
+    const blurb = document.getElementById('theme-blurb');
+    if (blurb) {
+      blurb.textContent = theme.blurb;
+    }
+    const shopLink = document.getElementById('theme-shop-link');
+    if (shopLink) {
+      shopLink.href = `shop.html?theme=${encodeURIComponent(theme.id)}`;
+      shopLink.textContent = `Voir les bouquets ${theme.label.toLowerCase()}`;
+    }
+    const grid = document.getElementById('theme-products');
+    if (!grid) {
+      return;
+    }
+    const products = (theme.product_names || []).map((name) => homeProductsByName[name]).filter(Boolean);
+    grid.innerHTML = products.map((product) => {
+      const photo = productImage(product);
+      const hex = (product.color || product.hex_color || '#bc6288').toLowerCase();
+      return `
+        <article class="product-card">
+          <div class="product-photo">
+            <img src="${escapeHtml(photo)}" alt="${escapeHtml(product.name)}" loading="lazy">
+            <span class="product-color-pip" style="background:${escapeHtml(hex)};"></span>
+          </div>
+          <div class="product-body">
+            <h3>${escapeHtml(product.name)}</h3>
+            <p class="product-blurb">${escapeHtml(theme.label)}</p>
+            <p class="product-price">${Number(product.price).toFixed(2)}€</p>
+            <button type="button" class="add-to-cart" data-product-id="${Number(product.id)}">Commander</button>
+          </div>
+        </article>
+      `;
+    }).join('');
+    grid.querySelectorAll('.add-to-cart').forEach((button) => {
+      button.addEventListener('click', () => {
+        const product = Object.values(homeProductsByName).find((item) => Number(item.id) === Number(button.dataset.productId));
+        if (!product || !window.FloraCart) {
+          return;
+        }
+        FloraCart.add({ ...product, quantity: 1 });
+        const badge = document.getElementById('cart-count');
+        if (badge && window.FloraCart) {
+          const total = FloraCart.count();
+          badge.textContent = String(total);
+          badge.style.display = total > 0 ? 'inline-block' : 'none';
+        }
+        showHomeToast(`${product.name} a été ajouté au panier`);
+      });
+    });
+  }
+
+  async function setupHomeThemes() {
+    try {
+      const [themesResponse, productsResponse] = await Promise.all([
+        fetch('/api/v1/themes'),
+        fetch('/api/v1/products'),
+      ]);
+      if (!themesResponse.ok || !productsResponse.ok) {
+        return;
+      }
+      const payload = await themesResponse.json();
+      const products = await productsResponse.json();
+      homeThemes = payload.themes || [];
+      homeProductsByName = {};
+      products.forEach((product) => {
+        homeProductsByName[product.name] = product;
+      });
+      let selected = '';
+      try {
+        selected = localStorage.getItem(THEME_STORAGE_KEY) || '';
+      } catch (err) {
+        selected = '';
+      }
+      if (!homeThemes.some((theme) => theme.id === selected)) {
+        selected = payload.current || (homeThemes[0] && homeThemes[0].id);
+      }
+      selectHomeTheme(selected);
+    } catch (err) {
+      console.error('Thèmes accueil:', err);
+    }
+  }
   </script>
 </body>
 </html>

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Boutique Florale</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="../static/css/style.css?v=20260918-admin-img2">
+  <link rel="stylesheet" href="../static/css/style.css?v=20260918-themes1">
 </head>
 <body>
   <header>
@@ -68,13 +68,16 @@
       </div>
     </aside>
     <!-- Zone produits -->
-    <main class="products-area" id="products-area">
+    <div class="products-column">
+      <div id="theme-banner" class="shop-theme-banner" hidden></div>
+      <main class="products-area" id="products-area">
       <!-- Les catégories et produits seront chargés depuis l'API -->
       <div style="text-align: center; color: #bc6288; padding: 60px 20px;">
         <h2>Boutique en construction</h2>
         <p>Les produits seront bientôt disponibles via notre API.</p>
       </div>
     </main>
+    </div>
   </div>
   <footer class="site-footer">
     &copy; 2024 by Pivoine &amp; Lilas - Siren 522 234 871 -
@@ -86,6 +89,8 @@
     let selectedColors = [];
     let allCategories = [];
     let allProducts = [];
+    let activeTheme = null;
+    let themeProductNames = null;
 
     const colorPalette = ['#e8a0bf', '#c8a2c8', '#d94f70', '#9bb7e8', '#e85d4c', '#f0c419', '#7d9b76', '#f7f1e8', '#9b7bb8', '#ffc75f', '#6b4c9a', '#bc6288'];
 
@@ -198,6 +203,10 @@
           }
         }
 
+        if (themeProductNames && !themeProductNames.has(product.name)) {
+          return false;
+        }
+
         return true;
       });
     }
@@ -281,6 +290,7 @@
           input.checked = true;
         });
         presetButtons.forEach((btn) => btn.classList.remove('is-selected'));
+        clearShopTheme();
         refreshProductsWithCurrentFilters();
       });
     }
@@ -301,6 +311,7 @@
 
         allCategories = categories.filter((category) => category.name !== 'Abonnements');
         allProducts = products.filter((product) => !(product.category && product.category.name === 'Abonnements'));
+        await applyThemeFromUrl();
         renderCategoryFilters();
 
         if (window.apiService) {
@@ -334,6 +345,9 @@
         console.log('Processing category:', category);
         const categoryProducts = products.filter(p => p.category && p.category.id === category.id);
         console.log(`Products for category ${category.name}:`, categoryProducts.length);
+        if (categoryProducts.length === 0) {
+          return;
+        }
         
         const categorySection = document.createElement('section');
         categorySection.className = 'category-section';
@@ -376,9 +390,72 @@
         `;
         productsArea.appendChild(categorySection);
       });
+      if (!productsArea.querySelector('.category-section')) {
+        productsArea.innerHTML = '<div style="text-align: center; color: #bc6288; padding: 60px 20px;"><h2>Aucun bouquet pour ce filtre</h2><p>Effacez les filtres ou changez de thème depuis l\'accueil.</p></div>';
+      }
     }
 
-    // Fonctions de gestion de stock côté shop
+    function renderThemeBanner() {
+      const banner = document.getElementById('theme-banner');
+      if (!banner) {
+        return;
+      }
+      if (!activeTheme) {
+        banner.hidden = true;
+        banner.innerHTML = '';
+        return;
+      }
+      banner.hidden = false;
+      banner.innerHTML = `
+        <p><strong>${escapeHtml(activeTheme.label)}</strong> — ${escapeHtml(activeTheme.blurb)}</p>
+        <button type="button" id="clear-theme-btn">Tous les bouquets</button>
+      `;
+      const clearBtn = document.getElementById('clear-theme-btn');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          clearShopTheme();
+          refreshProductsWithCurrentFilters();
+        });
+      }
+    }
+
+    function clearShopTheme() {
+      activeTheme = null;
+      themeProductNames = null;
+      renderThemeBanner();
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('theme')) {
+        url.searchParams.delete('theme');
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+      }
+    }
+
+    async function applyThemeFromUrl() {
+      const themeId = new URLSearchParams(window.location.search).get('theme');
+      if (!themeId) {
+        activeTheme = null;
+        themeProductNames = null;
+        renderThemeBanner();
+        return;
+      }
+      try {
+        const response = await fetch('/api/v1/themes');
+        if (!response.ok) {
+          return;
+        }
+        const payload = await response.json();
+        const theme = (payload.themes || []).find((item) => item.id === themeId);
+        if (!theme) {
+          return;
+        }
+        activeTheme = theme;
+        themeProductNames = new Set(theme.product_names || []);
+        renderThemeBanner();
+      } catch (err) {
+        console.error('Thème boutique:', err);
+      }
+    }
+
     function getProductStockStatus(productId) {
       const stockData = JSON.parse(localStorage.getItem('productStock') || '{}');
       return stockData[productId] || 'available';

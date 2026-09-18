@@ -244,6 +244,53 @@ class AccountsTestCase(unittest.TestCase):
         stored = Product.query.filter_by(name='Bouquet Pivoine').first()
         self.assertEqual(stored.image, pivoine.get('image'))
 
+    def test_home_offers_seasonal_themes(self):
+        from pathlib import Path
+        html = Path(__file__).resolve().parents[1].joinpath('app/templates/accueil.html').read_text()
+        self.assertIn('id="themes"', html)
+        self.assertIn('Quel moment voulez-vous fleurir', html)
+        self.assertIn('theme-chips-saison', html)
+        self.assertIn('theme-chips-event', html)
+        self.assertIn('setupHomeThemes', html)
+        shop = Path(__file__).resolve().parents[1].joinpath('app/templates/shop.html').read_text()
+        self.assertIn('applyThemeFromUrl', shop)
+        self.assertIn('theme-banner', shop)
+        self.assertIn('shop.html?theme=', html)
+
+    def test_themes_api_and_product_filter(self):
+        from datetime import date
+        from app.models import Product
+        from app.services.demo_accounts import DEMO_CATALOG
+        from app.services.shop_themes import SHOP_THEMES, current_theme_id, product_names_for_theme
+
+        ensure_demo_catalog()
+        catalog_names = {name for _, items in DEMO_CATALOG for name, _, _ in items}
+        for theme in SHOP_THEMES:
+            for name in theme['products']:
+                self.assertIn(name, catalog_names)
+                self.assertIsNotNone(Product.query.filter_by(name=name).first(), name)
+
+        self.assertEqual(current_theme_id(date(2026, 9, 18)), 'automne')
+        self.assertEqual(current_theme_id(date(2026, 4, 2)), 'printemps')
+
+        payload = self.client.get('/api/v1/themes').get_json()
+        ids = [item['id'] for item in payload['themes']]
+        self.assertEqual(payload['current'], current_theme_id())
+        self.assertIn('printemps', ids)
+        self.assertIn('mariage', ids)
+        self.assertIn('saint-valentin', ids)
+
+        autumn = self.client.get('/api/v1/products?theme=automne')
+        self.assertEqual(autumn.status_code, 200)
+        names = [item['name'] for item in autumn.get_json()]
+        self.assertEqual(names, list(product_names_for_theme('automne')))
+        self.assertNotIn('Rose unique', names)
+
+        full = self.client.get('/api/v1/products').get_json()
+        self.assertGreater(len(full), len(names))
+        unknown = self.client.get('/api/v1/products?theme=halloween')
+        self.assertEqual(unknown.status_code, 400)
+
 
 if __name__ == '__main__':
     unittest.main()

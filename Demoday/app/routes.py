@@ -4,6 +4,7 @@ from .models import Product, Category, User
 from . import db
 from app.api.v1.auth_utils import admin_required_response, self_or_admin_required_response
 from app.services.product_images import payload_from_request, save_product_image
+from app.services.shop_themes import filter_products_by_theme, get_theme, themes_payload
 
 api_bp = Blueprint('api', __name__)
 main_bp = Blueprint('main', __name__)
@@ -450,7 +451,12 @@ def products():
     
     # GET - Liste des produits PROPRE
     try:
+        theme_id = (request.args.get('theme') or '').strip().lower()
         products = Product.query.all()
+        if theme_id:
+            if get_theme(theme_id) is None:
+                return jsonify({'error': 'Thème inconnu'}), 400
+            products = filter_products_by_theme(products, theme_id)
         result = []
         for p in products:
             if p.id is not None:
@@ -529,6 +535,11 @@ def delete_product(product_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/themes', methods=['GET'])
+def list_shop_themes():
+    return jsonify(themes_payload())
+
 
 # ENDPOINT DE DEBUG pour diagnostiquer les IDs
 @api_bp.route('/debug/categories', methods=['GET'])
