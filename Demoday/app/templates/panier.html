@@ -205,9 +205,13 @@
               const unit = Number(prod.price) || 0;
               const lineTotal = unit * quantity;
               total += lineTotal;
+              const hex = (prod.color || prod.hex_color || '').toLowerCase();
+              const colorCell = hex
+                ? `<span class="color-dot" title="${escapeHtml(hex)}" style="background:${hex};display:inline-block;width:14px;height:14px;border-radius:50%;border:1.5px solid #bc6288;margin-right:8px;vertical-align:middle;"></span><span style="font-size:0.82em;color:#7a5a66;">${escapeHtml(hex)}</span>`
+                : '';
               return `
                 <tr>
-                  <td style="font-weight:bold;color:#ab597c;">${escapeHtml(prod.name)}</td>
+                  <td style="font-weight:bold;color:#ab597c;">${escapeHtml(prod.name)} ${colorCell}</td>
                   <td>${escapeHtml(getCategoryLabel(prod))}</td>
                   <td>
                     <button class="remove-btn" onclick="changeQuantity(${idx}, -1)" title="Moins">−</button>

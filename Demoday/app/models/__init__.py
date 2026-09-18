@@ -12,9 +12,11 @@ class Product(db.Model):
     price = db.Column(db.Numeric(10, 2), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id', ondelete='CASCADE'), nullable=True)
     is_on_sale = db.Column(db.Boolean, default=False)
-    
+    color = db.Column(db.String(7), nullable=True)
+
     def to_dict(self):
         category = db.session.get(Category, self.category_id) if self.category_id else None
+        color = str(self.color).lower() if self.color else None
         return {
             'id': int(self.id),
             'name': str(self.name),
@@ -22,6 +24,8 @@ class Product(db.Model):
             'price': float(self.price),
             'category_id': int(self.category_id) if self.category_id else None,
             'is_on_sale': bool(self.is_on_sale) if hasattr(self, 'is_on_sale') else False,
+            'color': color,
+            'hex_color': color,
             'category': {
                 'id': int(category.id),
                 'name': str(category.name)

@@ -92,6 +92,35 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('Fleurs Fraîches', names)
         self.assertGreaterEqual(Product.query.filter_by(name='Bouquet Pivoine').count(), 1)
 
+    def test_demo_catalog_has_colors_and_category_prices(self):
+        from decimal import Decimal
+        from app.models import Category, Product
+        from app.services.demo_accounts import CATEGORY_PRICE_BANDS, DEMO_CATALOG, ensure_demo_catalog
+
+        ensure_demo_catalog()
+        shop_names = [name for _, items in DEMO_CATALOG for name, _, _ in items]
+        self.assertGreaterEqual(len(shop_names), 30)
+
+        pivoine = Product.query.filter_by(name='Bouquet Pivoine').first()
+        self.assertIsNotNone(pivoine)
+        self.assertEqual((pivoine.color or '').lower(), '#e8a0bf')
+
+        payload = self.client.get('/api/v1/products').get_json()
+        self.assertIsInstance(payload, list)
+        colored = [item for item in payload if item.get('name') == 'Bouquet Pivoine']
+        self.assertTrue(colored)
+        self.assertEqual((colored[0].get('color') or '').lower(), '#e8a0bf')
+
+        for category_name, (low, high) in CATEGORY_PRICE_BANDS.items():
+            category = Category.query.filter_by(name=category_name).first()
+            self.assertIsNotNone(category)
+            products = Product.query.filter_by(category_id=category.id).all()
+            self.assertGreaterEqual(len(products), 8)
+            for product in products:
+                self.assertTrue(product.color and product.color.startswith('#'))
+                self.assertGreaterEqual(Decimal(str(product.price)), low)
+                self.assertLessEqual(Decimal(str(product.price)), high)
+
     def test_admin_login_returns_is_admin_true(self):
         ensure_demo_accounts()
         response = self.client.post('/api/v1/auth/login', json={

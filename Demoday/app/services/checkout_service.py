@@ -110,6 +110,8 @@ def ensure_runtime_schema():
         if name not in existing:
             db.session.execute(text(f'ALTER TABLE orders ADD COLUMN {name} {ddl}'))
     db.session.commit()
+    from app.services.demo_accounts import ensure_product_color_column
+    ensure_product_color_column()
     ensure_subscription_catalog()
 
 

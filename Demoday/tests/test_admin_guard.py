@@ -221,8 +221,8 @@ class AdminGuardTestCase(unittest.TestCase):
         self.assertIn('Administration du catalogue', html)
         self.assertIn('id="admin-notice"', html)
         self.assertNotIn("alert('Accès réservé aux administrateurs')", html)
-        self.assertIn('Accueil', html)
-        self.assertNotIn('ÉVÈNEMENTIEL', html)
+        self.assertIn('ACCUEIL', html)
+        self.assertIn('ÉVÈNEMENTIEL', html)
 
 
 if __name__ == '__main__':

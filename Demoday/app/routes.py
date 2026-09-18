@@ -421,8 +421,8 @@ def products():
             product = Product(
                 name=data['name'],
                 price=float(data['price']),
-                category_id=int(data['category_id'])
-                # PLUS de stock
+                category_id=int(data['category_id']),
+                color=(data.get('color') or data.get('hex_color') or None),
             )
             db.session.add(product)
             db.session.flush()
@@ -482,7 +482,8 @@ def update_product(product_id):
             if not category:
                 return jsonify({'error': 'Catégorie non trouvée'}), 404
             product.category_id = int(data['category_id'])
-        # SUPPRIMÉ : if 'stock' in data
+        if 'color' in data or 'hex_color' in data:
+            product.color = data.get('color') or data.get('hex_color') or None
             
         db.session.commit()
         

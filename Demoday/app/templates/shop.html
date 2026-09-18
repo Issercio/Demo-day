@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Boutique Florale</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="../static/css/style.css?v=20260918-nav6">
+  <link rel="stylesheet" href="../static/css/style.css?v=20260918-nav7">
 </head>
 <body>
   <header>
@@ -98,7 +98,7 @@
     let allCategories = [];
     let allProducts = [];
 
-    const colorPalette = ['#f4c2c2', '#f8e16f', '#9fe2bf', '#8fb9ff', '#c8a2c8', '#ff9aa2', '#ffc75f', '#b5e48c', '#a0c4ff', '#d8b4f8', '#ffb5a7', '#84a59d'];
+    const colorPalette = ['#e8a0bf', '#c8a2c8', '#d94f70', '#9bb7e8', '#e85d4c', '#f0c419', '#7d9b76', '#f7f1e8', '#9b7bb8', '#ffc75f', '#6b4c9a', '#bc6288'];
 
     function normalizeHexColor(color) {
       if (!color) {
@@ -354,7 +354,8 @@
                       ${stockBanner}
                       <h3>${escapeHtml(product.name)}</h3>
                       <div class="product-colors">
-                        <span class="color-dot" title="Couleur dominante" style="background:${pickProductColor(product)};"></span>
+                        <span class="color-dot" title="${escapeHtml(pickProductColor(product))}" style="background:${pickProductColor(product)};"></span>
+                        <span class="product-color-code">${escapeHtml(pickProductColor(product))}</span>
                       </div>
                       <p class="product-price">${Number(product.price).toFixed(2)}€</p>
                       <button class="add-to-cart" onclick="addToCartById(${Number(product.id)})" 

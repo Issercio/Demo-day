@@ -728,8 +728,17 @@ body, .main-content, .shop-container {
 
 .product-colors {
     display: flex;
+    align-items: center;
     gap: 0.5rem;
     margin: 1rem 0;
+}
+
+.product-color-code {
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: #7a5a66;
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
 }
 
 .color-dot {

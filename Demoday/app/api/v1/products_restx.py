@@ -12,7 +12,8 @@ product_model = api.model('Product', {
     'id': fields.Integer(required=True, description='ID du produit'),
     'name': fields.String(required=True, description='Nom du produit'),
     'price': fields.Float(required=True, description='Prix du produit'),
-    'category_id': fields.Integer(description='ID de la catégorie')
+    'category_id': fields.Integer(description='ID de la catégorie'),
+    'color': fields.String(description='Code couleur hexadécimal du produit'),
 })
 
 @api.route('')
@@ -31,7 +32,8 @@ class ProductList(Resource):
                         'id': int(prod.id),
                         'name': str(prod.name),
                         'price': float(prod.price),
-                        'category_id': prod.category_id
+                        'category_id': prod.category_id,
+                        'color': prod.color,
                     }
                     print(f"Produit RESTX: {product_dict}")
                     result.append(product_dict)
@@ -66,7 +68,8 @@ class ProductList(Resource):
             product = Product(
                 name=data['name'],
                 price=float(data['price']),
-                category_id=int(data['category_id'])
+                category_id=int(data['category_id']),
+                color=(data.get('color') or data.get('hex_color') or None),
             )
             db.session.add(product)
             db.session.flush()
@@ -81,9 +84,9 @@ class ProductList(Resource):
                 'id': int(product.id),
                 'name': str(product.name),
                 'price': float(product.price),
-                'category_id': product.category_id
+                'category_id': product.category_id,
+                'color': product.color,
             }
-            print(f"Produit créé RESTX: {result}")
             return result, 201
             
         except Exception as e:
@@ -105,7 +108,8 @@ class ProductResource(Resource):
                 'id': int(product.id),
                 'name': str(product.name),
                 'price': float(product.price),
-                'category_id': product.category_id
+                'category_id': product.category_id,
+                'color': product.color,
             }
             return result
         except Exception as e:
@@ -131,6 +135,8 @@ class ProductResource(Resource):
                 if not category:
                     api.abort(400, 'Catégorie non trouvée')
                 product.category_id = int(data['category_id'])
+            if 'color' in data or 'hex_color' in data:
+                product.color = data.get('color') or data.get('hex_color') or None
             
             # PLUS de stock dans les modifications
             
@@ -140,7 +146,8 @@ class ProductResource(Resource):
                 'id': int(product.id),
                 'name': str(product.name),
                 'price': float(product.price),
-                'category_id': product.category_id
+                'category_id': product.category_id,
+                'color': product.color,
             }
             return result
             
