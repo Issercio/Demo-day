@@ -1,6 +1,9 @@
 """Season and event themes that map the shop catalog to a moment."""
 
 from datetime import date
+from pathlib import Path
+
+from flask import current_app
 
 SHOP_THEMES = (
     {
@@ -213,10 +216,50 @@ def filter_products_by_theme(products, theme_id):
     return [by_name[name] for name in names if name in by_name]
 
 
+def applied_theme_file():
+    override = current_app.config.get('SHOP_THEME_PATH')
+    if override:
+        return Path(override)
+    folder = Path(current_app.instance_path)
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder / 'shop_theme'
+
+
+def get_applied_theme_id():
+    path = applied_theme_file()
+    try:
+        stored = path.read_text(encoding='utf-8').strip().lower()
+    except OSError:
+        return None
+    if not stored or stored in ('none', 'all', 'catalogue'):
+        return None
+    if get_theme(stored) is None:
+        return None
+    return stored
+
+
+def set_applied_theme_id(theme_id):
+    path = applied_theme_file()
+    if theme_id in (None, '', 'none', 'all', 'catalogue'):
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
+        return None
+    theme = get_theme(theme_id)
+    if theme is None:
+        raise KeyError(theme_id)
+    path.write_text(theme['id'] + '\n', encoding='utf-8')
+    return theme['id']
+
+
 def themes_payload(today=None):
-    current = current_theme_id(today)
+    season = current_theme_id(today)
+    applied = get_applied_theme_id()
     return {
-        'current': current,
+        'current': season,
+        'season': season,
+        'applied': applied,
         'themes': [
             {
                 'id': theme['id'],
@@ -225,7 +268,8 @@ def themes_payload(today=None):
                 'blurb': theme['blurb'],
                 'accent': theme['accent'],
                 'product_names': list(theme['products']),
-                'is_current_season': theme['id'] == current,
+                'is_current_season': theme['id'] == season,
+                'is_applied': theme['id'] == applied,
             }
             for theme in SHOP_THEMES
         ],

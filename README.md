@@ -93,12 +93,13 @@ Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
 | Customer | Keep a cart that does not leak to another account | Must have |
 | Customer | Subscribe to a floral plan (monthly, semester, yearly) | Should have |
 | Customer | Filter the catalog by minimum and maximum price | Shop filter |
-| Customer | Choose a season or event theme on the home page and see matching flowers | Shop filter |
+| Customer | See the season or event vitrine applied by the florist | Shop filter |
 | Florist | Add, update and delete products and categories | Must have |
+| Florist | Apply a season or a theme to the live shop | Must have |
 | Florist | Review paid orders | Must have |
 | Florist | Keep the back-office for administrators only | Must have |
 
-Evidence: `/account.html`, `/shop.html`, `/checkout.html`, `/subscription.html`, `/admin.html`, `/accueil.html` themes, and the REST routes under `/api/v1`.
+Evidence: `/account.html`, `/shop.html`, `/checkout.html`, `/subscription.html`, `/admin.html` vitrine, and the REST routes under `/api/v1`.
 
 ---
 
@@ -111,7 +112,7 @@ These were in the original specification and are not in this release.
 | Customer | Click-and-collect time slot | Must have | The order is paid; there is no pickup window |
 | Customer | Delivery limited to configured zones | Must have | No postcode or zone table |
 | Customer | Email alerts for events and sales | Could have | Password-reset pages are interface only |
-| Florist | Edit homepage images and seasonal copy | Must have | Home is a template, not a CMS |
+| Florist | Edit homepage images and seasonal copy | Must have | Home is a template; seasons and themes are applied from admin to the shop |
 | Florist | Configure delivery areas | Must have | Not modelled |
 | Florist | Enforce minimum and maximum catalog prices as rules | Must have | Admin sets a price; min/max in the shop is a filter |
 | Florist | Publish blog posts and workshops | Should have | `/evenementiel.html` is static |

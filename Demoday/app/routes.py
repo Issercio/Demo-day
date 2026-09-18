@@ -4,7 +4,12 @@ from .models import Product, Category, User
 from . import db
 from app.api.v1.auth_utils import admin_required_response, self_or_admin_required_response
 from app.services.product_images import payload_from_request, save_product_image
-from app.services.shop_themes import filter_products_by_theme, get_theme, themes_payload
+from app.services.shop_themes import (
+    filter_products_by_theme,
+    get_theme,
+    set_applied_theme_id,
+    themes_payload,
+)
 
 api_bp = Blueprint('api', __name__)
 main_bp = Blueprint('main', __name__)
@@ -536,8 +541,28 @@ def delete_product(product_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@api_bp.route('/themes', methods=['GET'])
-def list_shop_themes():
+@api_bp.route('/themes', methods=['GET', 'PUT'])
+def shop_themes():
+    if request.method == 'PUT':
+        denied = admin_required_response()
+        if denied:
+            return denied
+        data = request.get_json(silent=True) or {}
+        theme_id = data.get('id')
+        if theme_id is None:
+            theme_id = data.get('theme')
+        try:
+            applied = set_applied_theme_id(theme_id)
+        except KeyError:
+            return jsonify({'error': 'Thème inconnu'}), 400
+        payload = themes_payload()
+        payload['message'] = (
+            'Catalogue complet affiché dans le shop.'
+            if applied is None
+            else f'Vitrine du shop : {get_theme(applied)["label"]}.'
+        )
+        return jsonify(payload)
+
     return jsonify(themes_payload())
 
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Boutique Florale</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="../static/css/style.css?v=20260918-themes2">
+  <link rel="stylesheet" href="../static/css/style.css?v=20260918-vitrine">
 </head>
 <body>
   <header>
@@ -290,7 +290,9 @@
           input.checked = true;
         });
         presetButtons.forEach((btn) => btn.classList.remove('is-selected'));
-        clearShopTheme();
+        if (themeProductNames) {
+          syncCategoryChecksToTheme();
+        }
         refreshProductsWithCurrentFilters();
       });
     }
@@ -311,7 +313,7 @@
 
         allCategories = categories.filter((category) => category.name !== 'Abonnements');
         allProducts = products.filter((product) => !(product.category && product.category.name === 'Abonnements'));
-        await applyThemeFromUrl();
+        await applyShopTheme();
         renderCategoryFilters();
         syncCategoryChecksToTheme();
 
@@ -392,7 +394,7 @@
         productsArea.appendChild(categorySection);
       });
       if (!productsArea.querySelector('.category-section')) {
-        productsArea.innerHTML = '<div style="text-align: center; color: #bc6288; padding: 60px 20px;"><h2>Aucun bouquet pour ce filtre</h2><p>Effacez les filtres ou changez de thème depuis l\'accueil.</p></div>';
+        productsArea.innerHTML = '<div style="text-align: center; color: #bc6288; padding: 60px 20px;"><h2>Aucun bouquet pour ce filtre</h2><p>Effacez les filtres pour revoir la vitrine du shop.</p></div>';
       }
     }
 
@@ -409,29 +411,7 @@
       banner.hidden = false;
       banner.innerHTML = `
         <p><strong>${escapeHtml(activeTheme.label)}</strong> — ${escapeHtml(activeTheme.blurb)}</p>
-        <button type="button" id="clear-theme-btn">Tous les bouquets</button>
       `;
-      const clearBtn = document.getElementById('clear-theme-btn');
-      if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-          clearShopTheme();
-          refreshProductsWithCurrentFilters();
-        });
-      }
-    }
-
-    function clearShopTheme() {
-      activeTheme = null;
-      themeProductNames = null;
-      document.querySelectorAll('#categories-filters input[type="checkbox"]').forEach((input) => {
-        input.checked = true;
-      });
-      renderThemeBanner();
-      const url = new URL(window.location.href);
-      if (url.searchParams.has('theme')) {
-        url.searchParams.delete('theme');
-        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
-      }
     }
 
     function syncCategoryChecksToTheme() {
@@ -449,22 +429,24 @@
       });
     }
 
-    async function applyThemeFromUrl() {
-      const themeId = new URLSearchParams(window.location.search).get('theme');
-      if (!themeId) {
-        activeTheme = null;
-        themeProductNames = null;
-        renderThemeBanner();
-        return;
-      }
+    async function applyShopTheme() {
       try {
         const response = await fetch('/api/v1/themes');
         if (!response.ok) {
+          activeTheme = null;
+          themeProductNames = null;
+          renderThemeBanner();
           return;
         }
         const payload = await response.json();
-        const theme = (payload.themes || []).find((item) => item.id === themeId);
+        const appliedId = payload.applied;
+        const theme = appliedId
+          ? (payload.themes || []).find((item) => item.id === appliedId)
+          : null;
         if (!theme) {
+          activeTheme = null;
+          themeProductNames = null;
+          renderThemeBanner();
           return;
         }
         activeTheme = theme;
@@ -472,6 +454,9 @@
         renderThemeBanner();
       } catch (err) {
         console.error('Thème boutique:', err);
+        activeTheme = null;
+        themeProductNames = null;
+        renderThemeBanner();
       }
     }
 

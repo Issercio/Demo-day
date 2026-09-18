@@ -1,4 +1,5 @@
 import os
+import tempfile
 import unittest
 
 os.environ['DATABASE_URL'] = 'sqlite://'
@@ -12,8 +13,10 @@ from app.services.demo_accounts import ensure_demo_accounts, ensure_demo_catalog
 
 class AccountsTestCase(unittest.TestCase):
     def setUp(self):
+        self._theme_dir = tempfile.TemporaryDirectory()
         self.app = create_app()
         self.app.config['TESTING'] = True
+        self.app.config['SHOP_THEME_PATH'] = os.path.join(self._theme_dir.name, 'shop_theme')
         self.client = self.app.test_client()
         self.ctx = self.app.app_context()
         self.ctx.push()
@@ -24,6 +27,7 @@ class AccountsTestCase(unittest.TestCase):
         db.session.remove()
         db.drop_all()
         self.ctx.pop()
+        self._theme_dir.cleanup()
 
     def test_demo_client_account_is_seeded(self):
         ensure_demo_accounts()
@@ -244,19 +248,31 @@ class AccountsTestCase(unittest.TestCase):
         stored = Product.query.filter_by(name='Bouquet Pivoine').first()
         self.assertEqual(stored.image, pivoine.get('image'))
 
-    def test_home_offers_seasonal_themes(self):
+    def test_vitrine_is_admin_only_and_updates_shop(self):
         from pathlib import Path
-        html = Path(__file__).resolve().parents[1].joinpath('app/templates/accueil.html').read_text()
-        self.assertIn('id="themes"', html)
-        self.assertIn('Quel moment voulez-vous fleurir', html)
-        self.assertIn('theme-chips-saison', html)
-        self.assertIn('theme-chips-event', html)
-        self.assertIn('setupHomeThemes', html)
+        home = Path(__file__).resolve().parents[1].joinpath('app/templates/accueil.html').read_text()
+        admin = Path(__file__).resolve().parents[1].joinpath('app/templates/admin.html').read_text()
         shop = Path(__file__).resolve().parents[1].joinpath('app/templates/shop.html').read_text()
-        self.assertIn('applyThemeFromUrl', shop)
+        self.assertNotIn('id="themes"', home)
+        self.assertNotIn('setupHomeThemes', home)
+        self.assertNotIn('Quel moment voulez-vous fleurir', home)
+        self.assertIn('id="vitrine-section"', admin)
+        self.assertIn('theme-chips-saison', admin)
+        self.assertIn('theme-chips-theme', admin)
+        self.assertIn('Saisons', admin)
+        self.assertIn('Thèmes', admin)
+        self.assertIn('setupAdminVitrine', admin)
+        self.assertIn('applyVitrine', admin)
+        self.assertIn('PUT', admin)
+        self.assertIn('/api/v1/themes', admin)
+        self.assertIn('applyShopTheme', shop)
+        self.assertIn('payload.applied', shop)
         self.assertIn('theme-banner', shop)
         self.assertIn('syncCategoryChecksToTheme', shop)
-        self.assertIn('shop.html?theme=', html)
+        self.assertNotIn('applyThemeFromUrl', shop)
+        self.assertNotIn('Tous les bouquets', shop)
+        self.assertNotIn('clearShopTheme', shop)
+        self.assertNotIn('shop.html?theme=', home)
 
     def test_themes_api_and_product_filter(self):
         from datetime import date
@@ -299,6 +315,68 @@ class AccountsTestCase(unittest.TestCase):
                 self.assertTrue(overlap)
             else:
                 self.assertFalse(overlap, theme['id'])
+
+        kinds = {item['kind'] for item in payload['themes']}
+        self.assertEqual(kinds, {'saison', 'evenement'})
+        self.assertIsNone(payload['applied'])
+
+    def test_admin_applies_theme_and_shop_payload_updates(self):
+        ensure_demo_accounts()
+        ensure_demo_catalog()
+
+        guest = self.client.put('/api/v1/themes', json={'id': 'mariage'})
+        self.assertEqual(guest.status_code, 401)
+
+        client_login = self.client.post('/api/v1/auth/login', json={
+            'email': 'client@test.com',
+            'password': 'client123',
+        })
+        self.assertEqual(client_login.status_code, 200, client_login.get_json())
+        client_token = client_login.get_json()['data']['token']
+        denied = self.client.put(
+            '/api/v1/themes',
+            json={'id': 'mariage'},
+            headers={'Authorization': f'Bearer {client_token}'},
+        )
+        self.assertEqual(denied.status_code, 403)
+
+        admin_login = self.client.post('/api/v1/auth/login', json={
+            'email': 'admin@florashop.com',
+            'password': 'admin123',
+        })
+        self.assertEqual(admin_login.status_code, 200, admin_login.get_json())
+        admin_token = admin_login.get_json()['data']['token']
+        headers = {'Authorization': f'Bearer {admin_token}'}
+
+        unknown = self.client.put('/api/v1/themes', json={'id': 'halloween'}, headers=headers)
+        self.assertEqual(unknown.status_code, 400)
+
+        applied = self.client.put('/api/v1/themes', json={'id': 'mariage'}, headers=headers)
+        self.assertEqual(applied.status_code, 200, applied.get_json())
+        payload = applied.get_json()
+        self.assertEqual(payload['applied'], 'mariage')
+        self.assertIn('Mariage', payload.get('message', ''))
+        mariage = next(item for item in payload['themes'] if item['id'] == 'mariage')
+        self.assertTrue(mariage['is_applied'])
+        self.assertEqual(mariage['kind'], 'evenement')
+        printemps = next(item for item in payload['themes'] if item['id'] == 'printemps')
+        self.assertEqual(printemps['kind'], 'saison')
+        self.assertFalse(printemps['is_applied'])
+
+        full = self.client.get('/api/v1/products').get_json()
+        self.assertGreater(len(full), len(mariage['product_names']))
+        self.assertIn('Rose unique', [item['name'] for item in full])
+
+        public = self.client.get('/api/v1/themes').get_json()
+        self.assertEqual(public['applied'], 'mariage')
+
+        season = self.client.put('/api/v1/themes', json={'id': 'automne'}, headers=headers)
+        self.assertEqual(season.status_code, 200)
+        self.assertEqual(season.get_json()['applied'], 'automne')
+
+        cleared = self.client.put('/api/v1/themes', json={'id': 'catalogue'}, headers=headers)
+        self.assertEqual(cleared.status_code, 200)
+        self.assertIsNone(cleared.get_json()['applied'])
 
 
 if __name__ == '__main__':
