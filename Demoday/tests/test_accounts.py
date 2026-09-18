@@ -94,12 +94,19 @@ class AccountsTestCase(unittest.TestCase):
 
     def test_demo_catalog_has_colors_and_category_prices(self):
         from decimal import Decimal
+        from pathlib import Path
         from app.models import Category, Product
-        from app.services.demo_accounts import CATEGORY_PRICE_BANDS, DEMO_CATALOG, ensure_demo_catalog
+        from app.services.demo_accounts import (
+            CATEGORY_PRICE_BANDS,
+            DEMO_CATALOG,
+            SHOP_COLOR_PALETTE,
+            ensure_demo_catalog,
+        )
 
         ensure_demo_catalog()
         shop_names = [name for _, items in DEMO_CATALOG for name, _, _ in items]
-        self.assertGreaterEqual(len(shop_names), 30)
+        self.assertGreaterEqual(len(shop_names), 50)
+        self.assertEqual(len(SHOP_COLOR_PALETTE), 12)
 
         pivoine = Product.query.filter_by(name='Bouquet Pivoine').first()
         self.assertIsNotNone(pivoine)
@@ -111,13 +118,30 @@ class AccountsTestCase(unittest.TestCase):
         self.assertTrue(colored)
         self.assertEqual((colored[0].get('color') or '').lower(), '#e8a0bf')
 
+        palette = {color.lower() for color in SHOP_COLOR_PALETTE}
+        used = set()
+        for _, items in DEMO_CATALOG:
+            for _, _, color in items:
+                self.assertIn(color.lower(), palette)
+                used.add(color.lower())
+        self.assertEqual(used, palette)
+
+        shop_html = Path(__file__).resolve().parents[1].joinpath('app/templates/shop.html').read_text()
+        for color in SHOP_COLOR_PALETTE:
+            self.assertIn(color, shop_html)
+
+        extra_categories = ("Plantes d'intérieur", 'Mariage & Événements', 'Deuil', 'Cadeaux')
+        names = {category.name for category in Category.query.all()}
+        for category_name in extra_categories:
+            self.assertIn(category_name, names)
+
         for category_name, (low, high) in CATEGORY_PRICE_BANDS.items():
             category = Category.query.filter_by(name=category_name).first()
             self.assertIsNotNone(category)
             products = Product.query.filter_by(category_id=category.id).all()
             self.assertGreaterEqual(len(products), 8)
             for product in products:
-                self.assertTrue(product.color and product.color.startswith('#'))
+                self.assertIn((product.color or '').lower(), palette)
                 self.assertGreaterEqual(Decimal(str(product.price)), low)
                 self.assertLessEqual(Decimal(str(product.price)), high)
 

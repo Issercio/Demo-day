@@ -348,7 +348,7 @@ Not covered yet: live Stripe calls, email, browser end-to-end tests, reviews, lo
 | Stripe keys missing in the classroom | Technical | Documented test cards when environment keys are empty |
 | Money rounding | Technical | `Decimal` and `Numeric(10, 2)` |
 | Logout menu stretched the navbar | Technical | Dropdown overlay under the account icon; leftover fixed-header padding removed |
-| Empty shop after a clean SQLite start | Technical | Seed Fleurs Fraîches, Compositions and Fleurs Séchées with hex colors on startup |
+| Empty shop after a clean SQLite start | Technical | Seed seven florist categories with hex colors that match the shop filter swatches |
 | Rebuilding every Wix page versus a working shop | Product | Cut CMS, geo and email; keep the purchase path |
 | Presentation time including the live demo | Organisation | Timed story; skip the declined card if the clock runs out |
 
@@ -397,7 +397,7 @@ Issercio and Matthieu share this repository. Cadence for a demonstration: one lo
 Marie forgot her mother’s birthday. The boutique in Sciez is closed. She opens Pivoine & Lilas.
 
 1. Home — the boutique is open online.
-2. Shop — filter a category, add one bouquet (demo catalog: Fleurs Fraîches, Compositions and Fleurs Séchées, each with a matching hex color).
+2. Shop — filter a category or a color swatch, add one bouquet (Fleurs Fraîches, Compositions, Fleurs Séchées, Plantes, Mariage, Deuil, Cadeaux; product hex colors match the filter bar).
 3. Sign in as `marie@test.com` / `marie123`. The cart is hers. Open the account icon: email and **Déconnexion** sit under the icon, the navbar does not grow.
 4. Pay with `4242 4242 4242 4242`. The server recalculates the total. Status `paid`.
 5. Optionally add *Éclat Mensuel* (€19.99).

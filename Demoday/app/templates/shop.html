@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Boutique Florale</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="../static/css/style.css?v=20260918-nav7">
+  <link rel="stylesheet" href="../static/css/style.css?v=20260918-nav8">
 </head>
 <body>
   <header>
@@ -142,23 +142,7 @@
     }
 
     function isColorMatch(candidate, selected) {
-      if (candidate === selected) {
-        return true;
-      }
-
-      const c1 = hexToRgb(candidate);
-      const c2 = hexToRgb(selected);
-      if (!c1 || !c2) {
-        return false;
-      }
-
-      const distance = Math.sqrt(
-        (c1.r - c2.r) ** 2 +
-        (c1.g - c2.g) ** 2 +
-        (c1.b - c2.b) ** 2
-      );
-
-      return distance <= 72;
+      return normalizeHexColor(candidate) === normalizeHexColor(selected);
     }
 
     function applyFiltersToProducts(products) {

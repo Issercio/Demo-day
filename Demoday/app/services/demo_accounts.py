@@ -19,50 +19,112 @@ def _price(value):
     return Decimal(value)
 
 
-# Shop.html hides the "Abonnements" category. Prices stay inside each
-# category band: cut flowers 18–48 €, compositions 49–98 €, dried 22–54 €.
+# Same 12 swatches as shop.html colorPalette. Every product color must be one of these.
+PINK = '#e8a0bf'
+LILAC = '#c8a2c8'
+ROSE = '#d94f70'
+BLUE = '#9bb7e8'
+CORAL = '#e85d4c'
+YELLOW = '#f0c419'
+GREEN = '#7d9b76'
+CREAM = '#f7f1e8'
+LAVENDER = '#9b7bb8'
+GOLD = '#ffc75f'
+PURPLE = '#6b4c9a'
+VINTAGE = '#bc6288'
+
+SHOP_COLOR_PALETTE = (
+    PINK, LILAC, ROSE, BLUE, CORAL, YELLOW,
+    GREEN, CREAM, LAVENDER, GOLD, PURPLE, VINTAGE,
+)
+
+# Shop.html hides "Abonnements". Prices stay inside each category band.
 DEMO_CATALOG = (
     ('Fleurs Fraîches', (
-        ('Bouquet Pivoine', _price('45.00'), '#e8a0bf'),
-        ('Bouquet Lilas', _price('32.50'), '#c8a2c8'),
-        ('Roses jardin', _price('28.90'), '#d94f70'),
-        ('Bouquet hortensia', _price('39.90'), '#9bb7e8'),
-        ('Botte de tulipes', _price('24.50'), '#e85d4c'),
-        ('Tournesols du jardin', _price('26.80'), '#f0c419'),
-        ('Pivoines blanches', _price('42.00'), '#f7f1e8'),
-        ('Roses garden antique', _price('36.40'), '#c45c6a'),
-        ('Bouquet printanier', _price('29.70'), '#f4c2c2'),
-        ('Gerbera soleil', _price('21.90'), '#ff9aa2'),
-        ('Lis blancs', _price('34.20'), '#f5f0e6'),
-        ('Anémones', _price('27.60'), '#6b4c9a'),
-        ('Freesias parfumés', _price('23.40'), '#ffe08a'),
-        ('Renoncules', _price('31.80'), '#e8917a'),
-        ('Dahlias d\'été', _price('33.50'), '#bc6288'),
-        ('Bouquet champêtre', _price('37.90'), '#b5e48c'),
+        ('Bouquet Pivoine', _price('45.00'), PINK),
+        ('Bouquet Lilas', _price('32.50'), LILAC),
+        ('Roses jardin', _price('28.90'), ROSE),
+        ('Bouquet hortensia', _price('39.90'), BLUE),
+        ('Botte de tulipes', _price('24.50'), CORAL),
+        ('Tournesols du jardin', _price('26.80'), YELLOW),
+        ('Pivoines blanches', _price('42.00'), CREAM),
+        ('Roses garden antique', _price('36.40'), VINTAGE),
+        ('Bouquet printanier', _price('29.70'), PINK),
+        ('Gerbera soleil', _price('21.90'), CORAL),
+        ('Lis blancs', _price('34.20'), CREAM),
+        ('Anémones', _price('27.60'), PURPLE),
+        ('Freesias parfumés', _price('23.40'), YELLOW),
+        ('Renoncules', _price('31.80'), CORAL),
+        ('Dahlias d\'été', _price('33.50'), VINTAGE),
+        ('Bouquet champêtre', _price('37.90'), GREEN),
     )),
     ('Compositions', (
-        ('Centre de table', _price('55.00'), '#d2a0b5'),
-        ('Couronne champêtre', _price('62.00'), '#7d9b76'),
-        ('Composition pivoine', _price('78.50'), '#e8a0bf'),
-        ('Jardinière de saison', _price('68.00'), '#84a59d'),
-        ('Bouquet structuré', _price('71.20'), '#c8a2c8'),
-        ('Couronne de porte', _price('59.90'), '#9fe2bf'),
-        ('Composition rose ancienne', _price('84.40'), '#c45c6a'),
-        ('Centre hortensia', _price('73.10'), '#8fb9ff'),
-        ('Gerbe cérémonie', _price('92.00'), '#f7f1e8'),
-        ('Composition eucalyptus', _price('64.80'), '#7d9b76'),
-        ('Bouquet cascade', _price('88.70'), '#d8b4f8'),
-        ('Coupe fruits et fleurs', _price('57.30'), '#ffc75f'),
+        ('Centre de table', _price('55.00'), PINK),
+        ('Couronne champêtre', _price('62.00'), GREEN),
+        ('Composition pivoine', _price('78.50'), PINK),
+        ('Jardinière de saison', _price('68.00'), GREEN),
+        ('Bouquet structuré', _price('71.20'), LILAC),
+        ('Couronne de porte', _price('59.90'), GREEN),
+        ('Composition rose ancienne', _price('84.40'), ROSE),
+        ('Centre hortensia', _price('73.10'), BLUE),
+        ('Gerbe cérémonie', _price('92.00'), CREAM),
+        ('Composition eucalyptus', _price('64.80'), GREEN),
+        ('Bouquet cascade', _price('88.70'), LAVENDER),
+        ('Coupe fruits et fleurs', _price('57.30'), GOLD),
     )),
     ('Fleurs Séchées', (
-        ('Botte de lavande', _price('24.90'), '#9b7bb8'),
-        ('Bouquet séché blé', _price('22.50'), '#e8d5a3'),
-        ('Couronne séchée', _price('48.00'), '#c4a574'),
-        ('Gypsophile séché', _price('26.40'), '#eee6ea'),
-        ('Eucalyptus séché', _price('29.80'), '#7d9b76'),
-        ('Immortelles', _price('32.10'), '#e8b86d'),
-        ('Bouquet nude séché', _price('41.60'), '#dcc6b0'),
-        ('Herbes de la grange', _price('35.20'), '#c5b48a'),
+        ('Botte de lavande', _price('24.90'), LAVENDER),
+        ('Bouquet séché blé', _price('22.50'), GOLD),
+        ('Couronne séchée', _price('48.00'), GREEN),
+        ('Gypsophile séché', _price('26.40'), CREAM),
+        ('Eucalyptus séché', _price('29.80'), GREEN),
+        ('Immortelles', _price('32.10'), GOLD),
+        ('Bouquet nude séché', _price('41.60'), CREAM),
+        ('Herbes de la grange', _price('35.20'), GREEN),
+    )),
+    ('Plantes d\'intérieur', (
+        ('Monstera deliciosa', _price('38.90'), GREEN),
+        ('Pilea peperomioides', _price('21.40'), GREEN),
+        ('Sansevieria', _price('24.80'), GREEN),
+        ('Orchidée blanche', _price('42.00'), CREAM),
+        ('Orchidée rose', _price('39.50'), PINK),
+        ('Calathea', _price('27.60'), GREEN),
+        ('Ficus lyrata', _price('36.20'), GREEN),
+        ('Anthurium', _price('29.90'), ROSE),
+        ('Succulente soleil', _price('16.50'), GOLD),
+        ('Bonsaï', _price('41.80'), GREEN),
+    )),
+    ('Mariage & Événements', (
+        ('Bouquet de mariée', _price('148.00'), CREAM),
+        ('Bouquet demoiselle', _price('89.00'), PINK),
+        ('Composition cérémonie', _price('132.00'), BLUE),
+        ('Centre de table mariage', _price('96.40'), LILAC),
+        ('Gerbe d\'honneur', _price('118.00'), ROSE),
+        ('Couronne de mariée', _price('82.70'), LAVENDER),
+        ('Bouquet cascade mariage', _price('155.00'), PINK),
+        ('Déco église', _price('139.50'), CREAM),
+        ('Arche florale', _price('165.00'), PINK),
+        ('Boutonnières (lot de 6)', _price('78.00'), ROSE),
+    )),
+    ('Deuil', (
+        ('Gerbe de deuil', _price('88.00'), LAVENDER),
+        ('Coussin blanc', _price('64.50'), CREAM),
+        ('Composition lys', _price('79.20'), CREAM),
+        ('Bouquet de sympathie', _price('54.80'), LILAC),
+        ('Couronne de deuil', _price('92.00'), PURPLE),
+        ('Gerbe rose pâle', _price('71.40'), PINK),
+        ('Composition verte', _price('58.90'), GREEN),
+        ('Bouquet blanc et lilas', _price('49.30'), LILAC),
+    )),
+    ('Cadeaux', (
+        ('Rose unique', _price('12.90'), ROSE),
+        ('Mini bouquet', _price('18.40'), PINK),
+        ('Pot-fleur surprise', _price('24.70'), GOLD),
+        ('Carte et rose', _price('15.60'), VINTAGE),
+        ('Bouquet merci', _price('22.80'), CORAL),
+        ('Composition bureau', _price('32.50'), BLUE),
+        ('Fleurs en boîte', _price('36.90'), LILAC),
+        ('Duo de succulentes', _price('19.20'), GREEN),
     )),
 )
 
@@ -70,6 +132,10 @@ CATEGORY_PRICE_BANDS = {
     'Fleurs Fraîches': (_price('18.00'), _price('48.00')),
     'Compositions': (_price('49.00'), _price('98.00')),
     'Fleurs Séchées': (_price('22.00'), _price('54.00')),
+    'Plantes d\'intérieur': (_price('16.00'), _price('45.00')),
+    'Mariage & Événements': (_price('75.00'), _price('165.00')),
+    'Deuil': (_price('45.00'), _price('95.00')),
+    'Cadeaux': (_price('12.00'), _price('38.00')),
 }
 
 
