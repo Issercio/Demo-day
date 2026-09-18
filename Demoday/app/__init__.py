@@ -68,6 +68,7 @@ def create_app():
         STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', ''),
         STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', ''),
         STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', ''),
+        MAX_CONTENT_LENGTH = 4 * 1024 * 1024,
     )
 
     # Initialisation des extensions

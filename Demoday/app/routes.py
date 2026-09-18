@@ -3,6 +3,7 @@ from flask_cors import CORS
 from .models import Product, Category, User
 from . import db
 from app.api.v1.auth_utils import admin_required_response, self_or_admin_required_response
+from app.services.product_images import payload_from_request, save_product_image
 
 api_bp = Blueprint('api', __name__)
 main_bp = Blueprint('main', __name__)
@@ -408,21 +409,27 @@ def products():
         if denied:
             return denied
         try:
-            data = request.get_json()
+            data, image_file = payload_from_request()
             required_fields = ['name', 'price', 'category_id']
             for field in required_fields:
-                if not data or field not in data:
+                if not data or data.get(field) in (None, ''):
                     return jsonify({'error': f'Le champ {field} est requis'}), 400
             
             category = Category.query.get(int(data['category_id']))
             if not category:
                 return jsonify({'error': 'Catégorie non trouvée'}), 404
 
+            try:
+                image_url = save_product_image(image_file, data['name'])
+            except ValueError as exc:
+                return jsonify({'error': str(exc)}), 400
+
             product = Product(
                 name=data['name'],
                 price=float(data['price']),
                 category_id=int(data['category_id']),
                 color=(data.get('color') or data.get('hex_color') or None),
+                image=image_url,
             )
             db.session.add(product)
             db.session.flush()
@@ -462,10 +469,10 @@ def update_product(product_id):
         print(f"=== MODIFICATION PRODUIT ===")
         print(f"ID à modifier: {product_id}")
         
-        data = request.get_json()
+        data, image_file = payload_from_request()
         print(f"Nouvelles données: {data}")
         
-        if not data:
+        if not data and not image_file:
             return jsonify({'error': 'Données requises'}), 400
         
         product = Product.query.get(int(product_id))
@@ -473,17 +480,22 @@ def update_product(product_id):
             return jsonify({'error': 'Produit non trouvé'}), 404
             
         # Mise à jour des champs fournis SANS STOCK
-        if 'name' in data:
+        if data.get('name') not in (None, ''):
             product.name = str(data['name'])
-        if 'price' in data:
+        if data.get('price') not in (None, ''):
             product.price = float(data['price'])
-        if 'category_id' in data:
+        if data.get('category_id') not in (None, ''):
             category = Category.query.get(int(data['category_id']))
             if not category:
                 return jsonify({'error': 'Catégorie non trouvée'}), 404
             product.category_id = int(data['category_id'])
         if 'color' in data or 'hex_color' in data:
             product.color = data.get('color') or data.get('hex_color') or None
+        if image_file and image_file.filename:
+            try:
+                product.image = save_product_image(image_file, product.name)
+            except ValueError as exc:
+                return jsonify({'error': str(exc)}), 400
             
         db.session.commit()
         

@@ -223,6 +223,85 @@ class AdminGuardTestCase(unittest.TestCase):
         self.assertNotIn("alert('Accès réservé aux administrateurs')", html)
         self.assertIn('ACCUEIL', html)
         self.assertIn('ÉVÈNEMENTIEL', html)
+        self.assertIn('id="product-image"', html)
+        self.assertIn('product-image-preview', html)
+
+    def test_admin_can_create_product_with_image(self):
+        from io import BytesIO
+        from pathlib import Path
+        from app.models import Category, Product
+
+        token = self.login('admin@florashop.com', 'admin123')
+        category = Category.query.filter_by(name='Fleurs Fraîches').first()
+        photo = Path(__file__).resolve().parents[1].joinpath('app/static/img/products/rose-unique.jpg')
+        response = self.client.post(
+            '/api/v1/products',
+            data={
+                'name': 'Bouquet studio',
+                'price': '21.50',
+                'category_id': str(category.id),
+                'color': '#d94f70',
+                'image': (BytesIO(photo.read_bytes()), 'studio.jpg'),
+            },
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 201, response.get_data(as_text=True))
+        payload = response.get_json()['product']
+        self.assertEqual(payload['name'], 'Bouquet studio')
+        self.assertTrue((payload.get('image') or '').startswith('/static/img/products/'))
+        stored = Product.query.filter_by(name='Bouquet studio').first()
+        self.assertIsNotNone(stored)
+        saved = Path(__file__).resolve().parents[1].joinpath('app', payload['image'].lstrip('/'))
+        self.assertTrue(saved.is_file())
+        self.assertGreater(saved.stat().st_size, 1000)
+        saved.unlink()
+
+    def test_json_product_create_still_works(self):
+        from app.models import Category
+        token = self.login('admin@florashop.com', 'admin123')
+        category = Category.query.filter_by(name='Fleurs Fraîches').first()
+        response = self.client.post(
+            '/api/v1/products',
+            json={'name': 'Bouquet json', 'price': 18.5, 'category_id': category.id},
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 201, response.get_data(as_text=True))
+        self.assertEqual(response.get_json()['product']['name'], 'Bouquet json')
+
+    def test_client_cannot_upload_product_image(self):
+        from io import BytesIO
+        from app.models import Category
+        token = self.login('marie@test.com', 'marie123')
+        category = Category.query.filter_by(name='Fleurs Fraîches').first()
+        response = self.client.post(
+            '/api/v1/products',
+            data={
+                'name': 'Hack photo',
+                'price': '12',
+                'category_id': str(category.id),
+                'image': (BytesIO(b'not-an-image-but-long-enough-to-pass-size'), 'hack.jpg'),
+            },
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_rejects_non_image_upload(self):
+        from io import BytesIO
+        from app.models import Category
+        token = self.login('admin@florashop.com', 'admin123')
+        category = Category.query.filter_by(name='Fleurs Fraîches').first()
+        response = self.client.post(
+            '/api/v1/products',
+            data={
+                'name': 'Fichier texte',
+                'price': '12',
+                'category_id': str(category.id),
+                'image': (BytesIO(b'this is not an image file at all'), 'notes.txt'),
+            },
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('image', (response.get_json() or {}).get('error', '').lower())
 
 
 if __name__ == '__main__':

@@ -206,6 +206,18 @@ class AccountsTestCase(unittest.TestCase):
         shop_block = css.split('.shop-container {', 1)[1].split('}', 1)[0]
         self.assertNotIn('overflow-x: hidden', shop_block)
 
+    def test_shop_filter_bar_stays_compact(self):
+        from pathlib import Path
+        html = Path(__file__).resolve().parents[1].joinpath('app/templates/shop.html').read_text()
+        self.assertNotIn('id="colorPicker"', html)
+        self.assertNotIn('id="addColor"', html)
+        self.assertNotIn('id="applyFilters"', html)
+        self.assertIn('id="resetAllFilters"', html)
+        self.assertIn('id="presetColors"', html)
+        self.assertIn('id="categories-filters"', html)
+        self.assertIn('renderCategoryFilters', html)
+        self.assertIn('Nom du bouquet', html)
+
     def test_shop_catalog_has_product_photos(self):
         from pathlib import Path
         from app.models import Product

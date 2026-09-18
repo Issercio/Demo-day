@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Boutique Florale</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="../static/css/style.css?v=20260918-photos1">
+  <link rel="stylesheet" href="../static/css/style.css?v=20260918-admin-img1">
 </head>
 <body>
   <header>
@@ -42,16 +42,14 @@
   <div class="shop-container">
     <!-- Sidebar de filtres -->
     <aside class="sidebar-filters">
-      <h2 style="font-size:1.2rem;color:#bc6288;margin-bottom:1.5rem;text-align:center;">Filtres</h2>
+      <h2>Filtres</h2>
       <div class="filter-section">
         <h3>Recherche</h3>
-        <input type="text" placeholder="Rechercher un produit..." class="search-input" id="searchInput">
+        <input type="text" placeholder="Nom du bouquet" class="search-input" id="searchInput">
       </div>
       <div class="filter-section">
         <h3>Catégories</h3>
-        <div class="filter-options" id="categories-filters">
-          <!-- Les catégories seront chargées depuis l'API -->
-        </div>
+        <div class="filter-options" id="categories-filters"></div>
       </div>
       <div class="filter-section">
         <h3>Prix</h3>
@@ -62,20 +60,11 @@
         </div>
       </div>
       <div class="filter-section">
-        <h3>Couleurs (max 5)</h3>
-        <div class="color-selection">
-          <input type="color" id="colorPicker" class="color-picker">
-          <button id="addColor" class="add-color-btn">Ajouter</button>
-          <button id="resetColors" class="reset-btn">Réinitialiser</button>
-        </div>
-        <p class="filter-help">Astuce : cliquez sur une pastille pour l'ajouter rapidement.</p>
+        <h3>Couleurs</h3>
         <div class="preset-colors" id="presetColors"></div>
-        <div class="selected-colors"></div>
-        <p class="color-counter">0/5 couleurs sélectionnées</p>
       </div>
-      <div class="filter-actions" style="margin-top:1.5rem;">
-        <button id="applyFilters" class="apply-filters-btn">Appliquer les filtres</button>
-        <button id="resetAllFilters" class="reset-all-btn">Réinitialiser tous les filtres</button>
+      <div class="filter-actions">
+        <button type="button" id="resetAllFilters" class="reset-all-btn">Effacer</button>
       </div>
     </aside>
     <!-- Zone produits -->
@@ -197,6 +186,11 @@
           return false;
         }
 
+        const selectedCategoryIds = getSelectedCategoryIds();
+        if (selectedCategoryIds && !(product.category && selectedCategoryIds.has(Number(product.category.id)))) {
+          return false;
+        }
+
         if (selectedColors.length > 0) {
           const matchesAtLeastOne = selectedColors.some((selectedColor) => isColorMatch(productColor, selectedColor));
           if (!matchesAtLeastOne) {
@@ -213,83 +207,69 @@
       displayProductsFromAPI(allCategories, filteredProducts);
     }
 
-    function addColorSelection(color, colorCounter, selectedColorsDiv, presetButtons) {
+    function getSelectedCategoryIds() {
+      const inputs = [...document.querySelectorAll('#categories-filters input[type="checkbox"]')];
+      if (inputs.length === 0) {
+        return null;
+      }
+      const checked = inputs.filter((input) => input.checked).map((input) => Number(input.value));
+      if (checked.length === 0 || checked.length === inputs.length) {
+        return null;
+      }
+      return new Set(checked);
+    }
+
+    function renderCategoryFilters() {
+      const box = document.getElementById('categories-filters');
+      if (!box) {
+        return;
+      }
+      box.innerHTML = allCategories.map((category) => `
+        <label>
+          <input type="checkbox" value="${Number(category.id)}" checked>
+          <span>${escapeHtml(category.name)}</span>
+        </label>
+      `).join('');
+      box.querySelectorAll('input').forEach((input) => {
+        input.addEventListener('change', refreshProductsWithCurrentFilters);
+      });
+    }
+
+    function toggleColorSelection(color, presetButtons) {
       const normalized = color.toLowerCase();
       if (selectedColors.includes(normalized)) {
+        selectedColors = selectedColors.filter((item) => item !== normalized);
+      } else if (selectedColors.length >= 5) {
         return;
+      } else {
+        selectedColors.push(normalized);
       }
-      if (selectedColors.length >= 5) {
-        alert('Vous ne pouvez pas sélectionner plus de 5 couleurs');
-        return;
-      }
-
-      selectedColors.push(normalized);
-      updateSelectedColorsDisplay(colorCounter, selectedColorsDiv, presetButtons);
+      presetButtons.forEach((btn) => {
+        btn.classList.toggle('is-selected', selectedColors.includes(btn.dataset.color));
+      });
       refreshProductsWithCurrentFilters();
     }
 
-    function updateSelectedColorsDisplay(colorCounter, selectedColorsDiv, presetButtons) {
-      selectedColorsDiv.innerHTML = '';
-      selectedColors.forEach(color => {
-        const colorDiv = document.createElement('div');
-        colorDiv.className = 'selected-color-dot';
-        colorDiv.style.background = color;
-        colorDiv.title = `${color} (cliquer pour retirer)`;
-        colorDiv.addEventListener('click', () => {
-          selectedColors = selectedColors.filter(c => c !== color);
-          updateSelectedColorsDisplay(colorCounter, selectedColorsDiv, presetButtons);
-          refreshProductsWithCurrentFilters();
-        });
-        selectedColorsDiv.appendChild(colorDiv);
-      });
-
-      if (presetButtons) {
-        presetButtons.forEach(btn => {
-          const color = btn.dataset.color;
-          btn.classList.toggle('is-selected', selectedColors.includes(color));
-        });
-      }
-
-      colorCounter.textContent = `${selectedColors.length}/5 couleurs sélectionnées`;
-    }
-
     function setupFilters() {
-      const colorCounter = document.querySelector('.color-counter');
-      const colorPicker = document.getElementById('colorPicker');
-      const addColorBtn = document.getElementById('addColor');
-      const resetColorsBtn = document.getElementById('resetColors');
-      const selectedColorsDiv = document.querySelector('.selected-colors');
       const presetColorsDiv = document.getElementById('presetColors');
-
       const presetButtons = [];
-      colorPalette.forEach(color => {
+      colorPalette.forEach((color) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'preset-color-btn';
         btn.style.background = color;
         btn.dataset.color = color.toLowerCase();
-        btn.title = `Ajouter ${color}`;
-        btn.addEventListener('click', () => addColorSelection(color, colorCounter, selectedColorsDiv, presetButtons));
+        btn.title = color;
+        btn.addEventListener('click', () => toggleColorSelection(color, presetButtons));
         presetButtons.push(btn);
         presetColorsDiv.appendChild(btn);
       });
 
-      addColorBtn.addEventListener('click', () => {
-        addColorSelection(colorPicker.value, colorCounter, selectedColorsDiv, presetButtons);
-      });
-
-      resetColorsBtn.addEventListener('click', () => {
-        selectedColors = [];
-        updateSelectedColorsDisplay(colorCounter, selectedColorsDiv, presetButtons);
-        refreshProductsWithCurrentFilters();
-      });
-
-      colorPicker.addEventListener('change', () => {
-        addColorSelection(colorPicker.value, colorCounter, selectedColorsDiv, presetButtons);
-      });
-
-      document.getElementById('applyFilters').addEventListener('click', () => {
-        refreshProductsWithCurrentFilters();
+      ['searchInput', 'minPrice', 'maxPrice'].forEach((id) => {
+        const field = document.getElementById(id);
+        if (field) {
+          field.addEventListener('input', refreshProductsWithCurrentFilters);
+        }
       });
 
       document.getElementById('resetAllFilters').addEventListener('click', () => {
@@ -297,11 +277,12 @@
         document.getElementById('minPrice').value = '';
         document.getElementById('maxPrice').value = '';
         selectedColors = [];
-        updateSelectedColorsDisplay(colorCounter, selectedColorsDiv, presetButtons);
+        document.querySelectorAll('#categories-filters input[type="checkbox"]').forEach((input) => {
+          input.checked = true;
+        });
+        presetButtons.forEach((btn) => btn.classList.remove('is-selected'));
         refreshProductsWithCurrentFilters();
       });
-
-      updateSelectedColorsDisplay(colorCounter, selectedColorsDiv, presetButtons);
     }
 
     async function loadShopData() {
@@ -320,6 +301,7 @@
 
         allCategories = categories.filter((category) => category.name !== 'Abonnements');
         allProducts = products.filter((product) => !(product.category && product.category.name === 'Abonnements'));
+        renderCategoryFilters();
 
         if (window.apiService) {
           apiService.updateProfileUI();
@@ -345,6 +327,10 @@
       }
 
       categories.forEach(category => {
+        const selectedCategoryIds = getSelectedCategoryIds();
+        if (selectedCategoryIds && !selectedCategoryIds.has(Number(category.id))) {
+          return;
+        }
         console.log('Processing category:', category);
         const categoryProducts = products.filter(p => p.category && p.category.id === category.id);
         console.log(`Products for category ${category.name}:`, categoryProducts.length);
