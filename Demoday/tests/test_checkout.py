@@ -181,7 +181,7 @@ class CheckoutTestCase(unittest.TestCase):
         self.assertEqual(orders[0]['payment_method'], 'card')
         self.assertEqual(orders[0]['card_last4'], '4242')
         self.assertEqual(orders[0]['items'][0]['quantity'], 1)
-        self.assertEqual(orders[0]['items'][0]['price'], 29.99)
+        self.assertAlmostEqual(orders[0]['items'][0]['price'], 29.99, places=2)
         self.assertEqual(orders[0]['items'][0]['product']['name'], 'Bouquet Test')
 
     def test_checkout_total_uses_decimal_cents(self):

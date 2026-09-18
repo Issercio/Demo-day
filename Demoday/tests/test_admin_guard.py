@@ -229,6 +229,8 @@ class AdminGuardTestCase(unittest.TestCase):
         self.assertIn('Prix unit.', html)
         self.assertIn('Payée', html)
         self.assertIn('Carte bancaire', html)
+        self.assertIn('orderProductImage', html)
+        self.assertIn('order-lines-wrap', html)
 
     def test_admin_can_create_product_with_image(self):
         from io import BytesIO

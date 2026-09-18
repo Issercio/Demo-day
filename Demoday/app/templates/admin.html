@@ -285,6 +285,10 @@
             overflow: hidden;
         }
 
+        .order-lines-wrap {
+            overflow-x: auto;
+        }
+
         .order-card-head {
             display: flex;
             flex-wrap: wrap;
@@ -383,6 +387,12 @@
             text-align: center;
             color: #bc6288;
             padding: 24px 8px;
+        }
+
+        @media (max-width: 720px) {
+            .order-card-meta {
+                grid-template-columns: 1fr;
+            }
         }
 
         .admin-vitrine-lead {
@@ -789,11 +799,24 @@
         }
 
         function formatOrderMoney(value) {
-            const amount = Number(value);
-            if (!Number.isFinite(amount)) {
+            const cents = Math.round(Number(value) * 100);
+            if (!Number.isFinite(cents)) {
                 return '—';
             }
-            return amount.toFixed(2) + ' €';
+            return (cents / 100).toFixed(2) + ' €';
+        }
+
+        function orderProductImage(product, name) {
+            if (product && product.image) {
+                return product.image;
+            }
+            const slug = String(name || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+            return slug ? `/static/img/products/${slug}.jpg` : '';
         }
 
         function formatOrderDate(iso) {
@@ -847,12 +870,13 @@
             const lines = items.map((item) => {
                 const name = (item.product && item.product.name) || `Produit #${item.product_id}`;
                 const category = item.product && item.product.category && item.product.category.name;
-                const photo = item.product && item.product.image;
+                const photo = orderProductImage(item.product, name);
                 const qty = Number(item.quantity) || 1;
                 const unit = Number(item.price);
-                const lineTotal = Number.isFinite(unit) ? unit * qty : null;
+                const unitCents = Math.round(unit * 100);
+                const lineTotal = Number.isFinite(unitCents) ? (unitCents * qty) / 100 : null;
                 const thumb = photo
-                    ? `<img class="order-line-thumb" src="${escapeHtml(photo)}" alt="">`
+                    ? `<img class="order-line-thumb" src="${escapeHtml(photo)}" alt="" onerror="this.replaceWith(document.createTextNode('—'))">`
                     : '<span style="color:#9a7a86;">—</span>';
                 return `
                     <tr>
@@ -888,6 +912,7 @@
                         </div>
                         ${stripe}
                     </dl>
+                    <div class="order-lines-wrap">
                     <table class="order-lines">
                         <thead>
                             <tr>
@@ -900,6 +925,7 @@
                         </thead>
                         <tbody>${lines}</tbody>
                     </table>
+                    </div>
                 </article>
             `;
         }
