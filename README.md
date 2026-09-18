@@ -1,20 +1,10 @@
-# Pivoine & Lilas (FloraShop)
+# Pivoine & Lilas
 
-Online florist shop for the Demo Day evaluation. The live storefront is a Flask application: catalog, subscriptions, per-account cart, JWT authentication, and **server-side checkout**. Money is stored as `Numeric(10, 2)` / `Decimal`, not binary `float`.
+Online boutique for a florist in Sciez (Léman, Haute-Savoie). Customers browse bouquets, subscribe to seasonal flowers, and pay online. The florist manages the catalog and sees paid orders from a protected back-office.
 
-**Repository:** [https://github.com/Issercio/Demo-day](https://github.com/Issercio/Demo-day)
+The previous site was a Wix brochure that was no longer maintained. This application is the working shop: accounts, catalog, cart, server-side checkout, subscriptions, and administration.
 
-**Live demo:** run locally with `./setup.sh` then `./run.sh` → [http://localhost:5000/accueil.html](http://localhost:5000/accueil.html)
-
-**Backup plan:** if a hosted URL is unavailable, use the local SQLite demo (credentials below) and the test evidence in [`docs/testing.md`](docs/testing.md). Interactive Swagger is at `/api/v1`.
-
----
-
-## Description
-
-Pivoine & Lilas is a boutique flower e-commerce site. Visitors browse bouquets and subscription plans, keep a cart that does not leak between accounts, and pay through a real order pipeline. Without Stripe keys the app uses a documented test-card processor (Luhn + Stripe test PANs). With Stripe keys it can confirm PaymentIntents.
-
-The project solves the usual school-shop gaps: passwords are hashed, catalog prices are taken from the database (not from the browser), and secrets stay out of Git.
+Source: [github.com/Issercio/Demo-day](https://github.com/Issercio/Demo-day)
 
 ---
 
@@ -22,87 +12,172 @@ The project solves the usual school-shop gaps: passwords are hashed, catalog pri
 
 | Name | Role | Responsibilities |
 | --- | --- | --- |
-| **Issercio** | Full-stack student developer | Flask API, SQLAlchemy models, Jinja/CSS storefront, JWT auth, checkout/payments, demo accounts, tests, documentation |
+| Issercio | Full-stack developer | Flask API, SQLAlchemy models, authentication, checkout, tests, security, documentation |
+| Matthieu | Front-end & product | Storefront (Jinja, CSS, JavaScript), user stories, live demonstration, presentation |
 
 ---
 
-## Features
+## Getting started
 
-- Public pages: home, shop, subscriptions, events, companies, contact, CGV, portfolio
-- Product catalog with categories and sale flags (demo bouquets seeded on startup)
-- Flower subscriptions (monthly / semester / yearly) as catalog products
-- Register, login, JWT session in `localStorage`
-- **Per-account cart** (`cart:user:<id>` vs `cart:guest`) so accounts do not share items
-- Checkout form with card / PayPal / saved-card paths
-- Server-side order creation (`orders` + `order_items`)
-- Test cards: `4242…4242` success, `4000…0002` declined, `4000…9995` insufficient funds
-- Optional Stripe PaymentIntent when real keys are configured
-- Admin-only catalog and user-list mutations
-- Swagger UI for the REST API
-- Demo users seeded on startup (hashed passwords)
+Python 3.10+ is required. PostgreSQL is optional; SQLite is the default.
 
----
+```bash
+git clone https://github.com/Issercio/Demo-day.git
+cd Demo-day
+chmod +x setup.sh run.sh run-tests.sh
+./setup.sh
+./run.sh
+```
 
-## Technologies
+`setup.sh` creates `Demoday/.venv`, installs `Demoday/requirements.txt`, copies `.env.example` to `Demoday/.env` if needed, and seeds demo users plus a small flower catalog.
 
-| Layer | Choice |
+Manual equivalent:
+
+```bash
+cd Demoday
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp ../.env.example .env
+python3 init_db.py
+python3 run.py
+```
+
+| Page | URL |
 | --- | --- |
-| Frontend | HTML5, CSS3, vanilla JavaScript (`api.js`, FloraCart), Jinja2 templates |
-| Backend | Python 3.10+, Flask 3, Flask-RESTX, Flask-Migrate |
-| Auth | PyJWT (HS256), Werkzeug password hashes (scrypt/pbkdf2), bcrypt for legacy hashes |
-| Database | PostgreSQL in production-style deploys; SQLite for local/eval/tests |
-| ORM | SQLAlchemy 2, `Numeric(10, 2)` for money |
-| Payments | Built-in test processor + optional Stripe SDK |
-| Tests | `unittest`, `coverage` |
-| Tools | python-dotenv, Flask-CORS, Alembic migrations |
-| Deployment | `python run.py` on `0.0.0.0:5000` (container/VM or local) |
+| Home | http://localhost:5000/accueil.html |
+| Shop | http://localhost:5000/shop.html |
+| Cart | http://localhost:5000/panier.html |
+| Checkout | http://localhost:5000/checkout.html |
+| Admin | http://localhost:5000/admin.html |
+| API (Swagger) | http://localhost:5000/api/v1 |
+
+```bash
+./run-tests.sh
+```
+
+If a hosted URL is unavailable, run the local SQLite demo with the accounts below. Test output is in [`docs/testing.md`](docs/testing.md) and [`docs/test-evidence/`](docs/test-evidence/).
+
+### Environment
+
+Copy [`.env.example`](.env.example) to `Demoday/.env`. Never commit `.env`. Secrets are listed in `.gitignore`.
+
+| Variable | Example | Role |
+| --- | --- | --- |
+| `DATABASE_URL` | `sqlite:///florashop.db` | SQLAlchemy URI |
+| `SECRET_KEY` | long random string | Flask and JWT signing |
+| `JWT_SECRET_KEY` | long random string | Reserved JWT secret |
+| `STRIPE_SECRET_KEY` | empty | Leave empty to use test cards |
+| `STRIPE_PUBLISHABLE_KEY` | empty | Leave empty for the classroom demo |
+
+### Demo accounts
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Customer | `marie@test.com` | `marie123` |
+| Customer | `client@test.com` | `client123` |
+| Florist (admin) | `admin@florashop.com` | `admin123` |
+
+Successful payment: `4242 4242 4242 4242`, any future expiry, CVC `123`.  
+Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
+
+---
+
+## Implemented user stories
+
+| Role | Story | Priority |
+| --- | --- | --- |
+| Customer | Create an account and log in to place orders | Must have |
+| Customer | Browse products by category | Must have |
+| Customer | Order flowers online and pay | Must have |
+| Customer | Keep a cart that does not leak to another account | Must have |
+| Customer | Subscribe to a floral plan (monthly, semester, yearly) | Should have |
+| Customer | Filter the catalog by minimum and maximum price | Shop filter |
+| Florist | Add, update and delete products and categories | Must have |
+| Florist | Review paid orders | Must have |
+| Florist | Keep the back-office for administrators only | Must have |
+
+Evidence: `/account.html`, `/shop.html`, `/checkout.html`, `/subscription.html`, `/admin.html`, and the REST routes under `/api/v1`.
+
+---
+
+## Missing user stories
+
+These were in the original specification and are not in this release.
+
+| Role | Story | Priority | Current state |
+| --- | --- | --- | --- |
+| Customer | Click-and-collect time slot | Must have | The order is paid; there is no pickup window |
+| Customer | Delivery limited to configured zones | Must have | No postcode or zone table |
+| Customer | Email alerts for events and sales | Could have | Password-reset pages are interface only |
+| Florist | Edit homepage images and seasonal copy | Must have | Home is a template, not a CMS |
+| Florist | Configure delivery areas | Must have | Not modelled |
+| Florist | Enforce minimum and maximum catalog prices as rules | Must have | Admin sets a price; min/max in the shop is a filter |
+| Florist | Publish blog posts and workshops | Should have | `/evenementiel.html` is static |
+| Customer | Write product reviews | Specified | `reviews` model exists; endpoints are not mounted |
+
+---
+
+## Known bugs and limitations
+
+Resolved:
+
+- Empty cart on the payment page after per-account cart keys — checkout loads the shared cart script and a snapshot
+- `marie@test.com` rejected on legacy bcrypt hashes — login accepts bcrypt and the demo seed repairs unusable hashes
+- Cart shared between accounts — keys are `cart:user:<id>` and `cart:guest`
+- Checkout trusted prices sent by the browser — totals come from the database
+- Money stored as binary `float` — columns are `Numeric(10, 2)`, totals use `Decimal`
+- Fixed navigation covering content — sticky header in document flow
+- Profile / logout menu stretching the navbar — compact overlay under the account icon
+- Empty shop on a fresh database — demo bouquets and compositions are seeded on startup
+- Virtualenv and a Stripe publishable key in Git — removed
+
+Open, none of them block a purchase:
+
+- Forgot-password and verify-code pages do not send email
+- Reviews API is not registered
+- The cart lives in `localStorage`, not in a server table
+- The `prices` table is unused (`products.price` is the source of truth)
+- Duplicate CSS and leftover debug prints
+- No production host in this repository (local demo)
+- CORS allow-list is localhost
+- Package coverage is pulled down by unused modules; checkout and authentication paths are covered
 
 ---
 
 ## Architecture
 
 ```mermaid
-flowchart TB
-  subgraph client [Browser]
+flowchart LR
+  subgraph Browser
     Pages[Jinja pages]
     JS[api.js / FloraCart]
-    Pages --> JS
   end
-
-  subgraph flask [Flask app]
-    Routes[main_bp pages]
-    Restx[Flask-RESTX /api/v1]
-    Pay[payments blueprint]
-    Auth[JWT auth]
-    Checkout[checkout_service]
-    Routes --> Pages
-    Restx --> Auth
-    Pay --> Checkout
+  subgraph Flask
+    Restx["REST API /api/v1"]
+    Pay[Checkout service]
+    Auth[JWT]
   end
-
-  subgraph data [Data]
-    DB[(PostgreSQL or SQLite)]
-    LS[localStorage carts]
-  end
-
-  JS -->|JSON + Bearer token| Restx
+  DB[(SQLite or PostgreSQL)]
+  Pages --> JS
+  JS -->|JSON + Bearer| Restx
   JS -->|POST checkout| Pay
-  Checkout --> DB
+  Restx --> Auth
   Restx --> DB
-  JS --> LS
+  Pay --> DB
 ```
 
-The browser renders server templates and calls `/api/v1`. Authentication issues a JWT (`sub`, `email`, `is_admin`, `exp`). Checkout never trusts client prices: `checkout_service.build_order_lines` loads `Product.price` from the database and totals with `Decimal`.
+The browser renders server templates and calls `/api/v1`. Checkout never uses a price from the client: `checkout_service.build_order_lines` loads `Product.price` from the database and totals with `Decimal`.
 
-**Frontend structure:** templates in `Demoday/app/templates/` (accueil, shop, panier, checkout, account, admin, …). Shared CSS in `static/css/style.css` (sticky header, document flow — no CSS `float` layout). Cart logic in `static/js/api.js`.
+**Frontend.** Templates in `Demoday/app/templates/` (home, shop, cart, checkout, account, admin, subscription). Shared CSS in `static/css/style.css`. Cart and session in `static/js/api.js`. Vanilla JavaScript and Jinja — no React.
 
-**Backend structure:** `create_app()` in `app/__init__.py` wires CORS, SQLAlchemy, RESTX namespaces (`auth`, `products`, `categories`, `users`) and the payments blueprint. Domain logic lives in `app/services/` (`checkout_service.py`, `demo_accounts.py`, `stripe_service.py`).
+**Backend.** `create_app()` in `app/__init__.py` wires CORS, SQLAlchemy, Flask-RESTX namespaces (`auth`, `products`, `categories`, `users`) and the payments blueprint. Domain logic lives in `app/services/` (`checkout_service.py`, `demo_accounts.py`, `stripe_service.py`).
 
 ---
 
 ## Database
 
-Money columns use `Numeric(10, 2)`. JSON responses still expose JavaScript numbers at the HTTP boundary; storage and totals are decimals.
+Money columns use `Numeric(10, 2)`. JSON still exposes numbers at the HTTP boundary; storage and totals are decimals.
 
 ```mermaid
 erDiagram
@@ -135,10 +210,7 @@ erDiagram
     int id PK
     int user_id FK
     string email
-    string customer_name
     numeric total_amount
-    string payment_method
-    string card_last4
     string status
   }
   order_items {
@@ -148,22 +220,11 @@ erDiagram
     int quantity
     numeric price
   }
-  reviews {
-    int id PK
-    text content
-    int rating
-    int user_id FK
-  }
-  prices {
-    int id PK
-    numeric amount
-    int product_id FK
-  }
 ```
 
-`reviews` and `prices` exist as models but are not on the hot path (catalog price is `products.price`).
+`reviews` and `prices` exist as models but are not on the purchase path.
 
-### UML — main classes
+### UML
 
 ```mermaid
 classDiagram
@@ -207,197 +268,153 @@ classDiagram
 
 ---
 
-## API Documentation
+## API
 
-Interactive docs: [http://localhost:5000/api/v1](http://localhost:5000/api/v1) (Swagger).
-
-Postman collection: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraShop.postman_collection.json)
+Interactive documentation: http://localhost:5000/api/v1  
+Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraShop.postman_collection.json)
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| POST | `/api/v1/auth/register` | public | Create user, hash password, return JWT |
-| POST | `/api/v1/auth/login` | public | Login (case-insensitive email) |
+| POST | `/api/v1/auth/register` | public | Create user, return JWT |
+| POST | `/api/v1/auth/login` | public | Sign in |
 | GET | `/api/v1/products` | public | List catalog |
 | POST | `/api/v1/products` | admin JWT | Create product |
-| PUT/DELETE | `/api/v1/products/<id>` | admin JWT | Update / delete product |
+| PUT / DELETE | `/api/v1/products/<id>` | admin JWT | Update or delete product |
 | GET | `/api/v1/categories` | public | List categories |
-| POST/PUT/DELETE | `/api/v1/categories`… | admin JWT | Mutate categories |
+| POST / PUT / DELETE | `/api/v1/categories`… | admin JWT | Mutate categories |
 | GET | `/api/v1/users` | admin JWT | List users (no password field) |
-| GET | `/api/v1/users/<id>` | self or admin | User profile |
-| GET | `/api/v1/payments/config` | public | `test` vs `stripe` mode |
-| POST | `/api/v1/payments/checkout` | optional JWT | Create paid/failed order |
+| GET | `/api/v1/payments/config` | public | `test` or `stripe` mode |
+| POST | `/api/v1/payments/checkout` | optional JWT | Create a paid or failed order |
 | GET | `/api/v1/payments/orders` | admin JWT | List orders |
 
 ---
 
-## Installation
+## Authentication and security
 
-**Requirements:** Python 3.10+, pip. PostgreSQL is optional (SQLite is the default in `.env.example`).
+- Passwords are hashed with Werkzeug. Legacy bcrypt and leftover plaintext are verified, then upgraded.
+- Login and register return a JWT (HS256) stored in `localStorage` and sent as `Authorization: Bearer`.
+- Claims: `sub`, `email`, `is_admin`, `exp`.
+- The admin page is hidden in the browser **and** every mutation is checked on the server. A customer token cannot create categories or list all orders.
+- User JSON never includes `password`.
+- Checkout totals come from the database.
+- Card numbers are not stored; at most `card_last4`.
+- Stripe keys live only in the environment. Empty keys use documented test cards. No live charge in the default demo.
+- CORS is limited to localhost.
+- `.env` is gitignored; only `.env.example` is committed.
 
-```bash
-git clone https://github.com/Issercio/Demo-day.git
-cd Demo-day
-chmod +x setup.sh run.sh run-tests.sh
-./setup.sh
-```
-
-The script creates `Demoday/.venv`, installs `Demoday/requirements.txt`, copies `.env.example` → `Demoday/.env` if needed, and seeds demo users.
-
-Manual equivalent:
-
-```bash
-cd Demoday
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp ../.env.example .env
-python3 init_db.py
-```
+Remaining risks: JWT in `localStorage` (XSS), no CSRF on cookie-less Bearer, no login rate limit, leftover `ADMIN_TOKEN` header.
 
 ---
 
-## Environment Variables
+## Stack
 
-See [`.env.example`](.env.example). **Do not commit `.env`.**
-
-| Variable | Example (fake) | Role |
-| --- | --- | --- |
-| `DATABASE_URL` | `sqlite:///florashop.db` | SQLAlchemy URI |
-| `DB_PASSWORD` | `change-me-db-password` | PostgreSQL password if used |
-| `SECRET_KEY` | `change-me-to-a-long-random-string-min-32-chars` | Flask + JWT signature |
-| `JWT_SECRET_KEY` | `change-me-to-another-long-random-string` | Reserved / config.py |
-| `ADMIN_TOKEN` | `change-me-admin-token` | Legacy admin header |
-| `STRIPE_SECRET_KEY` | empty | Stripe secret; empty = test cards |
-| `STRIPE_PUBLISHABLE_KEY` | empty | Stripe publishable key |
-| `STRIPE_WEBHOOK_SECRET` | empty | Stripe webhooks |
-
-**How secrets are managed:** real values live only in `Demoday/.env` (gitignored). Git tracks `.env.example` with placeholders. Stripe keys are never hardcoded. An unused template that contained a Stripe publishable key was removed from the repository.
-
----
-
-## Run the Project
-
-```bash
-./run.sh
-# or:
-cd Demoday && source .venv/bin/activate && python3 run.py
-```
-
-- Storefront: http://localhost:5000/accueil.html
-- Shop: http://localhost:5000/shop.html
-- Cart: http://localhost:5000/panier.html
-- Checkout: http://localhost:5000/checkout.html
-- Admin: http://localhost:5000/admin.html
-- API: http://localhost:5000/api/v1
-
-```bash
-./run-tests.sh
-# or:
-cd Demoday && source .venv/bin/activate && python3 -m unittest discover -s tests -v
-```
-
----
-
-## Demo Credentials
-
-Safe classroom accounts, re-hashed on each app start if needed:
-
-| Role | Email | Password |
-| --- | --- | --- |
-| Client | `marie@test.com` | `marie123` |
-| Client | `client@test.com` | `client123` |
-| Admin | `admin@florashop.com` | `admin123` |
-
-Test payment card (success): `4242 4242 4242 4242`, expiry any future `MM/YY`, CVC `123`.
-
----
-
-## Screenshots
-
-Logo and navigation sit in document flow (`position: sticky`), not as a floating overlay.
-
-![Home](docs/screenshots/accueil.png)
-
-![Shop catalog](docs/screenshots/shop.png)
-
-![Login](docs/screenshots/account.png)
-
-![Checkout](docs/screenshots/checkout.png)
-
-Architecture, ERD, and UML diagrams are in the sections above (Mermaid).
-
-Automated proof (terminal + coverage) is stored in [`docs/test-evidence/`](docs/test-evidence/) and summarized in [`docs/testing.md`](docs/testing.md).
-
----
-
-## Project Management
-
-Work is tracked in this GitHub repository: [Issercio/Demo-day](https://github.com/Issercio/Demo-day).
-
-Typical workflow: feature branch (`cursor/…`) → automated tests → pull request into `main` → merge when the Demo Day slice is stable. Demo-day evaluation docs and test evidence live on the default branch.
-
----
-
-## Known Issues
-
-Documented during testing. **Fixed** items are kept so evaluators can see what was already resolved.
-
-| Issue | Status |
+| Layer | Choice |
 | --- | --- |
-| Empty cart on the payment page after per-account `localStorage` keys | **Fixed** — checkout loads `api.js` and a sessionStorage snapshot |
-| `marie@test.com` failed to log in on bcrypt `$2b$` hashes | **Fixed** — `User.check_password` accepts bcrypt and demo seed resets unusable hashes |
-| Cart shared across accounts | **Fixed** — `cart:user:<id>` / `cart:guest` |
-| Checkout ignored DB prices / Stripe `KeyError` | **Fixed** — `checkout_service` + test cards |
-| Binary `float` money columns | **Fixed** — `Numeric(10, 2)` + `Decimal` totals |
-| Fixed navbar covering content (`position: fixed`) | **Fixed** — sticky header in document flow |
-| `venv/` and a Stripe `pk_test_…` key were in Git | **Fixed** — untracked + unused file deleted |
-| Forgot-password / verify-code pages do not send email | **Open** — UI only |
-| Reviews API is not registered in `create_app` | **Open** — model exists, no live endpoints |
-| Cart is browser `localStorage`, not a server table | **Open** — lost if the user changes browser |
-| `prices` table unused (source of truth is `products.price`) | **Open** — leftover model |
-| Duplicate CSS blocks in `style.css` | **Open** — both nav rules are sticky; cleanup remaining |
-| Debug `print` statements in some API handlers | **Open** — noisy in logs, not a functional bug |
-| No production host in this repo | **Open** — demo is local; backup is tests + this README |
-| CORS allow-list is localhost only | **Open** — expected for local eval |
+| Frontend | HTML5, CSS3, vanilla JavaScript, Jinja2 |
+| Backend | Python 3.10+, Flask 3, Flask-RESTX, Flask-Migrate |
+| Auth | PyJWT (HS256), Werkzeug hashes, bcrypt for legacy rows |
+| Database | SQLite locally, PostgreSQL when `DATABASE_URL` points to it |
+| ORM | SQLAlchemy 2, `Numeric(10, 2)` for money |
+| Payments | Built-in test processor, optional Stripe |
+| Tests | `unittest`, `coverage` |
+| Config | python-dotenv, Flask-CORS, Alembic |
+
+Flask and Jinja keep pages and API in one process. RESTX provides Swagger. SQLite keeps a classroom machine free of PostgreSQL. Decimal types are the correct way to store euros. Test cards make the demonstration work without secrets.
+
+**Decisions.** Server-side checkout. Per-user carts after a shared-cart bug. Sticky navigation instead of a floating bar. Profile menu as an overlay under the account icon. Demo users and bouquets re-seeded so `marie@test.com` / `marie123` and `/shop.html` always work.
+
+---
+
+## Testing
+
+Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **23 tests OK** in [`docs/test-evidence/`](docs/test-evidence/).
+
+Covered: registration and login hashing, demo seed (accounts and flower catalog), admin versus customer permissions, public catalog, checkout (success, decline, insufficient funds, invalid PAN, PayPal, subscription line, server-side prices, decimal cents, admin order list).
+
+Not covered yet: live Stripe calls, email, browser end-to-end tests, reviews, load tests.
+
+---
+
+## Challenges and how they were solved
+
+| Challenge | Kind | Resolution |
+| --- | --- | --- |
+| Front-end and API disagreed on cart identity | Technical | One `FloraCart` helper, per-account keys, checkout snapshot |
+| Mixed password hashes in `users.password` | Technical | `check_password` accepts Werkzeug, bcrypt and plaintext; demo seed repairs Marie |
+| Stripe keys missing in the classroom | Technical | Documented test cards when environment keys are empty |
+| Money rounding | Technical | `Decimal` and `Numeric(10, 2)` |
+| Logout menu stretched the navbar | Technical | Dropdown overlay under the account icon; leftover fixed-header padding removed |
+| Empty shop after a clean SQLite start | Technical | Seed Fleurs Fraîches and Compositions on startup |
+| Rebuilding every Wix page versus a working shop | Product | Cut CMS, geo and email; keep the purchase path |
+| Presentation time including the live demo | Organisation | Timed story; skip the declined card if the clock runs out |
+
+Difficult moments in code: empty checkout after cart keys became user-scoped; Marie locked out by bcrypt; binary floats; a committed virtualenv and a leftover Stripe key; the profile panel opening a gap under the header.
+
+---
+
+## Collaboration
+
+Work lives on [Issercio/Demo-day](https://github.com/Issercio/Demo-day), branch `main`. Feature work is tested with `./run-tests.sh` before merge.
+
+To show how the project is organised:
+
+- GitHub history and this README
+- [`docs/test-evidence/unittest-output.txt`](docs/test-evidence/unittest-output.txt)
+- Swagger at `/api/v1` and the Postman collection
+- Storefront captures in [`docs/screenshots/`](docs/screenshots/) (home, shop, account, checkout)
+
+Issercio and Matthieu share this repository. Cadence for a demonstration: one local server, credentials written above, a fallback of tests plus this file if a deploy is down.
+
+---
+
+## What we would improve
+
+- Store the cart on the server
+- Click-and-collect slots and delivery zones
+- Real email for receipts and password reset
+- Seasonal editing of the homepage
+- Playwright end-to-end tests
+- PostgreSQL in CI
+- A hosted instance and a recorded walkthrough as backup
+- Remove or test leftover modules (`prices`, unmounted reviews) so coverage reflects the live code
+
+---
+
+## What we learned
+
+**Technical.** Never trust a price from the browser. Store money as decimals. Support legacy password hashes or the demo account locks. An empty Stripe key must not crash checkout. Secrets do not belong in Git. A dropdown must overlay the page, not stretch the header.
+
+**Non-technical.** A demonstration needs a story, not a click tour. Features that were specified and not built must be listed, or they look like defects. Twenty minutes including the demo forces cuts. Documentation is part of the product.
+
+---
+
+## Live demonstration
+
+Marie forgot her mother’s birthday. The boutique in Sciez is closed. She opens Pivoine & Lilas.
+
+1. Home — the boutique is open online.
+2. Shop — filter a category, add one bouquet (demo catalog: Bouquet Pivoine, Bouquet Lilas, Roses jardin).
+3. Sign in as `marie@test.com` / `marie123`. The cart is hers. Open the account icon: email and **Déconnexion** sit under the icon, the navbar does not grow.
+4. Pay with `4242 4242 4242 4242`. The server recalculates the total. Status `paid`.
+5. Optionally add *Éclat Mensuel* (€19.99).
+6. Optionally show a declined card (`4000 0000 0000 0002`).
+7. Sign in as `admin@florashop.com` / `admin123`, create a product, open **Commandes et paiements**, show Marie’s order.
+
+If the interface fails: Swagger at `/api/v1` and `./run-tests.sh` still show checkout, authentication and admin guards.
+
+The spoken presentation, including this walkthrough, stays inside **20 minutes**.
+
+---
+
+## Conclusion
+
+Pivoine & Lilas is a florist shop that takes a real order: a customer can sign in, buy a bouquet, pay, subscribe, and the florist can manage the catalog and see the payment. The server owns the price. What is not built (click-and-collect, CMS, delivery zones, email) is listed here. The next work is operations, not another visual pass.
+
+Screenshots: [home](docs/screenshots/accueil.png) · [shop](docs/screenshots/shop.png) · [account](docs/screenshots/account.png) · [checkout](docs/screenshots/checkout.png)
 
 ---
 
 ## Authors
 
 - **Issercio** — [github.com/Issercio](https://github.com/Issercio)
-
----
-
-## Testing
-
-See **[docs/testing.md](docs/testing.md)** for strategy, coverage, what is not tested yet, and the manual test table.
-
-Latest automated run: **23 tests OK**. Terminal log and coverage: **[docs/test-evidence/](docs/test-evidence/)**.
-
-**Covered today:** login/register hashing, demo account seed, admin vs client permissions, public catalog, checkout (success, decline, insufficient funds, invalid PAN, PayPal, subscription line, server-side prices, decimal cents, admin order list).
-
-**Not covered yet:** real Stripe network calls, email reset, browser end-to-end (Playwright/Cypress), reviews, CSRF on cookie-less JWT, load testing.
-
----
-
-## Security
-
-1. `.env` is gitignored; only `.env.example` is committed.
-2. Passwords are hashed (Werkzeug). Legacy plaintext/bcrypt hashes are verified then upgraded.
-3. JWT in `Authorization: Bearer`; `is_admin` is read from the token but mutations still load the user where required.
-4. Admin catalog/user-list routes return 401/403 for anonymous and client tokens.
-5. User JSON never includes `password`.
-6. Checkout totals come from the database.
-7. Stripe keys are environment-only; empty keys → test processor (no live charges).
-
----
-
-## Technical Explanations
-
-**Stack choices.** Flask + Jinja keeps one Python process for pages and API, which matches a small Demo Day team. RESTX gives Swagger for the jury. SQLAlchemy `Numeric` is the correct type for euros. SQLite keeps the evaluation machine free of PostgreSQL, while `DATABASE_URL` can point at Postgres.
-
-**Important decisions.** Server-side checkout instead of trusting the client. Per-user carts after a shared-cart bug. Sticky nav instead of a floating fixed bar. Decimal money instead of `float`. Demo users re-seeded so evaluators always have `marie@test.com` / `marie123`.
-
-**Difficult problems.** (1) Empty checkout cart: `checkout.html` did not load `api.js` after cart keys became user-scoped. (2) Marie login: old rows stored bcrypt while login compared hashes incorrectly. (3) Binary floats on money. (4) A committed virtualenv (~700 files) and a leftover Stripe publishable key.
-
-**With more time.** Server-side cart table, real email for password reset, Playwright e2e, single CSS source, enable reviews, PostgreSQL in CI, hosted demo with a recorded fallback video.
+- **Matthieu**
