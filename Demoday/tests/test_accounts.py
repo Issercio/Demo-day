@@ -132,6 +132,7 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn("classList.toggle('admin-session', isAdmin)", js)
         self.assertIn('isAdmin && onAdminPage', js)
         self.assertIn('isAdmin && !onAdminPage', js)
+        self.assertIn("onAdminPage ? 'Administration' : 'ADMIN'", js)
         self.assertIn('body.admin-page #admin-btn', css)
 
 

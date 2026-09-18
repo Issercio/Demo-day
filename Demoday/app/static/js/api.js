@@ -216,7 +216,7 @@ class ApiService {
             adminAccess.style.display = isAdmin ? '' : 'none';
             const adminLink = adminAccess.querySelector('a');
             if (adminLink) {
-                adminLink.textContent = 'Administration';
+                adminLink.textContent = onAdminPage ? 'Administration' : 'ADMIN';
                 if (onAdminPage) {
                     adminLink.classList.add('active');
                 }
