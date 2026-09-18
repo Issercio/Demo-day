@@ -7,7 +7,7 @@ os.environ['STRIPE_PUBLISHABLE_KEY'] = ''
 
 from app import create_app, db
 from app.models import User
-from app.services.demo_accounts import ensure_demo_accounts
+from app.services.demo_accounts import ensure_demo_accounts, ensure_demo_catalog
 
 
 class AccountsTestCase(unittest.TestCase):
@@ -84,6 +84,13 @@ class AccountsTestCase(unittest.TestCase):
         ensure_demo_accounts()
         user = User.query.filter_by(email='marie@test.com').first()
         self.assertTrue(user.check_password('marie123'))
+
+    def test_demo_flower_catalog_is_seeded(self):
+        from app.models import Category, Product
+        ensure_demo_catalog()
+        names = {category.name for category in Category.query.all()}
+        self.assertIn('Fleurs Fraîches', names)
+        self.assertGreaterEqual(Product.query.filter_by(name='Bouquet Pivoine').count(), 1)
 
 
 if __name__ == '__main__':

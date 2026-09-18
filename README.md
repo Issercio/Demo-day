@@ -314,13 +314,17 @@ Test payment card (success): `4242 4242 4242 4242`, expiry any future `MM/YY`, C
 
 ## Screenshots
 
-Architecture, ERD, and UML diagrams are in the sections above (Mermaid). After a local launch, the main screens are:
+Logo and navigation sit in document flow (`position: sticky`), not as a floating overlay.
 
-1. Home — `/accueil.html`
-2. Shop catalog — `/shop.html`
-3. Cart — `/panier.html`
-4. Checkout — `/checkout.html`
-5. Swagger — `/api/v1`
+![Home](docs/screenshots/accueil.png)
+
+![Shop catalog](docs/screenshots/shop.png)
+
+![Login](docs/screenshots/account.png)
+
+![Checkout](docs/screenshots/checkout.png)
+
+Architecture, ERD, and UML diagrams are in the sections above (Mermaid).
 
 Automated proof (terminal + coverage) is stored in [`docs/test-evidence/`](docs/test-evidence/) and summarized in [`docs/testing.md`](docs/testing.md).
 
@@ -368,7 +372,7 @@ Documented during testing. **Fixed** items are kept so evaluators can see what w
 
 See **[docs/testing.md](docs/testing.md)** for strategy, coverage, what is not tested yet, and the manual test table.
 
-Latest automated run: **22 tests OK**. Terminal log and coverage: **[docs/test-evidence/](docs/test-evidence/)**.
+Latest automated run: **23 tests OK**. Terminal log and coverage: **[docs/test-evidence/](docs/test-evidence/)**.
 
 **Covered today:** login/register hashing, demo account seed, admin vs client permissions, public catalog, checkout (success, decline, insufficient funds, invalid PAN, PayPal, subscription line, server-side prices, decimal cents, admin order list).
 

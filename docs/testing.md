@@ -79,7 +79,7 @@ Use demo users from the README. Mark the result when you walk the jury scenario.
 
 ## Coverage notes
 
-Latest captured run: **22 tests, OK** (`test-evidence/unittest-output.txt`).
+Latest captured run: **23 tests, OK** (`test-evidence/unittest-output.txt`).
 
 `coverage` is measured on the `app` package (templates and static JS are excluded):
 

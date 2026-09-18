@@ -90,9 +90,10 @@ def create_app():
     with app.app_context():
         try:
             from app.services.checkout_service import ensure_runtime_schema
-            from app.services.demo_accounts import ensure_demo_accounts
+            from app.services.demo_accounts import ensure_demo_accounts, ensure_demo_catalog
             ensure_runtime_schema()
             ensure_demo_accounts()
+            ensure_demo_catalog()
         except Exception as exc:
             app.logger.warning('Initialisation schéma / comptes démo ignorée: %s', exc)
     

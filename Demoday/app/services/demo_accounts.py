@@ -1,5 +1,7 @@
 """Comptes de démo créés au démarrage s'ils n'existent pas encore."""
 
+from decimal import Decimal
+
 from sqlalchemy import func
 
 from app.extensions import db
@@ -10,6 +12,19 @@ DEMO_ACCOUNTS = (
     ('admin', 'admin@florashop.com', 'admin123', True),
     ('marie', 'marie@test.com', 'marie123', False),
     ('client', 'client@test.com', 'client123', False),
+)
+
+# Shop.html hides the "Abonnements" category, so a fresh SQLite DB needs flowers.
+DEMO_CATALOG = (
+    ('Fleurs Fraîches', (
+        ('Bouquet Pivoine', Decimal('45.00')),
+        ('Bouquet Lilas', Decimal('32.50')),
+        ('Roses jardin', Decimal('28.90')),
+    )),
+    ('Compositions', (
+        ('Centre de table', Decimal('55.00')),
+        ('Couronne champêtre', Decimal('62.00')),
+    )),
 )
 
 
@@ -30,3 +45,27 @@ def ensure_demo_accounts():
             user.set_password(password)
     db.session.commit()
     return created
+
+
+def ensure_demo_catalog():
+    """Seed a small flower catalog so /shop.html is not empty on a fresh database."""
+    from app.models import Category, Product
+
+    for category_name, items in DEMO_CATALOG:
+        category = Category.query.filter_by(name=category_name).first()
+        if category is None:
+            category = Category(name=category_name)
+            db.session.add(category)
+            db.session.flush()
+        for product_name, price in items:
+            product = Product.query.filter_by(name=product_name).first()
+            if product is None:
+                db.session.add(Product(
+                    name=product_name,
+                    price=price,
+                    category_id=category.id,
+                ))
+            else:
+                product.price = price
+                product.category_id = category.id
+    db.session.commit()

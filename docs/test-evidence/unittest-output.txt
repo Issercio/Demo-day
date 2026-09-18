@@ -1,6 +1,7 @@
 test_demo_client_account_is_seeded (test_accounts.AccountsTestCase.test_demo_client_account_is_seeded) ... /home/ubuntu/.local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3592: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
   return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
 ok
+test_demo_flower_catalog_is_seeded (test_accounts.AccountsTestCase.test_demo_flower_catalog_is_seeded) ... ok
 test_demo_seed_resets_unusable_marie_password (test_accounts.AccountsTestCase.test_demo_seed_resets_unusable_marie_password) ... ok
 test_login_accepts_legacy_bcrypt_hash (test_accounts.AccountsTestCase.test_login_accepts_legacy_bcrypt_hash) ... ok
 test_login_accepts_legacy_plaintext_then_rehashes (test_accounts.AccountsTestCase.test_login_accepts_legacy_plaintext_then_rehashes) ... ok
@@ -25,7 +26,7 @@ test_prices_come_from_database_not_client (test_checkout.CheckoutTestCase.test_p
 test_subscription_line_item (test_checkout.CheckoutTestCase.test_subscription_line_item) ... ok
 
 ----------------------------------------------------------------------
-Ran 22 tests in 6.658s
+Ran 23 tests in 7.059s
 
 OK
 === CREATION CATEGORIE ===
