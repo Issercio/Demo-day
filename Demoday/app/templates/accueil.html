@@ -26,9 +26,8 @@
             <span id="cart-count" style="position:absolute;top:0;right:-10px;background:#bc6288;color:#fff;font-size:13px;padding:1px 6px;border-radius:10px;display:none;">0</span>
           </a>
         </li>
-        <!-- Cadenas admin masqué sur l'accueil -->
         <li id="admin-access" style="display:none;">
-          <a href="admin.html" style="font-size:22px;vertical-align:middle;color:#bc6288;" title="Administration">🔒</a>
+          <a href="admin.html" class="admin-nav-link" title="Administration">ADMIN</a>
         </li>
         <li style="position:relative;">
           <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
@@ -81,14 +80,12 @@
     <a href="cgv.html" style="color:#fff;text-decoration:underline;">Conditions générales de vente</a> -
     <a href="https://www.pivoine-et-lilas.com/politique-de-confidentialite" target="_blank" style="color:#fff;text-decoration:underline;">Politique de confidentialité</a>
   </footer>
-  <script src="../static/js/api.js"></script>
+  <script src="../static/js/api.js?v=20260918-admin"></script>
   <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const adminAccess = document.getElementById('admin-access');
-    if (adminAccess) {
-      adminAccess.style.display = 'none';
+    if (window.apiService) {
+      apiService.updateProfileUI();
     }
-
     const cart = window.FloraCart ? FloraCart.get() : [];
     const badge = document.getElementById('cart-count');
     if (badge) {

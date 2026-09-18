@@ -168,7 +168,18 @@
                 <li><a href="contact.html">CONTACT</a></li>
                 <li><a href="subscription.html">ABONNEMENT</a></li>
                 <li><a href="panier.html">🛒</a></li>
-                <li><a href="admin.html" class="active" style="color:#bc6288;">🔒 ADMIN</a></li>
+                <li id="admin-access">
+                    <a href="admin.html" class="admin-nav-link active" title="Administration">ADMIN</a>
+                </li>
+                <li style="position:relative;">
+                    <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
+                    <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;min-width:200px;">
+                        <div id="user-email" style="margin-bottom: 15px; color: #bc6288; font-size: 0.9em; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; display: none;"></div>
+                        <button id="login-btn" class="cta-btn" style="width:100%; margin-bottom: 8px;">Se connecter</button>
+                        <button id="logout-btn" class="cta-btn" style="width:100%; margin-bottom: 8px; display: none;">Déconnexion</button>
+                        <button id="delete-btn" class="cta-btn" style="width:100%; background: #fff; color: #bc6288; border: 1.5px solid #bc6288; display: none;">Supprimer le compte</button>
+                    </div>
+                </li>
             </ul>
         </nav>
     </header>
@@ -273,6 +284,7 @@
         </div>
     </div>
 
+    <script src="../static/js/api.js?v=20260918-admin"></script>
     <script>
         let categories = [];
         let products = [];

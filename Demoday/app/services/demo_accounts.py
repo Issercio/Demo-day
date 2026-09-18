@@ -40,6 +40,8 @@ def ensure_demo_accounts():
             db.session.add(user)
             created.append(email)
             continue
+        user.email = email
+        user.is_admin = is_admin
         # Compte démo déjà là mais hash incompatible (bcrypt, etc.) → on rétablit marie123 / admin123.
         if not user.check_password(password) or not user.has_modern_hash():
             user.set_password(password)

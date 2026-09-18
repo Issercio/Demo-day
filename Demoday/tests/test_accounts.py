@@ -92,6 +92,34 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('Fleurs Fraîches', names)
         self.assertGreaterEqual(Product.query.filter_by(name='Bouquet Pivoine').count(), 1)
 
+    def test_admin_login_returns_is_admin_true(self):
+        ensure_demo_accounts()
+        response = self.client.post('/api/v1/auth/login', json={
+            'email': 'admin@florashop.com',
+            'password': 'admin123',
+        })
+        self.assertEqual(response.status_code, 200, response.get_json())
+        payload = response.get_json()
+        self.assertTrue(payload['data']['user']['is_admin'])
+        self.assertEqual(payload['data']['user']['email'], 'admin@florashop.com')
+
+    def test_demo_seed_restores_admin_flag(self):
+        ensure_demo_accounts()
+        admin = User.query.filter_by(email='admin@florashop.com').first()
+        admin.is_admin = False
+        db.session.commit()
+        ensure_demo_accounts()
+        admin = User.query.filter_by(email='admin@florashop.com').first()
+        self.assertTrue(admin.is_admin)
+
+    def test_home_template_keeps_admin_nav_for_florist(self):
+        from pathlib import Path
+        html = Path(__file__).resolve().parents[1].joinpath('app/templates/accueil.html').read_text()
+        self.assertIn('id="admin-access"', html)
+        self.assertNotIn("adminAccess.style.display = 'none'", html)
+        account = Path(__file__).resolve().parents[1].joinpath('app/templates/account.html').read_text()
+        self.assertIn("user.is_admin ? 'admin.html'", account)
+
 
 if __name__ == '__main__':
     unittest.main()

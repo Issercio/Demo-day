@@ -402,7 +402,7 @@ Marie forgot her mother’s birthday. The boutique in Sciez is closed. She opens
 4. Pay with `4242 4242 4242 4242`. The server recalculates the total. Status `paid`.
 5. Optionally add *Éclat Mensuel* (€19.99).
 6. Optionally show a declined card (`4000 0000 0000 0002`).
-7. Sign in as `admin@florashop.com` / `admin123`, create a product, open **Commandes et paiements**, show Marie’s order.
+7. Sign in as `admin@florashop.com` / `admin123`. The florist is taken to `/admin.html` (also **ADMIN** in the navbar and **Gérer le catalogue** in the account menu). Create a product, open **Commandes et paiements**, show Marie’s order.
 
 If the interface fails: Swagger at `/api/v1` and `./run-tests.sh` still show checkout, authentication and admin guards.
 

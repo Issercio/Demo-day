@@ -148,6 +148,10 @@ class ApiService {
         updateCartCount();
     }
 
+    isAdmin() {
+        return !!(this.user && this.user.is_admin && this.token);
+    }
+
     updateProfileUI() {
         const userEmail = document.getElementById('user-email');
         const loginBtn = document.getElementById('login-btn');
@@ -182,6 +186,51 @@ class ApiService {
                 deleteBtn.style.display = 'none';
             }
         }
+        this.syncAdminControls();
+    }
+
+    syncAdminControls() {
+        const isAdmin = this.isAdmin();
+        let adminAccess = document.getElementById('admin-access');
+        if (!adminAccess) {
+            const profileLink = document.getElementById('profile-link');
+            const navList = profileLink && profileLink.closest('ul');
+            if (navList) {
+                adminAccess = document.createElement('li');
+                adminAccess.id = 'admin-access';
+                const link = document.createElement('a');
+                link.href = 'admin.html';
+                link.className = 'admin-nav-link';
+                link.title = 'Administration';
+                link.textContent = 'ADMIN';
+                adminAccess.appendChild(link);
+                const profileItem = profileLink.closest('li');
+                navList.insertBefore(adminAccess, profileItem);
+            }
+        }
+        if (adminAccess) {
+            adminAccess.style.display = isAdmin ? '' : 'none';
+        }
+
+        const panel = document.getElementById('profile-panel');
+        if (!panel) {
+            return;
+        }
+        let adminBtn = document.getElementById('admin-btn');
+        if (!adminBtn) {
+            adminBtn = document.createElement('button');
+            adminBtn.id = 'admin-btn';
+            adminBtn.type = 'button';
+            adminBtn.className = 'cta-btn';
+            adminBtn.textContent = 'Gérer le catalogue';
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                panel.insertBefore(adminBtn, logoutBtn);
+            } else {
+                panel.appendChild(adminBtn);
+            }
+        }
+        adminBtn.style.display = isAdmin ? 'block' : 'none';
     }
 
     // Gestion des produits
@@ -461,6 +510,15 @@ document.addEventListener('click', (event) => {
         if (panel) {
             panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
         }
+        return;
+    }
+
+    const adminButton = event.target.closest('#admin-btn');
+    if (adminButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        window.location.href = 'admin.html';
         return;
     }
 
