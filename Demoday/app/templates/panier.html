@@ -195,8 +195,8 @@
               total += lineTotal;
               return `
                 <tr>
-                  <td style="font-weight:bold;color:#ab597c;">${prod.name}</td>
-                  <td>${getCategoryLabel(prod)}</td>
+                  <td style="font-weight:bold;color:#ab597c;">${escapeHtml(prod.name)}</td>
+                  <td>${escapeHtml(getCategoryLabel(prod))}</td>
                   <td>
                     <button class="remove-btn" onclick="changeQuantity(${idx}, -1)" title="Moins">−</button>
                     <strong>${quantity}</strong>

@@ -1,3 +1,4 @@
+"""Unused leftover blueprint. Live user routes are in routes.py and users_restx.py."""
 from flask import Blueprint, jsonify, request
 from ...persistence.user_repository import UserRepository
 

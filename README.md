@@ -285,6 +285,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | GET | `/api/v1/users` | admin JWT | List users (no password field) |
 | GET | `/api/v1/payments/config` | public | `test` or `stripe` mode |
 | POST | `/api/v1/payments/checkout` | optional JWT | Create a paid or failed order |
+| GET | `/api/v1/payments/orders/<id>` | owner or admin JWT | Order detail |
 | GET | `/api/v1/payments/orders` | admin JWT | List orders |
 
 ---
@@ -295,14 +296,17 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 - Login and register return a JWT (HS256) stored in `localStorage` and sent as `Authorization: Bearer`.
 - Claims: `sub`, `email`, `is_admin`, `exp`.
 - The admin page is hidden in the browser **and** every mutation is checked on the server. A customer token cannot create categories or list all orders.
-- User JSON never includes `password`.
-- Checkout totals come from the database.
+- Authorization uses the `is_admin` column in the database, not the JWT claim. A forged `is_admin: true` token is ignored.
+- Example / placeholder `SECRET_KEY` values from the repository are rejected at startup; the process generates a random signing key instead.
+- User JSON never includes `password`. Creating or updating a user cannot mint an administrator.
+- Checkout totals come from the database. Unknown Luhn-valid cards are declined. A logged-in checkout uses the account email, not a spoofed body field.
+- Order detail is limited to the owner or an admin; the order list is admin-only.
 - Card numbers are not stored; at most `card_last4`.
 - Stripe keys live only in the environment. Empty keys use documented test cards. No live charge in the default demo.
 - CORS is limited to localhost.
 - `.env` is gitignored; only `.env.example` is committed.
 
-Remaining risks: JWT in `localStorage` (XSS), no CSRF on cookie-less Bearer, no login rate limit, leftover `ADMIN_TOKEN` header.
+Remaining risks: JWT in `localStorage` (XSS), no CSRF on cookie-less Bearer, no login rate limit. PayPal and saved-card checkouts are sandbox (no live money movement). Flask binds `0.0.0.0:5000` for the classroom demo; the debugger stays off unless `FLASK_DEBUG=1`.
 
 ---
 

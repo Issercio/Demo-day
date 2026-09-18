@@ -12,6 +12,21 @@ migrate = Migrate()
 # Chargement des variables d'environnement
 load_dotenv()
 
+PLACEHOLDER_SECRET_KEYS = {
+    '',
+    'change-me-to-a-long-random-string-min-32-chars',
+    'florashop-dev-secret-key-min-32-chars',
+}
+
+
+def resolve_secret_key():
+    """Ignore published placeholders so a JWT cannot be forged from the repo."""
+    key = (os.environ.get('SECRET_KEY') or '').strip()
+    if key in PLACEHOLDER_SECRET_KEYS or len(key) < 32:
+        return os.urandom(32).hex()
+    return key
+
+
 def create_app():
     app = Flask(__name__)
     
@@ -26,11 +41,10 @@ def create_app():
     
     # Configuration de la base de données et autres paramètres
     app.config.update(
-        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'postgresql://postgres:root@localhost:5432/florashop'),
+        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///florashop.db'),
         SQLALCHEMY_TRACK_MODIFICATIONS = False,
         JSON_AS_ASCII = False,
-        SECRET_KEY = os.environ.get('SECRET_KEY', 'florashop-dev-secret-key-min-32-chars'),
-        ADMIN_TOKEN = os.environ.get('ADMIN_TOKEN', 'florashop_admin_2024_secure'),
+        SECRET_KEY = resolve_secret_key(),
         STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', ''),
         STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', ''),
         STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', ''),

@@ -182,7 +182,10 @@ def process_test_card(card_number, expiry, cvc):
     if len(cvc_digits) not in (3, 4):
         raise ValueError('Code CVC invalide.')
 
-    result, message = TEST_CARDS.get(number, ('success', None))
+    result, message = TEST_CARDS.get(
+        number,
+        ('unknown', 'Carte de test inconnue. Utilisez 4242 4242 4242 4242.'),
+    )
     if result != 'success':
         raise PaymentDeclined(message)
     return number[-4:]

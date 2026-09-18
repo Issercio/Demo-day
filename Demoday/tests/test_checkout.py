@@ -22,7 +22,8 @@ class CheckoutTestCase(unittest.TestCase):
         db.create_all()
         admin = User(username='admin', email='admin@florashop.com', password='admin123', is_admin=True)
         client = User(username='marie', email='marie@test.com', password='marie123', is_admin=False)
-        db.session.add_all([admin, client])
+        other = User(username='client', email='client@test.com', password='client123', is_admin=False)
+        db.session.add_all([admin, client, other])
         category = Category(name='Fleurs Fraîches')
         db.session.add(category)
         db.session.flush()
@@ -192,6 +193,103 @@ class CheckoutTestCase(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 201, response.get_json())
         self.assertEqual(response.get_json()['order']['total_amount'], 30.30)
+
+    def test_unknown_luhn_card_is_declined(self):
+        response = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4111111111111111',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        self.assertEqual(response.status_code, 402, response.get_json())
+        payload = response.get_json()
+        self.assertIn('inconnue', payload['error'].lower())
+        self.assertEqual(payload['order']['status'], 'failed')
+        self.assertEqual(Order.query.filter_by(status='paid').count(), 0)
+
+    def _checkout_as(self, email, password, name):
+        token = self.login(email, password)
+        response = self.client.post(
+            '/api/v1/payments/checkout',
+            json={
+                'email': email,
+                'name': name,
+                'payment_method': 'card',
+                'card_number': '4242424242424242',
+                'card_expiry': '12/34',
+                'card_cvc': '123',
+                'items': [{'product_id': self.product.id, 'quantity': 1}],
+            },
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 201, response.get_json())
+        return response.get_json()['order']['id'], token
+
+    def test_anonymous_cannot_read_order(self):
+        response = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        order_id = response.get_json()['order']['id']
+        detail = self.client.get(f'/api/v1/payments/orders/{order_id}')
+        self.assertEqual(detail.status_code, 401)
+
+    def test_buyer_can_read_own_order(self):
+        order_id, token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')
+        response = self.client.get(
+            f'/api/v1/payments/orders/{order_id}',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 200, response.get_json())
+        self.assertEqual(response.get_json()['order']['email'], 'marie@test.com')
+
+    def test_other_client_cannot_read_order(self):
+        order_id, _token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')
+        other = self.login('client@test.com', 'client123')
+        response = self.client.get(
+            f'/api/v1/payments/orders/{order_id}',
+            headers={'Authorization': f'Bearer {other}'},
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_can_read_any_order(self):
+        order_id, _token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')
+        admin = self.login('admin@florashop.com', 'admin123')
+        response = self.client.get(
+            f'/api/v1/payments/orders/{order_id}',
+            headers={'Authorization': f'Bearer {admin}'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()['order']['id'], order_id)
+
+    def test_logged_in_checkout_ignores_spoofed_email(self):
+        token = self.login('marie@test.com', 'marie123')
+        response = self.client.post(
+            '/api/v1/payments/checkout',
+            json={
+                'email': 'admin@florashop.com',
+                'name': 'Not Admin',
+                'payment_method': 'card',
+                'card_number': '4242424242424242',
+                'card_expiry': '12/34',
+                'card_cvc': '123',
+                'items': [{'product_id': self.product.id, 'quantity': 1}],
+            },
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 201, response.get_json())
+        order = response.get_json()['order']
+        self.assertEqual(order['email'], 'marie@test.com')
+        marie = User.query.filter_by(email='marie@test.com').first()
+        self.assertEqual(order['user_id'], marie.id)
 
 
 if __name__ == '__main__':

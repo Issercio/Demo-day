@@ -24,7 +24,6 @@ user_update_model = api.model('UserUpdate', {
     'username': fields.String(description='Nom d\'utilisateur'),
     'email': fields.String(description='Adresse email'),
     'password': fields.String(description='Mot de passe', min_length=6),
-    'is_admin': fields.Boolean(description='Administrateur')
 })
 
 
@@ -56,7 +55,7 @@ class UserList(Resource):
             username=username,
             email=email,
             password='x',
-            is_admin=bool(data.get('is_admin', False))
+            is_admin=False
         )
         user.set_password(password)
         db.session.add(user)
@@ -88,8 +87,6 @@ class UserResource(Resource):
             user.email = data['email']
         if 'password' in data:
             user.set_password(data['password'])
-        if 'is_admin' in data:
-            user.is_admin = data['is_admin']
         db.session.commit()
         return user
 

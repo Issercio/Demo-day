@@ -1,6 +1,15 @@
 // Configuration de base pour l'API
 const API_BASE_URL = '/api/v1';
 
+function escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Classe pour gérer les appels à l'API
 class ApiService {
     constructor() {

@@ -341,7 +341,7 @@
         const categorySection = document.createElement('section');
         categorySection.className = 'category-section';
         categorySection.innerHTML = `
-          <h2>${category.name} (${categoryProducts.length} ${categoryProducts.length > 1 ? 'produits' : 'produit'})</h2>
+          <h2>${escapeHtml(category.name)} (${categoryProducts.length} ${categoryProducts.length > 1 ? 'produits' : 'produit'})</h2>
           <div class="products-carousel">
             <button class="carousel-btn prev-btn" onclick="scrollCarousel('${category.id}', -1)">‹</button>
             <div class="products-grid" id="category-${category.id}">
@@ -355,12 +355,12 @@
                   return `
                     <div class="product-card">
                       ${stockBanner}
-                      <h3>${product.name}</h3>
+                      <h3>${escapeHtml(product.name)}</h3>
                       <div class="product-colors">
                         <span class="color-dot" title="Couleur dominante" style="background:${pickProductColor(product)};"></span>
                       </div>
                       <p class="product-price">${Number(product.price).toFixed(2)}€</p>
-                      <button class="add-to-cart" onclick="addToCart(${JSON.stringify(product).replace(/"/g, '&quot;')})" 
+                      <button class="add-to-cart" onclick="addToCartById(${Number(product.id)})" 
                               ${isOutOfStock ? 'disabled style="background:#ccc;cursor:not-allowed;"' : ''}>
                         ${isOutOfStock ? 'Rupture de stock' : 'Commander'}
                       </button>
@@ -398,6 +398,14 @@
       const grid = document.getElementById(`category-${categoryId}`);
       const cardWidth = 280; // largeur d'une carte + gap
       grid.scrollLeft += direction * cardWidth * 2; // scroll de 2 cartes à la fois
+    }
+
+    function addToCartById(productId) {
+      const product = allProducts.find((item) => Number(item.id) === Number(productId));
+      if (!product) {
+        return;
+      }
+      addToCart(product);
     }
 
     function addToCart(product) {

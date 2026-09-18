@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_cors import CORS
+from app.extensions import db
 from app.models import Order
-from app.api.v1.auth_utils import admin_required_response, get_token_payload
+from app.api.v1.auth_utils import admin_required_response, load_current_user, load_current_user_optional
 from app.services.checkout_service import (
     PaymentDeclined,
     checkout,
@@ -11,7 +12,11 @@ from app.services.checkout_service import (
 import logging
 
 payments_bp = Blueprint('payments', __name__)
-CORS(payments_bp)
+CORS(payments_bp, origins=[
+    'http://localhost:8000',
+    'http://localhost:5000',
+    'http://127.0.0.1:5000',
+])
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +28,10 @@ def get_stripe_service():
 
 
 def _current_user_id():
-    payload, error = get_token_payload()
-    if error or not payload:
+    user, error = load_current_user_optional()
+    if error or not user:
         return None
-    try:
-        return int(payload.get('sub'))
-    except (TypeError, ValueError):
-        return None
+    return user.id
 
 
 @payments_bp.route('/config', methods=['GET'])
@@ -47,7 +49,15 @@ def create_checkout():
     """
     try:
         data = request.get_json() or {}
-        order = checkout(data, user_id=_current_user_id())
+        user, error = load_current_user_optional()
+        if error:
+            body, status = error
+            return jsonify(body), status
+        if user:
+            data['email'] = user.email
+            if not (data.get('name') or data.get('customer_name')):
+                data['name'] = user.username
+        order = checkout(data, user_id=user.id if user else None)
         return jsonify({
             'message': 'Paiement confirmé',
             'order': order.to_dict(),
@@ -170,21 +180,22 @@ def stripe_webhook():
 
 @payments_bp.route('/orders/<int:order_id>', methods=['GET'])
 def get_order(order_id):
-    """
-    Récupère les détails d'une commande
-    """
-    try:
-        order = Order.query.get(order_id)
-        if not order:
-            return jsonify({'error': 'Commande non trouvée'}), 404
-        
-        return jsonify({
-            'order': order.to_dict()
-        }), 200
-        
-    except Exception as e:
-        logger.exception('Erreur récupération commande: %s', e)
-        return jsonify({'error': 'Erreur interne du serveur'}), 500
+    """Détail d'une commande : admin, propriétaire, ou email du JWT."""
+    user, error = load_current_user()
+    if error:
+        body, status = error
+        return jsonify(body), status
+    order = db.session.get(Order, order_id)
+    if not order:
+        return jsonify({'error': 'Commande non trouvée'}), 404
+    owns = (
+        user.is_admin
+        or (order.user_id and order.user_id == user.id)
+        or (order.email and order.email.lower() == (user.email or '').lower())
+    )
+    if not owns:
+        return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+    return jsonify({'order': order.to_dict()}), 200
 
 
 @payments_bp.route('/orders', methods=['GET'])

@@ -1,13 +1,16 @@
-from flask import Blueprint, jsonify, request, current_app, render_template, abort
+from flask import Blueprint, jsonify, request, render_template, abort
 from flask_cors import CORS
-# CORRECTION : import direct depuis models
 from .models import Product, Category, User
 from . import db
 from app.api.v1.auth_utils import admin_required_response, self_or_admin_required_response
 
 api_bp = Blueprint('api', __name__)
 main_bp = Blueprint('main', __name__)
-CORS(api_bp)
+CORS(api_bp, origins=[
+    'http://localhost:8000',
+    'http://localhost:5000',
+    'http://127.0.0.1:5000',
+])
 
 TEMPLATE_PAGES = {
     'accueil.html',
@@ -90,12 +93,17 @@ def api_index():
         }
     })
 
-# Route GET / DELETE spécifique pour un utilisateur
-@api_bp.route('/users/<int:user_id>', methods=['GET', 'DELETE'])
+# Route GET / DELETE / PUT spécifique pour un utilisateur
+@api_bp.route('/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
 def get_user(user_id):
-    denied = self_or_admin_required_response(user_id)
-    if denied:
-        return denied
+    if request.method == 'PUT':
+        denied = admin_required_response()
+        if denied:
+            return denied
+    else:
+        denied = self_or_admin_required_response(user_id)
+        if denied:
+            return denied
 
     user = db.session.get(User, user_id)
     if not user:
@@ -105,6 +113,16 @@ def get_user(user_id):
         db.session.delete(user)
         db.session.commit()
         return jsonify({'success': True, 'message': 'Utilisateur supprimé'}), 200
+
+    if request.method == 'PUT':
+        data = request.get_json() or {}
+        if 'username' in data:
+            user.username = data['username']
+        if 'email' in data:
+            user.email = data['email']
+        if 'password' in data:
+            user.set_password(data['password'])
+        db.session.commit()
 
     return jsonify({
         'id': user.id,
@@ -160,10 +178,10 @@ def users():
             data = request.get_json()
             if not data or not data.get('username') or not data.get('email') or not data.get('password'):
                 return jsonify({'error': 'Tous les champs sont requis'}), 400
-            
-            # Vérification du token admin
-            admin_token = request.headers.get('Admin-Token')
-            is_admin = admin_token == current_app.config['ADMIN_TOKEN']
+
+            denied = admin_required_response()
+            if denied:
+                return denied
 
             existing_user = User.query.filter_by(username=data['username']).first()
             if existing_user:
@@ -177,7 +195,7 @@ def users():
                 username=data['username'],
                 email=data['email'],
                 password='x',
-                is_admin=is_admin
+                is_admin=False
             )
             user.set_password(data['password'])
             db.session.add(user)

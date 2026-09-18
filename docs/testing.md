@@ -38,8 +38,8 @@ Postman collection for live API clicks: [postman/FloraShop.postman_collection.js
 | File | Critical path |
 | --- | --- |
 | `tests/test_accounts.py` | Demo client seed, flower catalog seed, register hashes + hides password, plaintext then rehash, legacy bcrypt login, unusable Marie hash reset |
-| `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET |
-| `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds, invalid PAN, subscription line, PayPal, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30` |
+| `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET, Admin-Token rejected, forged JWT `is_admin` ignored, POST/PUT cannot mint admin, register cannot mint admin, client cannot read/delete another user, placeholder SECRET_KEY cannot impersonate admin |
+| `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds / unknown Luhn card, invalid PAN, subscription line, PayPal, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30`, order IDOR (401/200/403), spoofed checkout email ignored |
 
 ## What is not covered yet
 
