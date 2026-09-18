@@ -37,7 +37,7 @@ Postman collection for live API clicks: [postman/FloraShop.postman_collection.js
 
 | File | Critical path |
 | --- | --- |
-| `tests/test_accounts.py` | Demo client seed, register hashes + hides password, plaintext then rehash, legacy bcrypt login, unusable Marie hash reset |
+| `tests/test_accounts.py` | Demo client seed, flower catalog seed, register hashes + hides password, plaintext then rehash, legacy bcrypt login, unusable Marie hash reset |
 | `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET |
 | `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds, invalid PAN, subscription line, PayPal, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30` |
 
@@ -86,7 +86,7 @@ Latest captured run: **23 tests, OK** (`test-evidence/unittest-output.txt`).
 | Module | Cover | Why it matters |
 | --- | --- | --- |
 | `app/models/order.py` | 100% | Money columns + order JSON |
-| `app/services/demo_accounts.py` | 100% | Demo logins |
+| `app/services/demo_accounts.py` | 95% | Demo logins + flower catalog |
 | `app/models/user.py` | 97% | Hash / bcrypt / plaintext |
 | `app/services/checkout_service.py` | 76% | Totals, Luhn, test cards |
 | `app/api/v1/auth.py` | 79% | Login / register |

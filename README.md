@@ -29,7 +29,7 @@ The project solves the usual school-shop gaps: passwords are hashed, catalog pri
 ## Features
 
 - Public pages: home, shop, subscriptions, events, companies, contact, CGV, portfolio
-- Product catalog with categories and sale flags
+- Product catalog with categories and sale flags (demo bouquets seeded on startup)
 - Flower subscriptions (monthly / semester / yearly) as catalog products
 - Register, login, JWT session in `localStorage`
 - **Per-account cart** (`cart:user:<id>` vs `cart:guest`) so accounts do not share items
