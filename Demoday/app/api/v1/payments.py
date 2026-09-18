@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from flask_cors import CORS
-from app.extensions import db
 from app.models import Order
 from app.api.v1.auth_utils import admin_required_response, get_token_payload
 from app.services.checkout_service import (
@@ -9,7 +8,6 @@ from app.services.checkout_service import (
     payment_config,
     stripe_configured,
 )
-from app.services.invoice_mail import send_order_invoice
 import logging
 
 payments_bp = Blueprint('payments', __name__)
@@ -50,11 +48,9 @@ def create_checkout():
     try:
         data = request.get_json() or {}
         order = checkout(data, user_id=_current_user_id())
-        invoice = send_order_invoice(order)
         return jsonify({
             'message': 'Paiement confirmé',
             'order': order.to_dict(),
-            'invoice': invoice,
         }), 201
     except PaymentDeclined as exc:
         payload = {'error': str(exc)}
@@ -209,17 +205,3 @@ def get_orders():
     except Exception as e:
         logger.exception('Erreur récupération commandes: %s', e)
         return jsonify({'error': 'Erreur interne du serveur'}), 500
-
-
-@payments_bp.route('/orders/<int:order_id>/invoice', methods=['POST'])
-def resend_order_invoice(order_id):
-    """Admin: renvoyer la facture au client et à la copie boutique."""
-    denied = admin_required_response()
-    if denied:
-        return denied
-    order = db.session.get(Order, order_id)
-    if not order:
-        return jsonify({'error': 'Commande introuvable'}), 404
-    invoice = send_order_invoice(order)
-    status = 200 if invoice.get('sent') else 503
-    return jsonify({'order_id': order.id, 'invoice': invoice}), status

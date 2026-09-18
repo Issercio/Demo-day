@@ -499,10 +499,6 @@
                 });
                 const data = await response.json().catch(() => ({}));
                 if (response.status === 201 && data.order) {
-                    const invoice = data.invoice || {};
-                    const invoiceLine = invoice.sent
-                        ? `<p>Facture envoyée à ${(invoice.to || []).join(', ')}</p>`
-                        : `<p>Facture prévue pour 9893@holbertonstudents.com</p>`;
                     resultBox.innerHTML = `
                         <div class="success">
                             <h3>🎉 Abonnement activé !</h3>
@@ -510,7 +506,6 @@
                             <p>Votre abonnement <strong>${selectedPlan.name}</strong> est maintenant actif</p>
                             <p>Commande #${data.order.id} — ${Number(data.order.total_amount).toFixed(2)} €</p>
                             <p>Référence: ${data.order.payment_reference}</p>
-                            ${invoiceLine}
                         </div>
                     `;
                     document.getElementById('subscription-form').style.display = 'none';
