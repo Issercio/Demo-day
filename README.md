@@ -401,7 +401,7 @@ To show how the project is organised:
 - GitHub history and this README
 - [`docs/test-evidence/unittest-output.txt`](docs/test-evidence/unittest-output.txt)
 - Swagger at `/api/v1` and the Postman collection
-- Live pages on the local server: home, shop, account, checkout, admin (vitrine and orders)
+- Storefront captures in [`docs/screenshots/`](docs/screenshots/) (home, shop, vitrine, cart, account, checkout, admin)
 
 Issercio and Matthieu share this repository. Cadence for a demonstration: one local server, credentials written above, a fallback of tests plus this file if a deploy is down.
 
@@ -450,6 +450,29 @@ The spoken presentation, including this walkthrough, stays inside **20 minutes**
 ## Conclusion
 
 Pivoine & Lilas is a florist shop that takes a real order: a customer can sign in, buy a photographed bouquet, pay, subscribe, and the florist can manage the catalog, set the live vitrine, and read the payment on an order card. The server owns the price. What is not built (click-and-collect, homepage CMS, delivery zones, email) is listed here. The next work is operations, not another visual pass.
+
+Screenshots:
+
+| Page | Capture |
+| --- | --- |
+| Home | [accueil.png](docs/screenshots/accueil.png) |
+| Shop | [shop.jpg](docs/screenshots/shop.jpg) |
+| Shop vitrine (Printemps + Mariage) | [shop-vitrine.jpg](docs/screenshots/shop-vitrine.jpg) |
+| Cart | [panier.png](docs/screenshots/panier.png) |
+| Account | [account.png](docs/screenshots/account.png) |
+| Profile menu | [account-menu.png](docs/screenshots/account-menu.png) |
+| Checkout | [checkout.png](docs/screenshots/checkout.png) |
+| Admin vitrine | [admin-vitrine.png](docs/screenshots/admin-vitrine.png) |
+| Admin catalog | [admin-catalog.png](docs/screenshots/admin-catalog.png) |
+| Admin orders | [admin-orders.png](docs/screenshots/admin-orders.png) |
+
+![Home](docs/screenshots/accueil.png)
+![Shop](docs/screenshots/shop.jpg)
+![Shop vitrine](docs/screenshots/shop-vitrine.jpg)
+![Cart](docs/screenshots/panier.png)
+![Checkout](docs/screenshots/checkout.png)
+![Admin vitrine](docs/screenshots/admin-vitrine.png)
+![Admin orders](docs/screenshots/admin-orders.png)
 
 ---
 
