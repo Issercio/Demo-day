@@ -55,7 +55,7 @@ class UserList(Resource):
             username=username,
             email=email,
             password='x',
-            is_admin=False
+            is_admin=False  # même un admin connecté ne crée pas un second fleuriste par JSON
         )
         user.set_password(password)
         db.session.add(user)
@@ -87,6 +87,7 @@ class UserResource(Resource):
             user.email = data['email']
         if 'password' in data:
             user.set_password(data['password'])
+        # Pas de data['is_admin'] : un PUT ne change pas le rôle fleuriste.
         db.session.commit()
         return user
 

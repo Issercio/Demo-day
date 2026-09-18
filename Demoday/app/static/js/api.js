@@ -25,6 +25,7 @@ class ApiService {
         };
         
         if (this.token) {
+            // Le serveur vérifie ce JWT puis relit users.is_admin en base.
             headers['Authorization'] = `Bearer ${this.token}`;
         }
         
@@ -383,6 +384,7 @@ window.FloraCart = {
         this.migrateLegacyCart();
     },
     snapshotForCheckout() {
+        // Copie de secours : après changement de clé panier, /checkout.html n'arrive pas vide.
         const cart = this.get();
         sessionStorage.setItem('checkout_cart', JSON.stringify(cart));
         return cart;

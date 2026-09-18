@@ -193,7 +193,7 @@ def ensure_product_image_column():
 
 
 def ensure_demo_catalog():
-    """Seed a flower catalog so /shop.html is not empty on a fresh database."""
+    """Remplit le shop au démarrage : 7 catégories, prix Decimal, photos, couleurs filtre."""
     from app.models import Category, Product
 
     ensure_product_color_column()

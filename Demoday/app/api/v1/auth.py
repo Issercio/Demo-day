@@ -21,7 +21,7 @@ register_model = api.model('Register', {
 
 
 def _issue_token(user):
-    # `sub` = id utilisateur. Le front envoie ce JWT dans Authorization: Bearer ...
+    # `sub` = id utilisateur (Bearer). `is_admin` est informatif : le serveur relit la DB.
     # `exp` force la reconnexion après 24h.
     return jwt.encode(
         {
@@ -87,6 +87,7 @@ class Register(Resource):
             if User.query.filter_by(username=username).first():
                 return {'success': False, 'message': 'Nom d\'utilisateur déjà pris'}, 400
 
+            # Un client ne peut pas s'auto-promouvoir admin via le JSON d'inscription.
             user = User(
                 username=username,
                 email=email,

@@ -58,7 +58,7 @@ def load_current_user_optional():
 
 
 def admin_required_response():
-    """For blueprint views: JSON response if the caller is not an admin, else None."""
+    """401/403 si le JWT est invalide ou si is_admin en base est faux (pas le claim JWT)."""
     user, error = load_current_user()
     if error:
         body, status = error
@@ -69,7 +69,7 @@ def admin_required_response():
 
 
 def self_or_admin_required_response(user_id):
-    """For blueprint views: allow the owner or an admin (roles from the database)."""
+    """Propriétaire du compte ou fleuriste — les rôles viennent de la table users."""
     user, error = load_current_user()
     if error:
         body, status = error

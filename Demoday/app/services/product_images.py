@@ -1,4 +1,4 @@
-"""Save florist product photos uploaded from the admin catalog."""
+"""Photos catalogue : upload admin, nom unique, types et taille contrôlés."""
 
 from pathlib import Path
 from uuid import uuid4
@@ -22,7 +22,7 @@ def save_product_image(file_storage, product_name):
     if file_storage is None or not getattr(file_storage, 'filename', None):
         return None
 
-    filename = secure_filename(file_storage.filename or '')
+    filename = secure_filename(file_storage.filename or '')  # enlève ../ et caractères dangereux
     ext = Path(filename).suffix.lower()
     if ext == '.jpeg':
         ext = '.jpg'
@@ -39,14 +39,14 @@ def save_product_image(file_storage, product_name):
         raise ValueError('Fichier image invalide.')
 
     slug = product_slug(product_name) or 'produit'
-    dest_name = f'{slug}-{uuid4().hex[:8]}{ext}'
+    dest_name = f'{slug}-{uuid4().hex[:8]}{ext}'  # évite d'écraser une autre photo
     dest = product_images_dir() / dest_name
     file_storage.save(str(dest))
     return f'/static/img/products/{dest_name}'
 
 
 def payload_from_request():
-    """Read JSON or multipart product fields, plus an optional image file."""
+    """JSON classique ou formulaire multipart (champ fichier `image`)."""
     content_type = request.content_type or ''
     if 'multipart/form-data' in content_type or request.files:
         form = request.form

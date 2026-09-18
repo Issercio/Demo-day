@@ -255,7 +255,7 @@
     }
 
     document.getElementById('pay-btn').addEventListener('click', function() {
-      const cart = FloraCart.snapshotForCheckout();
+      const cart = FloraCart.snapshotForCheckout();  // copie sessionStorage avant d'ouvrir le paiement
       if (cart.length === 0) {
         alert('Votre panier est vide !');
         return;

@@ -524,6 +524,7 @@
         function loadCartFromStorage() {
             try {
                 const cart = window.FloraCart ? FloraCart.loadForCheckout() : readCartFallback();
+                // Panier du compte, sinon snapshot si la clé a changé entre panier et paiement.
                 cartItems = cart.map(item => ({
                     product_id: item.id || item.product_id,
                     quantity: item.quantity || 1,
@@ -536,6 +537,7 @@
         }
 
         function checkoutItemsPayload() {
+            // Ids + quantités seulement : le serveur recalcule le prix depuis la base.
             return cartItems.map((item) => {
                 const local = normalizeLocalProduct(item.product || item);
                 return {

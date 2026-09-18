@@ -9,11 +9,11 @@ class Product(db.Model):
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
-    price = db.Column(db.Numeric(10, 2), nullable=False)
+    price = db.Column(db.Numeric(10, 2), nullable=False)  # euros, jamais un float binaire
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id', ondelete='CASCADE'), nullable=True)
     is_on_sale = db.Column(db.Boolean, default=False)
-    color = db.Column(db.String(7), nullable=True)
-    image = db.Column(db.String(255), nullable=True)
+    color = db.Column(db.String(7), nullable=True)  # hex #rrggbb pour le filtre boutique
+    image = db.Column(db.String(255), nullable=True)  # chemin /static/img/products/...
 
     def to_dict(self):
         category = db.session.get(Category, self.category_id) if self.category_id else None
@@ -21,7 +21,7 @@ class Product(db.Model):
         return {
             'id': int(self.id),
             'name': str(self.name),
-            # JSON number only; the column is Numeric(10, 2), not a binary float.
+            # JSON n'a pas de Decimal : on envoie un number, le stockage reste Numeric.
             'price': float(self.price),
             'category_id': int(self.category_id) if self.category_id else None,
             'is_on_sale': bool(self.is_on_sale) if hasattr(self, 'is_on_sale') else False,

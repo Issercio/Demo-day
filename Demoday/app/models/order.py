@@ -11,7 +11,7 @@ class Order(db.Model):
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
     stripe_payment_intent_id = db.Column(db.String(255), nullable=True)  # ID du paiement Stripe
     payment_method = db.Column(db.String(50), nullable=True)
-    card_last4 = db.Column(db.String(4), nullable=True)
+    card_last4 = db.Column(db.String(4), nullable=True)  # jamais le PAN complet
     payment_reference = db.Column(db.String(64), nullable=True)
     status = db.Column(db.String(50), default='pending')  # pending, paid, failed, cancelled
     created_at = db.Column(db.DateTime, default=utc_now)
@@ -25,8 +25,7 @@ class Order(db.Model):
             'user_id': self.user_id,
             'email': self.email,
             'customer_name': self.customer_name,
-            # JSON number only; the column is Numeric(10, 2), not a binary float.
-            'total_amount': float(self.total_amount),
+            'total_amount': float(self.total_amount),  # affichage JSON ; colonne Numeric(10, 2)
             'stripe_payment_intent_id': self.stripe_payment_intent_id,
             'payment_method': self.payment_method,
             'card_last4': self.card_last4,
@@ -53,7 +52,6 @@ class OrderItem(db.Model):
             'id': self.id,
             'product_id': self.product_id,
             'quantity': self.quantity,
-            # JSON number only; the column is Numeric(10, 2), not a binary float.
-            'price': float(self.price),
+            'price': float(self.price),  # prix unitaire figé au moment du paiement
             'product': self.product.to_dict() if self.product else None
         }

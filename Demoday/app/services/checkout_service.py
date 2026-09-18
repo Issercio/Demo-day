@@ -37,6 +37,7 @@ SUBSCRIPTION_PLANS = {
 }
 
 TEST_CARDS = {
+    # Seules ces cartes Luhn valides passent en démo. Une autre carte 16 chiffres est refusée.
     '4242424242424242': ('success', None),
     '4000000000000002': ('declined', 'Votre carte a été refusée.'),
     '4000000000009995': ('insufficient_funds', 'Fonds insuffisants sur la carte.'),
@@ -62,6 +63,7 @@ class PaymentDeclined(Exception):
 
 
 def stripe_configured():
+    # Clés vides ou placeholders du .env.example → processeur de cartes de test.
     secret = (current_app.config.get('STRIPE_SECRET_KEY') or '').strip()
     publishable = (current_app.config.get('STRIPE_PUBLISHABLE_KEY') or '').strip()
     if secret in PLACEHOLDER_SECRETS or len(secret) < 20:
@@ -222,11 +224,12 @@ CENTS = Decimal('0.01')
 
 
 def money(value):
-    """Round euro amounts to 2 decimals. Avoids binary float (0.1 + 0.2) errors."""
+    """Arrondit à 2 décimales. Évite 0.1 + 0.2 = 0.30000000000000004."""
     return Decimal(str(value)).quantize(CENTS, rounding=ROUND_HALF_UP)
 
 
 def build_order_lines(items):
+    # Le prix du body JSON est ignoré : on relit Product.price (ou le plan d'abonnement).
     if not items:
         raise ValueError('Au moins un article est requis.')
 
@@ -257,7 +260,7 @@ def build_order_lines(items):
             if product.name in {plan['name'] for plan in SUBSCRIPTION_PLANS.values()}:
                 pass
 
-        unit_price = money(product.price)
+        unit_price = money(product.price)  # catalogue, pas item['price'] du panier
         total += unit_price * quantity
         lines.append({
             'product': product,

@@ -307,6 +307,7 @@
 
         let products = [];
         const productsResponse = await fetch('/api/v1/products');
+        // Catalogue entier : la vitrine se pose ensuite via GET /themes (pas un filtre serveur).
         if (productsResponse.ok) {
           products = await productsResponse.json();
         }
@@ -430,6 +431,7 @@
     }
 
     async function applyShopTheme() {
+      // Vitrine choisie par le fleuriste : tout visiteur voit la même sélection.
       try {
         const response = await fetch('/api/v1/themes');
         if (!response.ok) {

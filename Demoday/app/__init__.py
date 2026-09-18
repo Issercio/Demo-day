@@ -20,10 +20,10 @@ PLACEHOLDER_SECRET_KEYS = {
 
 
 def resolve_secret_key():
-    """Ignore published placeholders so a JWT cannot be forged from the repo.
+    """Refuse les SECRET_KEY d'exemple du dépôt (sinon n'importe qui forge un JWT admin).
 
-    A generated key is stored in instance/secret_key so a local restart does
-    not invalidate the florist's session (and pop an admin 401 overlay).
+    La clé générée est écrite dans instance/secret_key : un redémarrage local
+    ne déconnecte pas le fleuriste.
     """
     key = (os.environ.get('SECRET_KEY') or '').strip()
     if key not in PLACEHOLDER_SECRET_KEYS and len(key) >= 32:
@@ -50,7 +50,7 @@ def resolve_secret_key():
 def create_app():
     app = Flask(__name__)
     
-    # Configuration CORS plus permissive
+    # CORS limité à localhost : la démo n'est pas un site public.
     CORS(app, resources={
         r"/api/*": {
             "origins": ["http://localhost:8000", "http://localhost:5000", "http://127.0.0.1:5000"],
@@ -64,11 +64,11 @@ def create_app():
         SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///florashop.db'),
         SQLALCHEMY_TRACK_MODIFICATIONS = False,
         JSON_AS_ASCII = False,
-        SECRET_KEY = resolve_secret_key(),
+        SECRET_KEY = resolve_secret_key(),  # signature JWT + Flask
         STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', ''),
         STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', ''),
         STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', ''),
-        MAX_CONTENT_LENGTH = 4 * 1024 * 1024,
+        MAX_CONTENT_LENGTH = 4 * 1024 * 1024,  # photos produits : 4 Mo max
     )
 
     # Initialisation des extensions
@@ -126,6 +126,7 @@ def create_app():
         try:
             from app.services.checkout_service import ensure_runtime_schema
             from app.services.demo_accounts import ensure_demo_accounts, ensure_demo_catalog
+            # SQLite fraîche : colonnes paiement/photo + comptes démo + catalogue.
             ensure_runtime_schema()
             ensure_demo_accounts()
             ensure_demo_catalog()

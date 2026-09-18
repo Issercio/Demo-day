@@ -54,6 +54,7 @@ def create_checkout():
             body, status = error
             return jsonify(body), status
         if user:
+            # Compte connecté : on prend l'email du JWT/DB, pas celui envoyé dans le body.
             data['email'] = user.email
             if not (data.get('name') or data.get('customer_name')):
                 data['name'] = user.username
@@ -66,7 +67,7 @@ def create_checkout():
         payload = {'error': str(exc)}
         if exc.order is not None:
             payload['order'] = exc.order.to_dict()
-        return jsonify(payload), 402
+        return jsonify(payload), 402  # paiement refusé, commande failed enregistrée
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
     except Exception as exc:
@@ -188,6 +189,7 @@ def get_order(order_id):
     order = db.session.get(Order, order_id)
     if not order:
         return jsonify({'error': 'Commande non trouvée'}), 404
+    # IDOR : un client ne lit que sa commande ; la liste complète est admin-only.
     owns = (
         user.is_admin
         or (order.user_id and order.user_id == user.id)

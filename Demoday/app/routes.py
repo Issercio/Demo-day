@@ -129,6 +129,7 @@ def get_user(user_id):
             user.email = data['email']
         if 'password' in data:
             user.set_password(data['password'])
+        # `is_admin` du JSON est ignoré : on ne promeut personne par PUT.
         db.session.commit()
 
     return jsonify({
@@ -202,7 +203,7 @@ def users():
                 username=data['username'],
                 email=data['email'],
                 password='x',
-                is_admin=False
+                is_admin=False  # le JSON ne peut pas créer un fleuriste
             )
             user.set_password(data['password'])
             db.session.add(user)
@@ -411,6 +412,7 @@ def delete_category(category_id):
 @api_bp.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
+        # Création + photo : réservé au fleuriste (vérifié en base, pas au claim JWT).
         denied = admin_required_response()
         if denied:
             return denied
@@ -454,7 +456,8 @@ def products():
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
     
-    # GET - Liste des produits PROPRE
+    # GET : catalogue complet. La vitrine se filtre côté boutique via GET /themes.
+    # ?theme=printemps,mariage = union optionnelle (admin / Swagger), pas le défaut.
     try:
         theme_id = (request.args.get('theme') or '').strip().lower()
         products = Product.query.all()
@@ -545,12 +548,14 @@ def delete_product(product_id):
 @api_bp.route('/themes', methods=['GET', 'PUT'])
 def shop_themes():
     if request.method == 'PUT':
+        # Seul le fleuriste change la vitrine ; le shop public relit GET ensuite.
         denied = admin_required_response()
         if denied:
             return denied
         data = request.get_json(silent=True) or {}
         try:
             if 'season' in data:
+                # Combo : une saison ET/OU un thème événement.
                 set_applied_vitrine(data.get('season'), data.get('theme'))
             else:
                 theme_id = data.get('id')

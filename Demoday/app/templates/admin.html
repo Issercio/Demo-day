@@ -6,6 +6,7 @@
     <title>Interface Admin - FloraShop</title>
     <script>
       (function guardAdminPage() {
+        // Cache la page admin dans le navigateur. Les API restent protégées côté serveur.
         try {
           var user = JSON.parse(localStorage.getItem('user') || 'null');
           var token = localStorage.getItem('auth_token');
@@ -678,6 +679,7 @@
         }
 
         async function applyVitrine(selection) {
+            // PUT admin : saison et/ou thème. Le shop public relit GET /api/v1/themes.
             const body = {
                 season: selection && selection.season ? selection.season : null,
                 theme: selection && selection.theme ? selection.theme : null
@@ -799,6 +801,7 @@
         }
 
         function formatOrderMoney(value) {
+            // Totaux ligne en centimes pour éviter 29.99 * 1 = 29.989999.
             const cents = Math.round(Number(value) * 100);
             if (!Number.isFinite(cents)) {
                 return '—';
@@ -861,6 +864,7 @@
         }
 
         function renderOrderCard(order) {
+            // Fiche fleuriste : statut, last4, référence, photo, qty, prix unit., total ligne.
             const items = order.items || [];
             const status = order.status || 'pending';
             const last4 = order.card_last4 ? ` •••• ${escapeHtml(order.card_last4)}` : '';

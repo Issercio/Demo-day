@@ -3,6 +3,7 @@ from app.extensions import db
 
 
 def utc_now():
+    # SQLite n'aime pas les datetime timezone-aware : on stocke l'heure UTC naïve.
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 

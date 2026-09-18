@@ -1,4 +1,4 @@
-"""Season and event themes that map the shop catalog to a moment."""
+"""Saisons et thèmes événement : listes de noms produits, pas une table SQL."""
 
 import json
 from datetime import date
@@ -219,6 +219,7 @@ def filter_products_by_theme(products, theme_id):
 
 
 def parse_theme_ids(value):
+    # Virgules, pas de '+' : printemps,mariage reste sûr dans une query string.
     if value is None:
         return []
     if isinstance(value, (list, tuple)):
@@ -239,6 +240,7 @@ def parse_theme_ids(value):
 
 
 def product_names_for_ids(theme_ids):
+    # Combo = union des listes (Printemps + Mariage), sans doublon.
     names = []
     seen = set()
     for theme_id in theme_ids:
@@ -256,7 +258,7 @@ def applied_theme_file():
         return Path(override)
     folder = Path(current_app.instance_path)
     folder.mkdir(parents=True, exist_ok=True)
-    return folder / 'shop_theme'
+    return folder / 'shop_theme'  # JSON {season, theme} partagé par tous les visiteurs
 
 
 def _empty_applied():
@@ -320,6 +322,7 @@ def get_applied_theme_id():
 
 
 def set_applied_vitrine(season_id=None, theme_id=None):
+    # Un slot saison + un slot événement. Les deux vides = catalogue complet.
     applied = {
         'season': _normalize_slot(season_id, 'saison'),
         'theme': _normalize_slot(theme_id, 'evenement'),
