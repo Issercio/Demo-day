@@ -70,8 +70,7 @@ nav {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-x: auto;
-    overflow-y: visible;
+    overflow: visible;
     scrollbar-width: thin;
 }
 
@@ -87,19 +86,30 @@ nav ul {
     min-height: 72px;
     height: auto;
     min-width: max-content;
+    overflow: visible;
+}
+
+nav li:has(#profile-panel),
+nav li:has(#profile-link) {
+    position: relative;
+    display: flex;
+    align-items: center;
+    overflow: visible;
 }
 
 #profile-panel {
     position: absolute !important;
-    top: 76px !important;
-    right: 16px !important;
-    min-width: 260px !important;
-    max-width: 320px;
-    z-index: 4000 !important;
+    top: calc(100% + 8px) !important;
+    right: 0 !important;
+    left: auto !important;
+    min-width: 240px !important;
+    max-width: 280px;
+    z-index: 5000 !important;
     background: #fff;
     border: 1.5px solid var(--vintage-main) !important;
     border-radius: 10px !important;
     box-shadow: 0 10px 24px rgba(33, 17, 17, 0.14) !important;
+    padding: 12px 14px !important;
 }
 
 #profile-panel .cta-btn {
@@ -285,8 +295,7 @@ nav {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-x: auto;
-    overflow-y: visible;
+    overflow: visible;
 }
 
 nav ul {
@@ -301,6 +310,7 @@ nav ul {
     min-height: 72px;
     height: auto;
     min-width: max-content;
+    overflow: visible;
 }
 
 nav li { display: inline; }
@@ -339,7 +349,7 @@ header {
 
 .logo {
     display: block;
-    margin: 110px auto 10px auto;
+    margin: 12px auto 10px auto;
     border-radius: 50%;
     box-shadow: 0 2px 12px rgba(188,98,136,0.07);
     width: 110px;
@@ -348,9 +358,8 @@ header {
     background: #fff;
 }
 
-/* Pour que le contenu ne passe pas sous la navbar fixée */
 body, .main-content, .shop-container {
-    padding-top: 90px !important;
+    padding-top: 0 !important;
     margin-top: 0 !important;
 }
 
