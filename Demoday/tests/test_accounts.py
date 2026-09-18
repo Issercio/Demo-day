@@ -217,6 +217,11 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('id="categories-filters"', html)
         self.assertIn('renderCategoryFilters', html)
         self.assertIn('Nom du bouquet', html)
+        self.assertNotIn('Réinitialiser tous les filtres', html)
+        css = Path(__file__).resolve().parents[1].joinpath('app/static/css/style.css').read_text()
+        sidebar = css.split('.sidebar-filters {', 1)[1].split('}', 1)[0]
+        self.assertIn('width: 248px', sidebar)
+        self.assertNotIn('id="colorPicker"', css)
 
     def test_shop_catalog_has_product_photos(self):
         from pathlib import Path

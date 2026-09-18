@@ -17,7 +17,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" href="../static/css/style.css?v=20260918-admin-img1">
+    <link rel="stylesheet" href="../static/css/style.css?v=20260918-admin-img2">
     <style>
         .admin-container {
             max-width: 1100px;
@@ -126,15 +126,30 @@
 
         .product-create-form {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-            gap: 16px 20px;
-            align-items: end;
+            grid-template-columns: repeat(4, minmax(140px, 1fr));
+            gap: 14px 16px;
+            align-items: start;
             margin-bottom: 22px;
         }
 
         .product-create-form .form-group input,
         .product-create-form .form-group select {
             max-width: none;
+        }
+
+        .product-image-field {
+            grid-column: 1 / 3;
+        }
+
+        .product-create-actions {
+            grid-column: 3 / 5;
+            display: flex;
+            align-items: flex-end;
+            min-height: 100%;
+        }
+
+        .product-create-actions .btn {
+            margin: 0;
         }
 
         .product-image-preview {
@@ -350,13 +365,13 @@
                     <input type="hidden" id="product-color" value="">
                     <div class="admin-color-swatches" id="product-color-swatches"></div>
                 </div>
-                <div class="form-group">
+                <div class="form-group product-image-field">
                     <label for="product-image">Image du produit :</label>
                     <input type="file" id="product-image" accept="image/jpeg,image/png,image/webp,image/gif">
                     <span class="product-image-hint">JPG, PNG, WEBP ou GIF — 4 Mo max</span>
                     <img id="product-image-preview" class="product-image-preview" alt="Aperçu">
                 </div>
-                <div class="form-group">
+                <div class="form-group product-create-actions">
                     <button id="create-product-btn" class="btn">Créer Produit</button>
                 </div>
             </div>
