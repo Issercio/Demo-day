@@ -1,11 +1,23 @@
 """Comptes de démo créés au démarrage s'ils n'existent pas encore."""
 
+import re
+import unicodedata
 from decimal import Decimal
 
 from sqlalchemy import func, inspect, text
 
 from app.extensions import db
 from app.models.user import User
+
+
+def product_slug(name):
+    ascii_name = unicodedata.normalize('NFKD', name or '').encode('ascii', 'ignore').decode()
+    return re.sub(r'[^a-z0-9]+', '-', ascii_name.lower()).strip('-')
+
+
+def product_image_path(name):
+    slug = product_slug(name)
+    return f'/static/img/products/{slug}.jpg' if slug else None
 
 # Compte client demandé pour la démo (en plus de Marie et de l'admin).
 DEMO_ACCOUNTS = (
@@ -170,11 +182,22 @@ def ensure_product_color_column():
         db.session.commit()
 
 
+def ensure_product_image_column():
+    inspector = inspect(db.engine)
+    if 'products' not in inspector.get_table_names():
+        return
+    columns = {column['name'] for column in inspector.get_columns('products')}
+    if 'image' not in columns:
+        db.session.execute(text('ALTER TABLE products ADD COLUMN image VARCHAR(255)'))
+        db.session.commit()
+
+
 def ensure_demo_catalog():
     """Seed a flower catalog so /shop.html is not empty on a fresh database."""
     from app.models import Category, Product
 
     ensure_product_color_column()
+    ensure_product_image_column()
     for category_name, items in DEMO_CATALOG:
         category = Category.query.filter_by(name=category_name).first()
         if category is None:
@@ -182,6 +205,7 @@ def ensure_demo_catalog():
             db.session.add(category)
             db.session.flush()
         for product_name, price, color in items:
+            image = product_image_path(product_name)
             product = Product.query.filter_by(name=product_name).first()
             if product is None:
                 db.session.add(Product(
@@ -189,9 +213,11 @@ def ensure_demo_catalog():
                     price=price,
                     category_id=category.id,
                     color=color,
+                    image=image,
                 ))
             else:
                 product.price = price
                 product.category_id = category.id
                 product.color = color
+                product.image = image
     db.session.commit()

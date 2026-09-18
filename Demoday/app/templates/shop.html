@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Boutique Florale</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="../static/css/style.css?v=20260918-nav10">
+  <link rel="stylesheet" href="../static/css/style.css?v=20260918-photos1">
 </head>
 <body>
   <header>
@@ -105,6 +105,36 @@
         return '';
       }
       return color.toLowerCase();
+    }
+
+    function productSlug(name) {
+      return String(name || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+
+    function productImage(product) {
+      if (product && product.image) {
+        return product.image;
+      }
+      const slug = productSlug(product && product.name);
+      return slug ? `/static/img/products/${slug}.jpg` : '';
+    }
+
+    function categoryBlurb(categoryName) {
+      const blurbs = {
+        'Fleurs Fraîches': 'Cueilli du matin, bouquet d\'atelier',
+        'Compositions': 'Pièce d\'atelier, volume généreux',
+        'Fleurs Séchées': 'Séchage naturel, belle tenue',
+        "Plantes d'intérieur": 'Plante vivante, pot décoratif',
+        'Mariage & Événements': 'Création cérémonie, sur-mesure',
+        'Deuil': 'Hommage floral, tons doux',
+        'Cadeaux': 'Prêt à offrir, petit geste'
+      };
+      return blurbs[categoryName] || 'Création florale Pivoine & Lilas';
     }
 
     function pickProductColor(product) {
@@ -331,19 +361,26 @@
                   const stockBanner = getStockBanner(stockStatus);
                   const isOutOfStock = stockStatus === 'out';
                   
+                  const hex = pickProductColor(product);
+                  const photo = productImage(product);
+                  const blurb = categoryBlurb(category.name);
+                  
                   return `
                     <div class="product-card">
                       ${stockBanner}
-                      <h3>${escapeHtml(product.name)}</h3>
-                      <div class="product-colors">
-                        <span class="color-dot" title="${escapeHtml(pickProductColor(product))}" style="background:${pickProductColor(product)};"></span>
-                        <span class="product-color-code">${escapeHtml(pickProductColor(product))}</span>
+                      <div class="product-photo">
+                        <img src="${escapeHtml(photo)}" alt="${escapeHtml(product.name)}" loading="lazy">
+                        <span class="product-color-pip" title="Teinte du bouquet" style="background:${escapeHtml(hex)};"></span>
                       </div>
-                      <p class="product-price">${Number(product.price).toFixed(2)}€</p>
-                      <button class="add-to-cart" onclick="addToCartById(${Number(product.id)})" 
-                              ${isOutOfStock ? 'disabled style="background:#ccc;cursor:not-allowed;"' : ''}>
-                        ${isOutOfStock ? 'Rupture de stock' : 'Commander'}
-                      </button>
+                      <div class="product-body">
+                        <h3>${escapeHtml(product.name)}</h3>
+                        <p class="product-blurb">${escapeHtml(blurb)}</p>
+                        <p class="product-price">${Number(product.price).toFixed(2)}€</p>
+                        <button class="add-to-cart" onclick="addToCartById(${Number(product.id)})" 
+                                ${isOutOfStock ? 'disabled style="background:#ccc;cursor:not-allowed;"' : ''}>
+                          ${isOutOfStock ? 'Rupture de stock' : 'Commander'}
+                        </button>
+                      </div>
                     </div>
                   `;
                 }).join('') :
@@ -425,8 +462,8 @@
   <style>
     .products-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-      gap: 1.1rem;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1.4rem;
       overflow: visible;
     }
 
@@ -434,12 +471,16 @@
       min-width: 0;
       width: 100%;
       box-sizing: border-box;
+      padding: 0;
+      overflow: hidden;
+      align-items: stretch;
     }
 
     .product-card h3 {
       overflow-wrap: anywhere;
       word-break: break-word;
-      min-height: 2.4em;
+      min-height: 0;
+      margin-bottom: 0.35rem;
     }
 
     .empty-category {

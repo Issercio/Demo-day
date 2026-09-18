@@ -199,10 +199,33 @@ class AccountsTestCase(unittest.TestCase):
         css = root.joinpath('app/static/css/style.css').read_text()
         self.assertNotIn('products-carousel', html)
         self.assertNotIn('scrollCarousel', html)
-        self.assertIn('repeat(auto-fill, minmax(210px, 1fr))', html)
-        self.assertIn('repeat(auto-fill, minmax(210px, 1fr))', css)
+        self.assertIn('repeat(auto-fill, minmax(240px, 1fr))', html)
+        self.assertIn('repeat(auto-fill, minmax(240px, 1fr))', css)
+        self.assertIn('product-photo', html)
+        self.assertNotIn('product-color-code', html.split('function displayProductsFromAPI')[1].split('function getProductStockStatus')[0])
         shop_block = css.split('.shop-container {', 1)[1].split('}', 1)[0]
         self.assertNotIn('overflow-x: hidden', shop_block)
+
+    def test_shop_catalog_has_product_photos(self):
+        from pathlib import Path
+        from app.models import Product
+        from app.services.demo_accounts import DEMO_CATALOG, ensure_demo_catalog, product_image_path
+
+        ensure_demo_catalog()
+        photos = Path(__file__).resolve().parents[1].joinpath('app/static/img/products')
+        for _, items in DEMO_CATALOG:
+            for name, _, _ in items:
+                image_path = product_image_path(name)
+                self.assertTrue(image_path.endswith('.jpg'))
+                local = photos.joinpath(Path(image_path).name)
+                self.assertTrue(local.is_file(), f'missing photo for {name}')
+                self.assertGreater(local.stat().st_size, 8000)
+
+        payload = self.client.get('/api/v1/products').get_json()
+        pivoine = next(item for item in payload if item.get('name') == 'Bouquet Pivoine')
+        self.assertTrue((pivoine.get('image') or '').startswith('/static/img/products/'))
+        stored = Product.query.filter_by(name='Bouquet Pivoine').first()
+        self.assertEqual(stored.image, pivoine.get('image'))
 
 
 if __name__ == '__main__':
