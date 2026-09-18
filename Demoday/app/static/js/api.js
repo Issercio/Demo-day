@@ -216,20 +216,10 @@ class ApiService {
             adminAccess.style.display = isAdmin ? '' : 'none';
             const adminLink = adminAccess.querySelector('a');
             if (adminLink) {
-                adminLink.textContent = onAdminPage ? 'Administration' : 'ADMIN';
+                adminLink.textContent = 'ADMIN';
                 if (onAdminPage) {
                     adminLink.classList.add('active');
                 }
-            }
-        }
-        if (isAdmin && onAdminPage) {
-            const homeLink = document.querySelector('nav a[href="accueil.html"]');
-            const shopLink = document.querySelector('nav a[href="shop.html"]');
-            if (homeLink) {
-                homeLink.textContent = 'Accueil';
-            }
-            if (shopLink) {
-                shopLink.textContent = 'Boutique';
             }
         }
 

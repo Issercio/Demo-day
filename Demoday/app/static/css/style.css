@@ -148,25 +148,6 @@ nav a#cart-link:focus {
     color: #fff !important;
 }
 
-body.admin-page nav li:has(a[href="evenementiel.html"]),
-body.admin-page nav li:has(a[href="entreprises.html"]),
-body.admin-page nav li:has(a[href="portfolio.html"]),
-body.admin-page nav li:has(a[href="contact.html"]),
-body.admin-page nav li:has(a[href="subscription.html"]),
-body.admin-page nav li:has(#cart-link) {
-    display: none !important;
-}
-
-body.admin-page nav a {
-    padding: 10px 18px;
-    font-size: 17px;
-}
-
-body.admin-session:not(.admin-page) nav a {
-    padding: 12px 16px;
-    font-size: 18px;
-}
-
 #admin-access a,
 .admin-nav-link {
     font-weight: 700;
@@ -864,11 +845,11 @@ body.admin-page #profile-panel .cta-btn,
     line-height: 1.2 !important;
 }
 
-body.admin-session:not(.admin-page) nav ul {
+body.admin-session nav ul {
     gap: clamp(6px, 1.1vw, 18px);
 }
 
-body.admin-session:not(.admin-page) nav a {
+body.admin-session nav a {
     padding: 10px 14px;
     font-size: 17px;
 }
