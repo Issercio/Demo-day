@@ -25,8 +25,6 @@ class ApiService {
     // Méthode pour gérer la connexion
     async login(email, password) {
         try {
-            console.log('Tentative de connexion:', { email });  // Debug log
-            
             const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
@@ -37,7 +35,6 @@ class ApiService {
             });
             
             const data = await response.json();
-            console.log('Réponse du serveur:', data);  // Debug log
 
             if (response.ok && data.success) {
                 this.user = data.data.user;
@@ -45,6 +42,10 @@ class ApiService {
                 localStorage.setItem('auth_token', this.token);
                 localStorage.setItem('user', JSON.stringify(this.user));
                 this.updateProfileUI();
+                if (window.FloraCart) {
+                    window.FloraCart.onAccountChanged();
+                }
+                updateCartCount();
                 return { success: true, data: data.data };
             }
             
@@ -64,8 +65,6 @@ class ApiService {
     // Méthode pour créer un compte utilisateur
     async register(username, email, password) {
         try {
-            console.log('Tentative de création de compte:', { username, email });
-            
             const response = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: {
@@ -76,12 +75,19 @@ class ApiService {
             });
             
             const data = await response.json();
-            console.log('Réponse création de compte:', data);
             
             if (response.ok && data.success) {
                 this.user = data.data.user;
+                this.token = data.data.token || null;
+                if (this.token) {
+                    localStorage.setItem('auth_token', this.token);
+                }
                 localStorage.setItem('user', JSON.stringify(this.user));
                 this.updateProfileUI();
+                if (window.FloraCart) {
+                    window.FloraCart.onAccountChanged();
+                }
+                updateCartCount();
                 return { success: true, data: data.data };
             }
             
@@ -126,7 +132,11 @@ class ApiService {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('jwt_token');
         localStorage.removeItem('user');
+        if (window.FloraCart) {
+            window.FloraCart.onAccountChanged();
+        }
         this.updateProfileUI();
+        updateCartCount();
     }
 
     updateProfileUI() {
@@ -252,16 +262,53 @@ class ApiService {
 }
 
 window.FloraCart = {
-    get() {
+    currentUser() {
         try {
-            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            return JSON.parse(localStorage.getItem('user') || 'null');
+        } catch (error) {
+            return null;
+        }
+    },
+    // Une clé par compte : Marie ne voit pas le panier de Client, et inversement.
+    // Visiteur non connecté → cart:guest.
+    storageKey() {
+        const user = this.currentUser();
+        if (user && user.id) {
+            return 'cart:user:' + user.id;
+        }
+        return 'cart:guest';
+    },
+    migrateLegacyCart() {
+        const legacy = localStorage.getItem('cart');
+        if (legacy === null) {
+            return;
+        }
+        const key = this.storageKey();
+        if (!localStorage.getItem(key)) {
+            localStorage.setItem(key, legacy);
+        }
+        localStorage.removeItem('cart');
+    },
+    get() {
+        this.migrateLegacyCart();
+        try {
+            const cart = JSON.parse(localStorage.getItem(this.storageKey()) || '[]');
             return Array.isArray(cart) ? cart : [];
         } catch (error) {
             return [];
         }
     },
     save(cart) {
-        localStorage.setItem('cart', JSON.stringify(cart));
+        localStorage.setItem(this.storageKey(), JSON.stringify(cart));
+    },
+    clear() {
+        localStorage.removeItem(this.storageKey());
+        localStorage.removeItem('selected_payment_method');
+        localStorage.removeItem('subscription_cart');
+    },
+    onAccountChanged() {
+        // Relit la clé du compte courant (login / logout). Ne fusionne jamais les paniers.
+        this.migrateLegacyCart();
     },
     itemKey(item) {
         if (!item) {
@@ -377,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Filet de sécurité: garantit la gestion du panel et de la déconnexion
 // même si certains templates ont des listeners en conflit.
+// Capture=true : on gère le clic AVANT les listeners des pages (qui se marchaient dessus).
 document.addEventListener('click', (event) => {
     const profileLink = event.target.closest('#profile-link');
     if (profileLink) {

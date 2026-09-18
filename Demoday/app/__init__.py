@@ -29,8 +29,8 @@ def create_app():
         SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'postgresql://postgres:root@localhost:5432/florashop'),
         SQLALCHEMY_TRACK_MODIFICATIONS = False,
         JSON_AS_ASCII = False,
-        SECRET_KEY = os.environ.get('SECRET_KEY', 'dev_secret_key_123'),
-        ADMIN_TOKEN = 'florashop_admin_2024_secure',
+        SECRET_KEY = os.environ.get('SECRET_KEY', 'florashop-dev-secret-key-min-32-chars'),
+        ADMIN_TOKEN = os.environ.get('ADMIN_TOKEN', 'florashop_admin_2024_secure'),
         STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', ''),
         STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', ''),
         STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', ''),
@@ -90,9 +90,11 @@ def create_app():
     with app.app_context():
         try:
             from app.services.checkout_service import ensure_runtime_schema
+            from app.services.demo_accounts import ensure_demo_accounts
             ensure_runtime_schema()
+            ensure_demo_accounts()
         except Exception as exc:
-            app.logger.warning('Initialisation schéma paiement ignorée: %s', exc)
+            app.logger.warning('Initialisation schéma / comptes démo ignorée: %s', exc)
     
     return app
 

@@ -240,7 +240,7 @@
 
     document.getElementById('pay-btn').addEventListener('click', function() {
       // Sauvegarder le panier et rediriger vers la page de checkout
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const cart = FloraCart.get();
       if (cart.length === 0) {
         alert('Votre panier est vide !');
         return;
@@ -258,7 +258,7 @@
 
     // Modal de choix de méthode de paiement
     function showPaymentMethodModal() {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const cart = FloraCart.get();
       if (cart.length === 0) {
         alert('Votre panier est vide !');
         return;
@@ -370,7 +370,7 @@
 
     // Sélectionner une méthode de paiement
     window.selectPaymentMethod = function(method) {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const cart = FloraCart.get();
       if (cart.length === 0) {
         alert('Votre panier est vide !');
         closePaymentModal();

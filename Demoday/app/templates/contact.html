@@ -112,7 +112,7 @@
     }
 
     function updateCartCount() {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const cart = window.FloraCart ? FloraCart.get() : [];
       const badge = document.getElementById('cart-count');
       if (badge) {
         badge.textContent = String((window.FloraCart ? FloraCart.count(cart) : cart.reduce((s, i) => s + (Number(i.quantity) || 1), 0)));

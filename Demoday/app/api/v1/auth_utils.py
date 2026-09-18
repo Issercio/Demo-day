@@ -18,7 +18,7 @@ def _extract_bearer_token():
 
 
 def get_token_payload():
-    """Decode the JWT from Authorization. Returns (payload, None) or (None, (body, status))."""
+    """Lit le JWT du header Authorization et vérifie la signature + l'expiration."""
     token = _extract_bearer_token()
     if not token:
         return None, ({'success': False, 'message': 'Authentification requise'}, 401)

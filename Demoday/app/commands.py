@@ -15,8 +15,9 @@ def create_admin_command(username, email, password):
             username=username,
             email=email,
             is_admin=True,
-            password=password  # Pass password directly to constructor
+            password='x',
         )
+        user.set_password(password)
         db.session.add(user)
         db.session.commit()
         click.echo(f'Successfully created admin user: {username}')

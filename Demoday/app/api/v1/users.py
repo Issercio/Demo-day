@@ -4,6 +4,7 @@ from ...persistence.user_repository import UserRepository
 users_bp = Blueprint('users', __name__)
 user_repository = UserRepository()
 
+
 @users_bp.route('/<int:user_id>', methods=['GET'])
 def get_user(user_id):
     try:
@@ -15,10 +16,10 @@ def get_user(user_id):
             'username': user.username,
             'email': user.email,
             'is_admin': user.is_admin,
-            'password': user.password
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @users_bp.route('', methods=['POST'])
 def create_user():
@@ -32,7 +33,6 @@ def create_user():
                 'username': user.username,
                 'email': user.email,
                 'is_admin': user.is_admin,
-                'password': user.password
             }
         }), 201
     except Exception as e:

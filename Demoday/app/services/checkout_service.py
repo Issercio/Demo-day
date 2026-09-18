@@ -1,6 +1,6 @@
 """Server-side checkout: catalog prices, test cards, optional Stripe."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 import uuid
 
@@ -135,6 +135,8 @@ def ensure_subscription_catalog():
 
 
 def _luhn_ok(number):
+    """Algorithme de Luhn : un vrai numéro de carte a un checksum % 10 == 0.
+    Ça évite d'accepter '1234' tout en gardant les cartes de test Stripe (4242…)."""
     digits = [int(char) for char in number]
     checksum = 0
     odd = True
@@ -164,7 +166,7 @@ def _parse_expiry(value):
         year += 2000
     if month < 1 or month > 12:
         raise ValueError('Mois d\'expiration invalide.')
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if year < now.year or (year == now.year and month < now.month):
         raise ValueError('Carte expirée.')
     return month, year
@@ -186,6 +188,8 @@ def process_test_card(card_number, expiry, cvc):
 
 
 def _subscription_slug(item):
+    """Le panier mélange produits (id numérique) et abonnements (id 'subscription_monthly').
+    On renvoie le slug du plan, ou None si c'est une fleur / un cadeau normal."""
     raw_id = item.get('product_id', item.get('id', item.get('plan')))
     item_type = str(item.get('type') or '').lower()
     name = str(item.get('name') or '')
@@ -232,7 +236,7 @@ def build_order_lines(items):
                 product_id = int(raw_id)
             except (TypeError, ValueError):
                 raise ValueError(f'Produit invalide: {raw_id}') from None
-            product = Product.query.get(product_id)
+            product = db.session.get(Product, product_id)
             if product is None:
                 raise ValueError(f'Produit {product_id} introuvable.')
             if product.name in {plan['name'] for plan in SUBSCRIPTION_PLANS.values()}:
@@ -275,6 +279,7 @@ def _persist_order(email, name, user_id, total, method, status, card_last4, refe
 
 
 def checkout(data, user_id=None):
+    """Valide le panier côté serveur : les prix viennent de la DB, pas du navigateur."""
     email = (data.get('email') or '').strip()
     name = (data.get('customer_name') or data.get('name') or '').strip()
     method = (data.get('payment_method') or 'card').lower()

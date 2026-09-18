@@ -14,7 +14,7 @@ class Product(db.Model):
     is_on_sale = db.Column(db.Boolean, default=False)
     
     def to_dict(self):
-        category = Category.query.get(self.category_id) if self.category_id else None
+        category = db.session.get(Category, self.category_id) if self.category_id else None
         return {
             'id': int(self.id),
             'name': str(self.name),

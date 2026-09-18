@@ -84,20 +84,12 @@
 
         document.getElementById('login-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            console.log('Formulaire soumis');  // Debug log
-            
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
-            console.log('Tentative de connexion avec:', email);  // Debug log
             const result = await apiService.login(email, password);
-            console.log('Résultat de la connexion:', result);  // Debug log
-            
             if (result.success) {
-                console.log('Connexion réussie, redirection...');  // Debug log
                 window.location.href = 'accueil.html';
             } else {
-                console.error('Erreur:', result.error);  // Debug log
                 alert(result.error);
             }
         });
@@ -111,7 +103,7 @@
         // Vérifier l'état de connexion au chargement de la page
         document.addEventListener('DOMContentLoaded', function() {
             function updateCartCount() {
-                const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+                const cart = window.FloraCart ? FloraCart.get() : [];
                 const badge = document.getElementById('cart-count');
                 if (badge) {
                   badge.textContent = String((window.FloraCart ? FloraCart.count(cart) : cart.reduce((s, i) => s + (Number(i.quantity) || 1), 0)));

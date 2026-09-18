@@ -473,7 +473,11 @@
                 </div>
             `;
 
-            localStorage.removeItem('cart');
+            if (window.FloraCart) {
+                FloraCart.clear();
+            } else {
+                localStorage.removeItem('cart');
+            }
             localStorage.removeItem('selected_payment_method');
             cartItems = [];
 
@@ -491,15 +495,12 @@
 
         function loadCartFromStorage() {
             try {
-                const savedCart = localStorage.getItem('cart');
-                if (savedCart) {
-                    const cart = JSON.parse(savedCart);
-                    cartItems = cart.map(item => ({
-                        product_id: item.id || item.product_id,
-                        quantity: item.quantity || 1,
-                        product: item
-                    }));
-                }
+                const cart = (window.FloraCart ? FloraCart.get() : []);
+                cartItems = cart.map(item => ({
+                    product_id: item.id || item.product_id,
+                    quantity: item.quantity || 1,
+                    product: item
+                }));
             } catch (e) {
                 console.error('Erreur chargement panier:', e);
                 cartItems = [];

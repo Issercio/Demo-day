@@ -3,8 +3,7 @@ from flask import request, current_app
 from app.models.user import User
 from app.extensions import db
 import jwt
-from datetime import datetime, timedelta
-from werkzeug.security import check_password_hash
+from datetime import datetime, timedelta, timezone
 
 api = Namespace('auth', description='Authentification')
 
@@ -19,91 +18,94 @@ register_model = api.model('Register', {
     'password': fields.String(required=True)
 })
 
+
+def _issue_token(user):
+    # `sub` = id utilisateur. Le front envoie ce JWT dans Authorization: Bearer ...
+    # `exp` force la reconnexion après 24h.
+    return jwt.encode(
+        {
+            'sub': str(user.id),
+            'email': user.email,
+            'is_admin': user.is_admin,
+            'exp': datetime.now(timezone.utc) + timedelta(days=1),
+        },
+        current_app.config['SECRET_KEY'],
+        algorithm='HS256',
+    )
+
+
 @api.route('/login')
 class Login(Resource):
     @api.expect(login_model)
     def post(self):
         try:
-            data = request.json
-            print(f"Tentative de connexion pour: {data['email']}")
-            
-            user = User.query.filter_by(email=data['email']).first()
-            
-            if not user:
+            data = request.json or {}
+            email = (data.get('email') or '').strip()
+            password = data.get('password') or ''
+            if not email or not password:
+                return {'success': False, 'message': 'Email et mot de passe requis'}, 400
+
+            user = User.query.filter_by(email=email).first()
+            if not user or not user.check_password(password):
                 return {'success': False, 'message': 'Email ou mot de passe incorrect'}, 401
 
-            # Vérification du mot de passe selon le type d'utilisateur
-            if user.email == 'admin@florashop.com':
-                # Pour l'admin, vérifier directement avec "admin123"
-                if data['password'] != 'admin123':
-                    print(f"Mot de passe incorrect pour admin")
-                    return {'success': False, 'message': 'Email ou mot de passe incorrect'}, 401
-            else:
-                # Pour les nouveaux utilisateurs, vérifier en clair
-                if user.password != data['password']:
-                    print(f"Mot de passe incorrect. Stocké: {user.password}, Fourni: {data['password']}")
-                    return {'success': False, 'message': 'Email ou mot de passe incorrect'}, 401
+            # Migration douce : si le hash n'existait pas encore, on le crée maintenant.
+            if user.password and not user.password.startswith(('pbkdf2:', 'scrypt:', 'argon2:')):
+                user.set_password(password)
+                db.session.commit()
 
-            token = jwt.encode({
-                'sub': str(user.id),
-                'email': user.email,
-                'is_admin': user.is_admin,
-                'exp': datetime.utcnow() + timedelta(days=1)
-            }, current_app.config['SECRET_KEY'])
-
-            print(f"Connexion réussie pour: {user.email}")
             return {
                 'success': True,
                 'data': {
-                    'token': token,
+                    'token': _issue_token(user),
                     'user': user.to_dict()
                 }
             }, 200
 
-        except Exception as e:
-            print(f"Erreur de login: {str(e)}")
-            return {'success': False, 'message': str(e)}, 500
+        except Exception:
+            current_app.logger.exception('Erreur de login')
+            return {'success': False, 'message': 'Erreur interne du serveur'}, 500
+
 
 @api.route('/register')
 class Register(Resource):
     @api.expect(register_model)
     def post(self):
         try:
-            data = request.json
-            print(f"Tentative de création de compte pour: {data.get('email')}")
-            
-            if not data or not data.get('username') or not data.get('email') or not data.get('password'):
+            data = request.json or {}
+            username = (data.get('username') or '').strip()
+            email = (data.get('email') or '').strip()
+            password = data.get('password') or ''
+
+            if not username or not email or not password:
                 return {'success': False, 'message': 'Tous les champs sont requis'}, 400
-            
-            # Vérifier si l'utilisateur existe déjà
-            existing_user = User.query.filter_by(email=data['email']).first()
-            if existing_user:
+
+            if User.query.filter_by(email=email).first():
                 return {'success': False, 'message': 'Email déjà utilisé'}, 400
-            
-            existing_username = User.query.filter_by(username=data['username']).first()
-            if existing_username:
+
+            if User.query.filter_by(username=username).first():
                 return {'success': False, 'message': 'Nom d\'utilisateur déjà pris'}, 400
 
-            # Créer le nouvel utilisateur (mot de passe en clair)
             user = User(
-                username=data['username'],
-                email=data['email'],
-                password=data['password'],  # Stockage en clair
+                username=username,
+                email=email,
+                password='x',
                 is_admin=False
             )
-            
+            user.set_password(password)
+
             db.session.add(user)
             db.session.commit()
 
-            print(f"Compte créé avec succès pour: {user.email} avec mot de passe: {user.password}")
             return {
                 'success': True,
                 'data': {
+                    'token': _issue_token(user),
                     'user': user.to_dict()
                 }
             }, 201
 
-        except Exception as e:
-            print(f"Erreur de création de compte: {str(e)}")
+        except Exception:
+            current_app.logger.exception('Erreur de création de compte')
             db.session.rollback()
             return {'success': False, 'message': 'Erreur interne du serveur'}, 500

@@ -97,7 +97,7 @@ def get_user(user_id):
     if denied:
         return denied
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({'error': 'Utilisateur non trouvé'}), 404
 
@@ -117,11 +117,11 @@ def get_user(user_id):
 @api_bp.route('/products/<int:product_id>', methods=['GET'])
 def get_product(product_id):
     try:
-        product = Product.query.get(product_id)
+        product = db.session.get(Product, product_id)
         if not product:
             return jsonify({'error': 'Produit non trouvé'}), 404
             
-        category = Category.query.get(product.category_id)
+        category = db.session.get(Category, product.category_id)
         if not category:
             return jsonify({'error': 'Catégorie non trouvée'}), 404
             
@@ -176,9 +176,10 @@ def users():
             user = User(
                 username=data['username'],
                 email=data['email'],
-                password=data['password'],
-                is_admin=is_admin  # Définir is_admin en fonction du token
+                password='x',
+                is_admin=is_admin
             )
+            user.set_password(data['password'])
             db.session.add(user)
             db.session.commit()
             

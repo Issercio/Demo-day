@@ -354,7 +354,7 @@
                 cartItems = [];
                 
                 // Charger le panier normal
-                const savedCart = localStorage.getItem('cart');
+                const savedCart = window.FloraCart ? JSON.stringify(FloraCart.get()) : localStorage.getItem('cart');
                 if (savedCart) {
                     const cart = JSON.parse(savedCart);
                     cartItems = cart.map(item => ({
@@ -555,6 +555,7 @@
                 `;
                 
                 // Vider le panier
+                if (window.FloraCart) { FloraCart.clear(); }
                 localStorage.removeItem('cart');
                 cartItems = [];
                 

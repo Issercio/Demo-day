@@ -89,7 +89,7 @@
       adminAccess.style.display = 'none';
     }
 
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const cart = window.FloraCart ? FloraCart.get() : [];
     const badge = document.getElementById('cart-count');
     if (badge) {
       const total = window.FloraCart ? FloraCart.count(cart) : cart.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
