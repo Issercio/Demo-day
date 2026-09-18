@@ -192,6 +192,13 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('isAdmin && !onAdminPage', js)
         self.assertIn('body.admin-page #admin-btn', css)
 
+    def test_shop_uses_wrapping_product_grid(self):
+        from pathlib import Path
+        html = Path(__file__).resolve().parents[1].joinpath('app/templates/shop.html').read_text()
+        self.assertNotIn('products-carousel', html)
+        self.assertNotIn('scrollCarousel', html)
+        self.assertIn('repeat(auto-fill, minmax(210px, 1fr))', html)
+
 
 if __name__ == '__main__':
     unittest.main()
