@@ -255,6 +255,7 @@ class AccountsTestCase(unittest.TestCase):
         shop = Path(__file__).resolve().parents[1].joinpath('app/templates/shop.html').read_text()
         self.assertIn('applyThemeFromUrl', shop)
         self.assertIn('theme-banner', shop)
+        self.assertIn('syncCategoryChecksToTheme', shop)
         self.assertIn('shop.html?theme=', html)
 
     def test_themes_api_and_product_filter(self):

@@ -313,6 +313,7 @@
         allProducts = products.filter((product) => !(product.category && product.category.name === 'Abonnements'));
         await applyThemeFromUrl();
         renderCategoryFilters();
+        syncCategoryChecksToTheme();
 
         if (window.apiService) {
           apiService.updateProfileUI();
@@ -422,12 +423,30 @@
     function clearShopTheme() {
       activeTheme = null;
       themeProductNames = null;
+      document.querySelectorAll('#categories-filters input[type="checkbox"]').forEach((input) => {
+        input.checked = true;
+      });
       renderThemeBanner();
       const url = new URL(window.location.href);
       if (url.searchParams.has('theme')) {
         url.searchParams.delete('theme');
         window.history.replaceState({}, '', url.pathname + url.search + url.hash);
       }
+    }
+
+    function syncCategoryChecksToTheme() {
+      const inputs = document.querySelectorAll('#categories-filters input[type="checkbox"]');
+      if (!themeProductNames || inputs.length === 0) {
+        return;
+      }
+      const themedIds = new Set(
+        allProducts
+          .filter((product) => themeProductNames.has(product.name) && product.category)
+          .map((product) => Number(product.category.id))
+      );
+      inputs.forEach((input) => {
+        input.checked = themedIds.has(Number(input.value));
+      });
     }
 
     async function applyThemeFromUrl() {
