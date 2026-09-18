@@ -93,9 +93,9 @@ Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
 | Customer | Keep a cart that does not leak to another account | Must have |
 | Customer | Subscribe to a floral plan (monthly, semester, yearly) | Should have |
 | Customer | Filter the catalog by minimum and maximum price | Shop filter |
-| Customer | See the season or event vitrine applied by the florist | Shop filter |
+| Customer | See the season, theme, or combo vitrine applied by the florist | Shop filter |
 | Florist | Add, update and delete products and categories | Must have |
-| Florist | Apply a season or a theme to the live shop | Must have |
+| Florist | Apply a season, a theme, or both as a combo to the live shop | Must have |
 | Florist | Review paid orders | Must have |
 | Florist | Keep the back-office for administrators only | Must have |
 

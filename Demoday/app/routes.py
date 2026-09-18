@@ -6,8 +6,8 @@ from app.api.v1.auth_utils import admin_required_response, self_or_admin_require
 from app.services.product_images import payload_from_request, save_product_image
 from app.services.shop_themes import (
     filter_products_by_theme,
-    get_theme,
     set_applied_theme_id,
+    set_applied_vitrine,
     themes_payload,
 )
 
@@ -459,9 +459,10 @@ def products():
         theme_id = (request.args.get('theme') or '').strip().lower()
         products = Product.query.all()
         if theme_id:
-            if get_theme(theme_id) is None:
+            try:
+                products = filter_products_by_theme(products, theme_id)
+            except KeyError:
                 return jsonify({'error': 'Thème inconnu'}), 400
-            products = filter_products_by_theme(products, theme_id)
         result = []
         for p in products:
             if p.id is not None:
@@ -548,18 +549,21 @@ def shop_themes():
         if denied:
             return denied
         data = request.get_json(silent=True) or {}
-        theme_id = data.get('id')
-        if theme_id is None:
-            theme_id = data.get('theme')
         try:
-            applied = set_applied_theme_id(theme_id)
+            if 'season' in data:
+                set_applied_vitrine(data.get('season'), data.get('theme'))
+            else:
+                theme_id = data.get('id')
+                if theme_id is None:
+                    theme_id = data.get('theme')
+                set_applied_theme_id(theme_id)
         except KeyError:
             return jsonify({'error': 'Thème inconnu'}), 400
         payload = themes_payload()
         payload['message'] = (
             'Catalogue complet affiché dans le shop.'
-            if applied is None
-            else f'Vitrine du shop : {get_theme(applied)["label"]}.'
+            if not payload.get('applied_ids')
+            else f'Vitrine du shop : {payload["label"]}.'
         )
         return jsonify(payload)
 

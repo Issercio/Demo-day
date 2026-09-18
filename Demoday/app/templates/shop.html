@@ -439,18 +439,19 @@
           return;
         }
         const payload = await response.json();
-        const appliedId = payload.applied;
-        const theme = appliedId
-          ? (payload.themes || []).find((item) => item.id === appliedId)
-          : null;
-        if (!theme) {
+        const names = payload.product_names || [];
+        const ids = payload.applied_ids || [];
+        if (!ids.length) {
           activeTheme = null;
           themeProductNames = null;
           renderThemeBanner();
           return;
         }
-        activeTheme = theme;
-        themeProductNames = new Set(theme.product_names || []);
+        activeTheme = {
+          label: payload.label || ids.join(' + '),
+          blurb: payload.blurb || ''
+        };
+        themeProductNames = new Set(names);
         renderThemeBanner();
       } catch (err) {
         console.error('Thème boutique:', err);

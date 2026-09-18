@@ -338,7 +338,7 @@
 
         <div class="admin-section" id="vitrine-section">
             <h2>Vitrine du shop</h2>
-            <p class="admin-vitrine-lead">Choisissez une saison ou un thème. Une fois appliqué, le shop n’affiche que les bouquets correspondants.</p>
+            <p class="admin-vitrine-lead">Choisissez une saison, un thème, ou les deux ensemble. Le shop affiche le combo appliqué.</p>
             <p id="vitrine-status" class="admin-vitrine-status">En vitrine : catalogue complet</p>
             <div class="theme-groups">
                 <div>
@@ -524,40 +524,63 @@
 
         function renderVitrine(payload) {
             vitrineThemes = (payload && payload.themes) || [];
-            const applied = payload && payload.applied;
+            const appliedIds = new Set(payload && payload.applied_ids ? payload.applied_ids : []);
             ['saison', 'evenement'].forEach((kind) => {
                 const box = document.getElementById(kind === 'saison' ? 'theme-chips-saison' : 'theme-chips-theme');
                 if (!box) {
                     return;
                 }
                 box.innerHTML = vitrineThemes.filter((theme) => theme.kind === kind).map((theme) => `
-                    <button type="button" class="theme-chip${theme.id === applied ? ' is-selected' : ''}" data-theme="${escapeHtml(theme.id)}" style="--theme-accent:${escapeHtml(theme.accent)}">
+                    <button type="button" class="theme-chip${appliedIds.has(theme.id) ? ' is-selected' : ''}" data-theme="${escapeHtml(theme.id)}" data-kind="${escapeHtml(theme.kind)}" style="--theme-accent:${escapeHtml(theme.accent)}">
                         ${escapeHtml(theme.label)}
                     </button>
                 `).join('');
                 box.querySelectorAll('button').forEach((button) => {
-                    button.addEventListener('click', () => applyVitrine(button.dataset.theme));
+                    button.addEventListener('click', () => toggleVitrineChip(button.dataset.theme, button.dataset.kind, payload));
                 });
             });
-            const theme = vitrineThemes.find((item) => item.id === applied);
             const status = document.getElementById('vitrine-status');
             if (status) {
-                status.textContent = theme ? `En vitrine : ${theme.label}` : 'En vitrine : catalogue complet';
+                status.textContent = payload && payload.label
+                    ? `En vitrine : ${payload.label}`
+                    : 'En vitrine : catalogue complet';
             }
             const blurb = document.getElementById('vitrine-blurb');
             if (blurb) {
-                blurb.textContent = theme
-                    ? theme.blurb
+                blurb.textContent = (payload && payload.blurb)
+                    ? payload.blurb
                     : 'Tous les bouquets du catalogue sont visibles dans le shop.';
             }
         }
 
-        async function applyVitrine(themeId) {
+        function toggleVitrineChip(themeId, kind, payload) {
+            const season = payload && payload.applied_season;
+            const theme = payload && payload.applied_theme;
+            if (kind === 'saison') {
+                applyVitrine({
+                    season: season === themeId ? null : themeId,
+                    theme: theme || null
+                });
+                return;
+            }
+            applyVitrine({
+                season: season || null,
+                theme: theme === themeId ? null : themeId
+            });
+        }
+
+        async function applyVitrine(selection) {
+            const body = selection && selection.id === 'catalogue'
+                ? { season: null, theme: null }
+                : {
+                    season: selection && selection.season ? selection.season : null,
+                    theme: selection && selection.theme ? selection.theme : null
+                };
             try {
                 const response = await fetch('/api/v1/themes', {
                     method: 'PUT',
                     headers: getAdminHeaders(),
-                    body: JSON.stringify({ id: themeId })
+                    body: JSON.stringify(body)
                 });
                 if (sessionBlocked(response)) {
                     return;
@@ -584,7 +607,7 @@
                 renderVitrine(await response.json());
                 const clearBtn = document.getElementById('vitrine-clear');
                 if (clearBtn) {
-                    clearBtn.addEventListener('click', () => applyVitrine('catalogue'));
+                    clearBtn.addEventListener('click', () => applyVitrine({ season: null, theme: null }));
                 }
             } catch (error) {
                 showNotice('Erreur de communication avec le serveur: ' + error.message, 'error');
