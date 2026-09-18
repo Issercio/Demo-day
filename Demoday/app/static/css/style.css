@@ -641,6 +641,10 @@ body, .main-content, .shop-container {
     padding: 8px 12px 24px 12px;
 }
 
+body:has(.home-themes) .main-content {
+    max-width: 1080px;
+}
+
 .home-themes h2 {
     font-size: 1.55rem;
     color: #bc6288;

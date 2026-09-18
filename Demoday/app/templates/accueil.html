@@ -5,7 +5,7 @@
   <title>Pivoine &amp; Lilas, artisan fleuriste : une rencontre différente avec la nature</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="twitter:image" content="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6%7Emv2.png/v1/fit/w_2500,h_1330,al_c/8010bb_ce18a16c3f664b8ab22c97455e707ce6%7Emv2.png"/>
-  <link rel="stylesheet" href="../static/css/style.css?v=20260918-themes1">
+  <link rel="stylesheet" href="../static/css/style.css?v=20260918-themes2">
 </head>
 <body>
   <!-- Navbar commune -->
@@ -226,6 +226,10 @@
         fetch('/api/v1/products'),
       ]);
       if (!themesResponse.ok || !productsResponse.ok) {
+        const grid = document.getElementById('theme-products');
+        if (grid) {
+          grid.innerHTML = '<p class="theme-blurb">Impossible de charger les bouquets pour le moment.</p>';
+        }
         return;
       }
       const payload = await themesResponse.json();
@@ -235,12 +239,7 @@
       products.forEach((product) => {
         homeProductsByName[product.name] = product;
       });
-      let selected = '';
-      try {
-        selected = localStorage.getItem(THEME_STORAGE_KEY) || '';
-      } catch (err) {
-        selected = '';
-      }
+      let selected = new URLSearchParams(window.location.search).get('theme') || '';
       if (!homeThemes.some((theme) => theme.id === selected)) {
         selected = payload.current || (homeThemes[0] && homeThemes[0].id);
       }

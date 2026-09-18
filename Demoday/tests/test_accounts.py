@@ -292,6 +292,14 @@ class AccountsTestCase(unittest.TestCase):
         unknown = self.client.get('/api/v1/products?theme=halloween')
         self.assertEqual(unknown.status_code, 400)
 
+        deuil_names = {name for name, _, _ in dict(DEMO_CATALOG)['Deuil']}
+        for theme in SHOP_THEMES:
+            overlap = set(theme['products']) & deuil_names
+            if theme['id'] == 'hommage':
+                self.assertTrue(overlap)
+            else:
+                self.assertFalse(overlap, theme['id'])
+
 
 if __name__ == '__main__':
     unittest.main()
