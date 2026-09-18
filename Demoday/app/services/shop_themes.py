@@ -224,7 +224,7 @@ def parse_theme_ids(value):
     if isinstance(value, (list, tuple)):
         parts = value
     else:
-        parts = str(value).replace('+', ',').split(',')
+        parts = str(value).replace('+', ',').replace(' ', ',').split(',')
     ids = []
     seen = set()
     for part in parts:
@@ -316,7 +316,7 @@ def get_applied_theme_id():
     ids = applied_ids()
     if not ids:
         return None
-    return '+'.join(ids)
+    return ','.join(ids)
 
 
 def set_applied_vitrine(season_id=None, theme_id=None):

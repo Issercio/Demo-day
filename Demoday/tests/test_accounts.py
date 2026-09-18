@@ -392,7 +392,7 @@ class AccountsTestCase(unittest.TestCase):
         )
         self.assertEqual(combo.status_code, 200, combo.get_json())
         combo_payload = combo.get_json()
-        self.assertEqual(combo_payload['applied'], 'printemps+mariage')
+        self.assertEqual(combo_payload['applied'], 'printemps,mariage')
         self.assertEqual(combo_payload['applied_ids'], ['printemps', 'mariage'])
         self.assertEqual(combo_payload['applied_season'], 'printemps')
         self.assertEqual(combo_payload['applied_theme'], 'mariage')

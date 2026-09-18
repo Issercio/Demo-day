@@ -281,8 +281,9 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | --- | --- | --- | --- |
 | POST | `/api/v1/auth/register` | public | Create user, return JWT |
 | POST | `/api/v1/auth/login` | public | Sign in |
+| GET | `/api/v1/products` | public | List catalog (`?theme=` season, event, or combo) |
 | GET | `/api/v1/themes` | public | List seasons/themes and the applied shop vitrine |
-| PUT | `/api/v1/themes` | admin JWT | Apply a season or theme to the live shop |
+| PUT | `/api/v1/themes` | admin JWT | Apply a season, a theme, or both as a combo |
 | POST | `/api/v1/products` | admin JWT | Create product |
 | PUT / DELETE | `/api/v1/products/<id>` | admin JWT | Update or delete product |
 | GET | `/api/v1/categories` | public | List categories |

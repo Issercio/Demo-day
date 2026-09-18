@@ -570,12 +570,10 @@
         }
 
         async function applyVitrine(selection) {
-            const body = selection && selection.id === 'catalogue'
-                ? { season: null, theme: null }
-                : {
-                    season: selection && selection.season ? selection.season : null,
-                    theme: selection && selection.theme ? selection.theme : null
-                };
+            const body = {
+                season: selection && selection.season ? selection.season : null,
+                theme: selection && selection.theme ? selection.theme : null
+            };
             try {
                 const response = await fetch('/api/v1/themes', {
                     method: 'PUT',
