@@ -127,8 +127,10 @@ class AccountsTestCase(unittest.TestCase):
         js = root.joinpath('app/static/js/api.js').read_text()
         self.assertIn('body.admin-session nav li:has(a[href="evenementiel.html"])', css)
         self.assertIn('nav a#profile-link:focus', css)
+        self.assertIn('profile-icon-btn', css)
         self.assertIn("classList.toggle('admin-session', isAdmin)", js)
         self.assertIn('isAdmin && !onAdminPage', js)
+        self.assertIn('body.admin-page #admin-btn', css)
 
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion</title>
-    <link rel="stylesheet" href="../static/css/style.css?v=20260918-nav2">
+    <link rel="stylesheet" href="../static/css/style.css?v=20260918-nav3">
     <link rel="stylesheet" href="../static/css/account.css">
 </head>
 <body>
@@ -26,7 +26,7 @@
             </a>
           </li>
           <li style="position:relative;">
-            <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
+            <button type="button" id="profile-link" class="profile-icon-btn" aria-label="Compte">👤</button>
             <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;">
                 <div id="user-email" style="margin-bottom: 10px; color: #bc6288; font-size: 0.9em; text-align: center; display: none;"></div>
                 <button id="login-btn" class="cta-btn" style="width:100%; margin-bottom: 5px;">Se connecter</button>
@@ -59,7 +59,7 @@
             </div>
         </form>
     </div>
-    <script src="../static/js/api.js?v=20260918-nav2"></script>
+    <script src="../static/js/api.js?v=20260918-nav3"></script>
     <script>
         // Fonction pour mettre à jour l'interface utilisateur après connexion/déconnexion
         function updateUIAfterLogin(userData) {

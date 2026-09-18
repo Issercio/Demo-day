@@ -822,3 +822,39 @@ body, .main-content, .shop-container {
         margin: 60px auto 6px auto;
     }
 }
+
+/* Florist chrome: must stay after the shop reset so it wins. */
+button.profile-icon-btn,
+#profile-link.profile-icon-btn {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: #ab597c !important;
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+    padding: 6px 8px !important;
+    border-radius: 0 !important;
+}
+
+body.admin-session #delete-btn,
+body.admin-page #admin-btn,
+body.admin-page #delete-btn {
+    display: none !important;
+}
+
+body.admin-page #profile-panel button,
+body.admin-page #profile-panel .cta-btn,
+#profile-panel button,
+#profile-panel .cta-btn {
+    background: #fff !important;
+    color: #ab597c !important;
+    border: 1.5px solid #bc6288 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    margin: 0 0 8px 0 !important;
+    padding: 8px 12px !important;
+    font-size: 0.92rem !important;
+    white-space: nowrap !important;
+    line-height: 1.2 !important;
+}
