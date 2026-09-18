@@ -291,6 +291,67 @@ class CheckoutTestCase(unittest.TestCase):
         marie = User.query.filter_by(email='marie@test.com').first()
         self.assertEqual(order['user_id'], marie.id)
 
+    def test_invalid_bearer_token_rejected_on_checkout(self):
+        response = self.client.post(
+            '/api/v1/payments/checkout',
+            json={
+                'email': 'marie@test.com',
+                'name': 'Marie Test',
+                'payment_method': 'card',
+                'card_number': '4242424242424242',
+                'card_expiry': '12/34',
+                'card_cvc': '123',
+                'items': [{'product_id': self.product.id, 'quantity': 1}],
+            },
+            headers={'Authorization': 'Bearer not-a-jwt'},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_empty_cart_is_rejected(self):
+        response = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [],
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_unknown_product_is_rejected(self):
+        response = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': 99999, 'quantity': 1}],
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_saved_card_sandbox_creates_paid_order(self):
+        response = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'saved',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        self.assertEqual(response.status_code, 201, response.get_json())
+        order = response.get_json()['order']
+        self.assertEqual(order['status'], 'paid')
+        self.assertEqual(order['payment_method'], 'saved')
+        self.assertEqual(order['card_last4'], '4242')
+
+    def test_missing_order_is_not_found(self):
+        token = self.login('marie@test.com', 'marie123')
+        response = self.client.get(
+            '/api/v1/payments/orders/99999',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 404)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -200,6 +200,14 @@ class AdminGuardTestCase(unittest.TestCase):
         ))
         self.assertGreaterEqual(len(self.app.config['SECRET_KEY']), 32)
 
+    def test_client_cannot_hit_debug_categories(self):
+        token = self.login('marie@test.com', 'marie123')
+        response = self.client.get(
+            '/api/v1/debug/categories',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 403)
+
 
 if __name__ == '__main__':
     unittest.main()

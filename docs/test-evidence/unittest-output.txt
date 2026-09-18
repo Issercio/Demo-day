@@ -6,27 +6,48 @@ test_demo_seed_resets_unusable_marie_password (test_accounts.AccountsTestCase.te
 test_login_accepts_legacy_bcrypt_hash (test_accounts.AccountsTestCase.test_login_accepts_legacy_bcrypt_hash) ... ok
 test_login_accepts_legacy_plaintext_then_rehashes (test_accounts.AccountsTestCase.test_login_accepts_legacy_plaintext_then_rehashes) ... ok
 test_register_hashes_password_and_hides_it (test_accounts.AccountsTestCase.test_register_hashes_password_and_hides_it) ... ok
+test_admin_api_cannot_mint_admin_via_json_flag (test_admin_guard.AdminGuardTestCase.test_admin_api_cannot_mint_admin_via_json_flag) ... ok
 test_admin_can_create_category (test_admin_guard.AdminGuardTestCase.test_admin_can_create_category) ... ok
+test_admin_put_cannot_promote_user (test_admin_guard.AdminGuardTestCase.test_admin_put_cannot_promote_user) ... ok
+test_admin_token_header_cannot_create_user (test_admin_guard.AdminGuardTestCase.test_admin_token_header_cannot_create_user) ... ok
 test_anonymous_cannot_create_category (test_admin_guard.AdminGuardTestCase.test_anonymous_cannot_create_category) ... ok
+test_anonymous_cannot_read_user (test_admin_guard.AdminGuardTestCase.test_anonymous_cannot_read_user) ... ok
 test_client_cannot_create_category (test_admin_guard.AdminGuardTestCase.test_client_cannot_create_category) ... ok
+test_client_cannot_delete_admin (test_admin_guard.AdminGuardTestCase.test_client_cannot_delete_admin) ... ok
+test_client_cannot_hit_debug_categories (test_admin_guard.AdminGuardTestCase.test_client_cannot_hit_debug_categories) ... ok
+test_client_cannot_read_other_user (test_admin_guard.AdminGuardTestCase.test_client_cannot_read_other_user) ... ok
+test_forged_admin_jwt_claim_is_ignored (test_admin_guard.AdminGuardTestCase.test_forged_admin_jwt_claim_is_ignored) ... ok
+test_placeholder_secret_cannot_forge_admin (test_admin_guard.AdminGuardTestCase.test_placeholder_secret_cannot_forge_admin) ... ok
+test_register_json_cannot_mint_admin (test_admin_guard.AdminGuardTestCase.test_register_json_cannot_mint_admin) ... ok
 test_shop_catalog_stays_public (test_admin_guard.AdminGuardTestCase.test_shop_catalog_stays_public) ... ok
 test_user_detail_does_not_leak_password (test_admin_guard.AdminGuardTestCase.test_user_detail_does_not_leak_password) ... ok
 test_user_list_hides_from_client (test_admin_guard.AdminGuardTestCase.test_user_list_hides_from_client) ... ok
 test_admin_can_list_paid_orders (test_checkout.CheckoutTestCase.test_admin_can_list_paid_orders) ... ok
+test_admin_can_read_any_order (test_checkout.CheckoutTestCase.test_admin_can_read_any_order) ... ok
+test_anonymous_cannot_read_order (test_checkout.CheckoutTestCase.test_anonymous_cannot_read_order) ... ok
+test_buyer_can_read_own_order (test_checkout.CheckoutTestCase.test_buyer_can_read_own_order) ... ok
 test_card_success_creates_paid_order (test_checkout.CheckoutTestCase.test_card_success_creates_paid_order) ... ok
 test_checkout_total_uses_decimal_cents (test_checkout.CheckoutTestCase.test_checkout_total_uses_decimal_cents)
 10.10 x 3 must be 30.30, not a binary-float approximation. ... ok
 test_client_cannot_list_orders (test_checkout.CheckoutTestCase.test_client_cannot_list_orders) ... ok
 test_declined_card_records_failed_order (test_checkout.CheckoutTestCase.test_declined_card_records_failed_order) ... ok
+test_empty_cart_is_rejected (test_checkout.CheckoutTestCase.test_empty_cart_is_rejected) ... ok
 test_insufficient_funds_card (test_checkout.CheckoutTestCase.test_insufficient_funds_card) ... ok
+test_invalid_bearer_token_rejected_on_checkout (test_checkout.CheckoutTestCase.test_invalid_bearer_token_rejected_on_checkout) ... ok
 test_invalid_card_number_rejected (test_checkout.CheckoutTestCase.test_invalid_card_number_rejected) ... ok
+test_logged_in_checkout_ignores_spoofed_email (test_checkout.CheckoutTestCase.test_logged_in_checkout_ignores_spoofed_email) ... ok
+test_missing_order_is_not_found (test_checkout.CheckoutTestCase.test_missing_order_is_not_found) ... ok
+test_other_client_cannot_read_order (test_checkout.CheckoutTestCase.test_other_client_cannot_read_order) ... ok
 test_payment_config_is_test_mode (test_checkout.CheckoutTestCase.test_payment_config_is_test_mode) ... ok
 test_paypal_creates_paid_order (test_checkout.CheckoutTestCase.test_paypal_creates_paid_order) ... ok
 test_prices_come_from_database_not_client (test_checkout.CheckoutTestCase.test_prices_come_from_database_not_client) ... ok
+test_saved_card_sandbox_creates_paid_order (test_checkout.CheckoutTestCase.test_saved_card_sandbox_creates_paid_order) ... ok
 test_subscription_line_item (test_checkout.CheckoutTestCase.test_subscription_line_item) ... ok
+test_unknown_luhn_card_is_declined (test_checkout.CheckoutTestCase.test_unknown_luhn_card_is_declined) ... ok
+test_unknown_product_is_rejected (test_checkout.CheckoutTestCase.test_unknown_product_is_rejected) ... ok
 
 ----------------------------------------------------------------------
-Ran 23 tests in 7.059s
+Ran 44 tests in 12.786s
 
 OK
 === CREATION CATEGORIE ===

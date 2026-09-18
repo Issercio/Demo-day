@@ -38,8 +38,8 @@ Postman collection for live API clicks: [postman/FloraShop.postman_collection.js
 | File | Critical path |
 | --- | --- |
 | `tests/test_accounts.py` | Demo client seed, flower catalog seed, register hashes + hides password, plaintext then rehash, legacy bcrypt login, unusable Marie hash reset |
-| `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET, Admin-Token rejected, forged JWT `is_admin` ignored, POST/PUT cannot mint admin, register cannot mint admin, client cannot read/delete another user, placeholder SECRET_KEY cannot impersonate admin |
-| `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds / unknown Luhn card, invalid PAN, subscription line, PayPal, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30`, order IDOR (401/200/403), spoofed checkout email ignored |
+| `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET, Admin-Token rejected, forged JWT `is_admin` ignored, POST/PUT cannot mint admin, register cannot mint admin, client cannot read/delete another user, placeholder SECRET_KEY cannot impersonate admin, debug categories 403 |
+| `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds / unknown Luhn card, invalid PAN, subscription line, PayPal, saved card, empty cart, unknown product, invalid JWT, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30`, order IDOR (401/200/403/404), spoofed checkout email ignored |
 
 ## What is not covered yet
 
@@ -62,6 +62,9 @@ Postman collection for live API clicks: [postman/FloraShop.postman_collection.js
 | Checkout `build_order_lines` body merged into `money()` during that refactor | Unit tests would fail | **Fixed** before this evidence run |
 | Forgot-password does not send mail | Manual page visit | **Open** |
 | Reviews API 404 | Code review (`create_app` comment) | **Open** |
+| Forged JWT `is_admin` / leaked example SECRET_KEY | Code audit | **Fixed** (roles from DB, placeholders ignored) |
+| Unknown Luhn card accepted as paid | Code audit | **Fixed** (only documented test cards) |
+| GET order without auth (IDOR) | Code audit | **Fixed** (owner or admin) |
 
 ## Manual testing table
 
@@ -79,7 +82,7 @@ Use demo users from the README. Mark the result when you walk the jury scenario.
 
 ## Coverage notes
 
-Latest captured run: **23 tests, OK** (`test-evidence/unittest-output.txt`).
+Latest captured run: **44 tests, OK** (`test-evidence/unittest-output.txt`).
 
 `coverage` is measured on the `app` package (templates and static JS are excluded):
 
@@ -88,8 +91,8 @@ Latest captured run: **23 tests, OK** (`test-evidence/unittest-output.txt`).
 | `app/models/order.py` | 100% | Money columns + order JSON |
 | `app/services/demo_accounts.py` | 95% | Demo logins + flower catalog |
 | `app/models/user.py` | 97% | Hash / bcrypt / plaintext |
-| `app/services/checkout_service.py` | 76% | Totals, Luhn, test cards |
+| `app/services/checkout_service.py` | 78% | Totals, Luhn, test cards |
 | `app/api/v1/auth.py` | 79% | Login / register |
-| Whole `app` package | 36% | Unused leftovers (`prices`, `reviews_restx`, Stripe live, old repositories) pull the average down |
+| Whole `app` package | 40% | Unused leftovers (`prices`, `reviews_restx`, Stripe live, old repositories) pull the average down |
 
 Those leftovers are listed under Known Issues in the README.

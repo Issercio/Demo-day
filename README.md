@@ -331,9 +331,9 @@ Flask and Jinja keep pages and API in one process. RESTX provides Swagger. SQLit
 
 ## Testing
 
-Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **23 tests OK** in [`docs/test-evidence/`](docs/test-evidence/).
+Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **44 tests OK** in [`docs/test-evidence/`](docs/test-evidence/).
 
-Covered: registration and login hashing, demo seed (accounts and flower catalog), admin versus customer permissions, public catalog, checkout (success, decline, insufficient funds, invalid PAN, PayPal, subscription line, server-side prices, decimal cents, admin order list).
+Covered: registration and login hashing, demo seed (accounts and flower catalog), admin versus customer permissions, public catalog, checkout (success, decline, insufficient funds, unknown Luhn card, invalid PAN, PayPal, saved card, subscription line, server-side prices, decimal cents, admin order list, order IDOR, spoofed email), privilege escalation (forged JWT, placeholder secret, POST/PUT/register cannot mint admin).
 
 Not covered yet: live Stripe calls, email, browser end-to-end tests, reviews, load tests.
 
