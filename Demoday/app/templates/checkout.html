@@ -458,9 +458,12 @@
             displayCartItems();
         }
 
-        function renderSuccessPayment(order) {
+        function renderSuccessPayment(order, invoice) {
             const methodLabel = getMethodLabel(order.payment_method || selectedPaymentMethod);
             const last4 = order.card_last4 ? ` •••• ${order.card_last4}` : '';
+            const invoiceNote = invoice && invoice.sent
+                ? `<p>Facture envoyée à <strong>${escapeHtml((invoice.to || []).join(', '))}</strong></p>`
+                : `<p>Facture : une copie est prévue pour <strong>9893@holbertonstudents.com</strong>${invoice && invoice.reason ? ` (${escapeHtml(String(invoice.reason))})` : ''}.</p>`;
             document.getElementById('payment-result').innerHTML = `
                 <div class="success">
                     <h3>✅ Paiement validé</h3>
@@ -470,6 +473,7 @@
                     <p>Confirmation : <strong>${escapeHtml(order.email)}</strong></p>
                     <p>Montant : <strong>${Number(order.total_amount).toFixed(2)} €</strong></p>
                     <p>Référence : ${escapeHtml(order.payment_reference || '')}</p>
+                    ${invoiceNote}
                     <p style="margin-top:16px;"><a class="back-to-shop" href="shop.html">Retour boutique</a></p>
                 </div>
             `;
@@ -731,7 +735,7 @@
                 const data = await response.json().catch(() => ({}));
 
                 if (response.status === 201 && data.order) {
-                    renderSuccessPayment(data.order);
+                    renderSuccessPayment(data.order, data.invoice);
                     return;
                 }
 

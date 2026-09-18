@@ -69,6 +69,10 @@ Copy [`.env.example`](.env.example) to `Demoday/.env`. Never commit `.env`. Secr
 | `JWT_SECRET_KEY` | long random string | Reserved JWT secret |
 | `STRIPE_SECRET_KEY` | empty | Leave empty to use test cards |
 | `STRIPE_PUBLISHABLE_KEY` | empty | Leave empty for the classroom demo |
+| `INVOICE_COPY_EMAIL` | `9893@holbertonstudents.com` | Every paid invoice is copied here |
+| `MAIL_SERVER` | `smtp.gmail.com` | SMTP host (required to actually send) |
+| `MAIL_USERNAME` | your Gmail address | SMTP login |
+| `MAIL_PASSWORD` | Gmail app password | SMTP secret, never commit |
 
 ### Demo accounts
 
@@ -81,6 +85,8 @@ Copy [`.env.example`](.env.example) to `Demoday/.env`. Never commit `.env`. Secr
 Successful payment: `4242 4242 4242 4242`, any future expiry, CVC `123`.  
 Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
 
+After a paid order the shop emails a HTML invoice to the buyer **and** to `9893@holbertonstudents.com`. That copy is sent for customer checkouts and for purchases made while logged in as admin. The florist can also click **Envoyer la facture** on `/admin.html`. Fill `MAIL_USERNAME` and `MAIL_PASSWORD` (Gmail app password) or the message is not delivered.
+
 ---
 
 ## Implemented user stories
@@ -91,6 +97,7 @@ Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
 | Customer | Browse products by category | Must have |
 | Customer | Order flowers online and pay | Must have |
 | Customer | Keep a cart that does not leak to another account | Must have |
+| Customer / florist | Receive an invoice by email after a paid order | Must have |
 | Customer | Subscribe to a floral plan (monthly, semester, yearly) | Should have |
 | Customer | Filter the catalog by minimum and maximum price | Shop filter |
 | Florist | Add, update and delete products and categories | Must have |
@@ -131,10 +138,12 @@ Resolved:
 - Profile / logout menu stretching the navbar — compact overlay under the account icon
 - Empty shop on a fresh database — demo bouquets and compositions are seeded on startup
 - Virtualenv and a Stripe publishable key in Git — removed
+- Paid invoices emailed to the buyer and `9893@holbertonstudents.com` (client and admin checkouts; admin can resend from the back-office)
 
 Open, none of them block a purchase:
 
 - Forgot-password and verify-code pages do not send email
+- Invoices need `MAIL_USERNAME` / `MAIL_PASSWORD` in `Demoday/.env` or SMTP is skipped
 - Reviews API is not registered
 - The cart lives in `localStorage`, not in a server table
 - The `prices` table is unused (`products.price` is the source of truth)
@@ -286,6 +295,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | GET | `/api/v1/payments/config` | public | `test` or `stripe` mode |
 | POST | `/api/v1/payments/checkout` | optional JWT | Create a paid or failed order |
 | GET | `/api/v1/payments/orders` | admin JWT | List orders |
+| POST | `/api/v1/payments/orders/<id>/invoice` | admin JWT | Resend the invoice email |
 
 ---
 

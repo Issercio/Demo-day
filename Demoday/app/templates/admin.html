@@ -262,6 +262,7 @@
                         <th>Statut</th>
                         <th>Méthode</th>
                         <th>Articles</th>
+                        <th>Facture</th>
                     </tr>
                 </thead>
                 <tbody id="orders-list">
@@ -363,13 +364,13 @@
                     return;
                 }
                 if (!response.ok) {
-                    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#dc3545;">Impossible de charger les commandes</td></tr>';
+                    body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#dc3545;">Impossible de charger les commandes</td></tr>';
                     return;
                 }
                 const payload = await response.json();
                 const orders = payload.orders || [];
                 if (orders.length === 0) {
-                    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#bc6288;">Aucune commande pour le moment</td></tr>';
+                    body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#bc6288;">Aucune commande pour le moment</td></tr>';
                     return;
                 }
                 body.innerHTML = orders.map((order) => {
@@ -381,6 +382,9 @@
                     const method = order.payment_method || '-';
                     const last4 = order.card_last4 ? ` •••• ${order.card_last4}` : '';
                     const created = order.created_at ? order.created_at.replace('T', ' ').slice(0, 16) : '';
+                    const invoiceBtn = order.status === 'paid'
+                        ? `<button class="btn" type="button" onclick="resendInvoice(${order.id})">Envoyer la facture</button>`
+                        : '-';
                     return `
                         <tr>
                             <td>#${order.id}</td>
@@ -390,11 +394,34 @@
                             <td style="color:${statusColor};font-weight:700;">${order.status}</td>
                             <td>${method}${last4}<br><small>${order.payment_reference || ''}</small></td>
                             <td>${items}</td>
+                            <td>${invoiceBtn}</td>
                         </tr>
                     `;
                 }).join('');
             } catch (error) {
-                body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#dc3545;">${error.message}</td></tr>`;
+                body.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#dc3545;">${error.message}</td></tr>`;
+            }
+        }
+
+        async function resendInvoice(orderId) {
+            try {
+                const response = await fetch(`/api/v1/payments/orders/${orderId}/invoice`, {
+                    method: 'POST',
+                    headers: getAdminHeaders()
+                });
+                if (redirectIfForbidden(response)) {
+                    return;
+                }
+                const payload = await response.json();
+                const invoice = payload.invoice || {};
+                if (invoice.sent) {
+                    alert('Facture envoyée à ' + (invoice.to || []).join(', '));
+                } else {
+                    alert('Facture non envoyée : ' + (invoice.reason || response.status) +
+                        '\nConfigurez MAIL_SERVER, MAIL_USERNAME et MAIL_PASSWORD dans Demoday/.env');
+                }
+            } catch (error) {
+                alert(error.message);
             }
         }
 

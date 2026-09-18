@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import patch
 
 os.environ['DATABASE_URL'] = 'sqlite://'
 os.environ['STRIPE_SECRET_KEY'] = ''
@@ -192,6 +193,99 @@ class CheckoutTestCase(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 201, response.get_json())
         self.assertEqual(response.get_json()['order']['total_amount'], 30.30)
+
+    def test_paid_checkout_targets_holberton_invoice_mailbox(self):
+        response = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        self.assertEqual(response.status_code, 201, response.get_json())
+        invoice = response.get_json()['invoice']
+        self.assertIn('marie@test.com', invoice['to'])
+        self.assertIn('9893@holbertonstudents.com', invoice['to'])
+        self.assertEqual(invoice['reason'], 'mail_not_configured')
+        self.assertFalse(invoice['sent'])
+
+    @patch('app.services.invoice_mail.smtplib.SMTP')
+    def test_paid_checkout_sends_invoice_when_smtp_is_configured(self, smtp_cls):
+        self.app.config['MAIL_SERVER'] = 'smtp.example.com'
+        self.app.config['MAIL_PORT'] = 587
+        self.app.config['MAIL_USE_TLS'] = True
+        self.app.config['MAIL_USE_SSL'] = False
+        self.app.config['MAIL_USERNAME'] = 'shop@example.com'
+        self.app.config['MAIL_PASSWORD'] = 'secret'
+        self.app.config['MAIL_FROM'] = 'Pivoine & Lilas <shop@example.com>'
+        self.app.config['INVOICE_COPY_EMAIL'] = '9893@holbertonstudents.com'
+        smtp = smtp_cls.return_value
+        response = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        self.assertEqual(response.status_code, 201, response.get_json())
+        self.assertTrue(response.get_json()['invoice']['sent'])
+        smtp.starttls.assert_called()
+        smtp.login.assert_called_once_with('shop@example.com', 'secret')
+        _from, to_addrs, raw = smtp.sendmail.call_args[0]
+        self.assertIn('marie@test.com', to_addrs)
+        self.assertIn('9893@holbertonstudents.com', to_addrs)
+        self.assertIn('9893@holbertonstudents.com', raw)
+        self.assertIn('Pivoine', raw)
+
+    def test_client_cannot_resend_invoice(self):
+        paid = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        order_id = paid.get_json()['order']['id']
+        token = self.login('marie@test.com', 'marie123')
+        response = self.client.post(
+            f'/api/v1/payments/orders/{order_id}/invoice',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 403)
+
+    @patch('app.services.invoice_mail.smtplib.SMTP')
+    def test_admin_can_resend_invoice(self, smtp_cls):
+        self.app.config['MAIL_SERVER'] = 'smtp.example.com'
+        self.app.config['MAIL_USERNAME'] = 'shop@example.com'
+        self.app.config['MAIL_PASSWORD'] = 'secret'
+        self.app.config['MAIL_USE_TLS'] = False
+        smtp_cls.return_value.sendmail.return_value = {}
+        paid = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'admin@florashop.com',
+            'name': 'Admin Florist',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        order_id = paid.get_json()['order']['id']
+        token = self.login('admin@florashop.com', 'admin123')
+        response = self.client.post(
+            f'/api/v1/payments/orders/{order_id}/invoice',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 200, response.get_json())
+        invoice = response.get_json()['invoice']
+        self.assertTrue(invoice['sent'])
+        self.assertIn('9893@holbertonstudents.com', invoice['to'])
+        self.assertIn('admin@florashop.com', invoice['to'])
 
 
 if __name__ == '__main__':
