@@ -33,7 +33,8 @@ def resolve_secret_key():
     secret_path = os.path.join(instance_dir, 'secret_key')
     try:
         if os.path.isfile(secret_path):
-            stored = open(secret_path, encoding='utf-8').read().strip()
+            with open(secret_path, encoding='utf-8') as handle:
+                stored = handle.read().strip()
             if len(stored) >= 32:
                 return stored
         os.makedirs(instance_dir, exist_ok=True)
