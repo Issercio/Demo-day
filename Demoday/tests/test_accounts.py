@@ -194,10 +194,15 @@ class AccountsTestCase(unittest.TestCase):
 
     def test_shop_uses_wrapping_product_grid(self):
         from pathlib import Path
-        html = Path(__file__).resolve().parents[1].joinpath('app/templates/shop.html').read_text()
+        root = Path(__file__).resolve().parents[1]
+        html = root.joinpath('app/templates/shop.html').read_text()
+        css = root.joinpath('app/static/css/style.css').read_text()
         self.assertNotIn('products-carousel', html)
         self.assertNotIn('scrollCarousel', html)
         self.assertIn('repeat(auto-fill, minmax(210px, 1fr))', html)
+        self.assertIn('repeat(auto-fill, minmax(210px, 1fr))', css)
+        shop_block = css.split('.shop-container {', 1)[1].split('}', 1)[0]
+        self.assertNotIn('overflow-x: hidden', shop_block)
 
 
 if __name__ == '__main__':

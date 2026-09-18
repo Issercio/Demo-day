@@ -415,7 +415,6 @@ body, .main-content, .shop-container {
     gap: 0;
     background: #f8f5f2;
     min-height: calc(100vh - 90px);
-    overflow-x: hidden;
 }
 
 /* --- Sidebar filters --- */
@@ -696,9 +695,10 @@ body, .main-content, .shop-container {
 
 .products-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 1.1rem;
     padding: 1rem 0;
+    overflow: visible;
 }
 
 .product-card {
