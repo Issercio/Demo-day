@@ -37,7 +37,7 @@ Postman collection for live API clicks: [postman/FloraShop.postman_collection.js
 
 | File | Critical path |
 | --- | --- |
-| `tests/test_accounts.py` | Demo client seed, flower catalog seed, register hashes + hides password, plaintext then rehash, legacy bcrypt login, unusable Marie hash reset |
+| `tests/test_accounts.py` | Demo client seed, flower catalog seed, register hashes + hides password, plaintext then rehash, legacy bcrypt login, unusable Marie hash reset, admin vitrine seasons/themes apply to the shop |
 | `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET, Admin-Token rejected, forged JWT `is_admin` ignored, POST/PUT cannot mint admin, register cannot mint admin, client cannot read/delete another user, placeholder SECRET_KEY cannot impersonate admin, debug categories 403 |
 | `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds / unknown Luhn card, invalid PAN, subscription line, PayPal, saved card, empty cart, unknown product, invalid JWT, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30`, order IDOR (401/200/403/404), spoofed checkout email ignored |
 
@@ -82,7 +82,7 @@ Use demo users from the README. Mark the result when you walk the jury scenario.
 
 ## Coverage notes
 
-Latest captured run: **44 tests, OK** (`test-evidence/unittest-output.txt`).
+Latest captured run: **61 tests, OK** (`test-evidence/unittest-output.txt`).
 
 `coverage` is measured on the `app` package (templates and static JS are excluded):
 

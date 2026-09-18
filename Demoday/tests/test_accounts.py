@@ -272,6 +272,8 @@ class AccountsTestCase(unittest.TestCase):
         self.assertNotIn('applyThemeFromUrl', shop)
         self.assertNotIn('Tous les bouquets', shop)
         self.assertNotIn('clearShopTheme', shop)
+        self.assertNotIn('Boutique en construction', shop)
+        self.assertIn('Chargement des bouquets', shop)
         self.assertNotIn('shop.html?theme=', home)
 
     def test_themes_api_and_product_filter(self):

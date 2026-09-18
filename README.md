@@ -246,6 +246,8 @@ classDiagram
     +Decimal price
     +int category_id
     +bool is_on_sale
+    +str color
+    +str image
   }
   class Category {
     +int id
@@ -279,7 +281,8 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | --- | --- | --- | --- |
 | POST | `/api/v1/auth/register` | public | Create user, return JWT |
 | POST | `/api/v1/auth/login` | public | Sign in |
-| GET | `/api/v1/products` | public | List catalog |
+| GET | `/api/v1/themes` | public | List seasons/themes and the applied shop vitrine |
+| PUT | `/api/v1/themes` | admin JWT | Apply a season or theme to the live shop |
 | POST | `/api/v1/products` | admin JWT | Create product |
 | PUT / DELETE | `/api/v1/products/<id>` | admin JWT | Update or delete product |
 | GET | `/api/v1/categories` | public | List categories |
@@ -333,7 +336,7 @@ Flask and Jinja keep pages and API in one process. RESTX provides Swagger. SQLit
 
 ## Testing
 
-Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **44 tests OK** in [`docs/test-evidence/`](docs/test-evidence/).
+Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **61 tests OK** in [`docs/test-evidence/`](docs/test-evidence/).
 
 Covered: registration and login hashing, demo seed (accounts and flower catalog), admin versus customer permissions, public catalog, checkout (success, decline, insufficient funds, unknown Luhn card, invalid PAN, PayPal, saved card, subscription line, server-side prices, decimal cents, admin order list, order IDOR, spoofed email), privilege escalation (forged JWT, placeholder secret, POST/PUT/register cannot mint admin).
 

@@ -165,7 +165,7 @@ def get_product(product_id):
 # Route GET spécifique pour une catégorie
 @api_bp.route('/categories/<int:category_id>', methods=['GET'])
 def get_category(category_id):
-    category = Category.query.get(category_id)
+    category = db.session.get(Category, category_id)
     if not category:
         return jsonify({'error': 'Catégorie non trouvée'}), 404
     return jsonify({
@@ -325,7 +325,7 @@ def update_category(category_id):
         if not data or not data.get('name'):
             return jsonify({'error': 'Le nom de la catégorie est requis'}), 400
         
-        category = Category.query.get(category_id)
+        category = db.session.get(Category, category_id)
         if not category:
             print(f"Catégorie avec ID {category_id} non trouvée")
             return jsonify({'error': 'Catégorie non trouvée'}), 404
@@ -376,7 +376,7 @@ def delete_category(category_id):
         if not isinstance(category_id, int) or category_id <= 0:
             return jsonify({'error': 'ID de catégorie invalide'}), 400
         
-        category = Category.query.get(category_id)
+        category = db.session.get(Category, category_id)
         if not category:
             print(f"Catégorie avec ID {category_id} non trouvée")
             return jsonify({'error': 'Catégorie non trouvée'}), 404
@@ -421,7 +421,7 @@ def products():
                 if not data or data.get(field) in (None, ''):
                     return jsonify({'error': f'Le champ {field} est requis'}), 400
             
-            category = Category.query.get(int(data['category_id']))
+            category = db.session.get(Category, int(data['category_id']))
             if not category:
                 return jsonify({'error': 'Catégorie non trouvée'}), 404
 
@@ -486,7 +486,7 @@ def update_product(product_id):
         if not data and not image_file:
             return jsonify({'error': 'Données requises'}), 400
         
-        product = Product.query.get(int(product_id))
+        product = db.session.get(Product, int(product_id))
         if not product:
             return jsonify({'error': 'Produit non trouvé'}), 404
             
@@ -496,7 +496,7 @@ def update_product(product_id):
         if data.get('price') not in (None, ''):
             product.price = float(data['price'])
         if data.get('category_id') not in (None, ''):
-            category = Category.query.get(int(data['category_id']))
+            category = db.session.get(Category, int(data['category_id']))
             if not category:
                 return jsonify({'error': 'Catégorie non trouvée'}), 404
             product.category_id = int(data['category_id'])
@@ -528,7 +528,7 @@ def delete_product(product_id):
     if denied:
         return denied
     try:
-        product = Product.query.get(product_id)
+        product = db.session.get(Product, product_id)
         if not product:
             return jsonify({'error': 'Produit non trouvé'}), 404
         

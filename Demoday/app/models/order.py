@@ -1,5 +1,5 @@
 from app.extensions import db
-from datetime import datetime
+from app.models.base_model import utc_now
 
 class Order(db.Model):
     __tablename__ = 'orders'
@@ -14,7 +14,7 @@ class Order(db.Model):
     card_last4 = db.Column(db.String(4), nullable=True)
     payment_reference = db.Column(db.String(64), nullable=True)
     status = db.Column(db.String(50), default='pending')  # pending, paid, failed, cancelled
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
     
     # Relations
     order_items = db.relationship('OrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
