@@ -114,10 +114,15 @@ nav li:has(#profile-link) {
 
 #admin-access a,
 .admin-nav-link {
-    color: var(--vintage-main) !important;
     font-weight: 700;
-    letter-spacing: 0.06em;
-    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+}
+
+#admin-access a.active,
+#admin-access a:hover,
+.admin-nav-link.active,
+.admin-nav-link:hover {
+    color: #fff !important;
 }
 
 #user-email {

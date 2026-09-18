@@ -208,6 +208,22 @@ class AdminGuardTestCase(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 403)
 
+    def test_secret_key_survives_app_restart(self):
+        from app import create_app
+        first = create_app().config['SECRET_KEY']
+        second = create_app().config['SECRET_KEY']
+        self.assertEqual(first, second)
+        self.assertGreaterEqual(len(first), 32)
+
+    def test_admin_page_stays_clean_without_popup(self):
+        html = self.client.get('/admin.html').get_data(as_text=True)
+        self.assertEqual(self.client.get('/admin.html').status_code, 200)
+        self.assertIn('Administration du catalogue', html)
+        self.assertIn('id="admin-notice"', html)
+        self.assertNotIn("alert('Accès réservé aux administrateurs')", html)
+        self.assertIn('Accueil', html)
+        self.assertNotIn('ÉVÈNEMENTIEL', html)
+
 
 if __name__ == '__main__':
     unittest.main()

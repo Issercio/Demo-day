@@ -20,12 +20,43 @@
     <link rel="stylesheet" href="../static/css/style.css">
     <style>
         .admin-container {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 20px;
+            max-width: 1100px;
+            margin: 12px auto 40px auto;
+            padding: 24px 28px 32px 28px;
             background: #fff;
             border-radius: 12px;
             box-shadow: 0 2px 12px rgba(188,98,136,0.07);
+        }
+
+        .admin-notice {
+            margin: 0 0 20px 0;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.98rem;
+        }
+
+        .admin-notice-success {
+            background: #e8f6ed;
+            color: #1e5a32;
+            border: 1px solid #b7e0c2;
+        }
+
+        .admin-notice-error {
+            background: #fdecee;
+            color: #8a1f2b;
+            border: 1px solid #f3c1c7;
+        }
+
+        .admin-notice-info {
+            background: #f8f0f4;
+            color: #6c4a58;
+            border: 1px solid #e7d6d6;
+        }
+
+        .admin-header .logo {
+            width: 88px;
+            height: 72px;
+            margin: 8px auto 6px auto;
         }
         
         .admin-section {
@@ -155,21 +186,15 @@
         }
     </style>
 </head>
-<body>
-    <header>
+<body class="admin-page">
+    <header class="admin-header">
         <img class="logo" src="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6~mv2.png/v1/crop/x_748,y_1016,w_3355,h_2788/fill/w_239,h_198,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20P%26L%20Rond%20neutre%20pour%20fond%20clairsans%20fond%20-%20by%20fadamentalpics.png" alt="Logo pivoine & lilas, artisan fleuriste" width="120" height="100">
         <nav>
             <ul>
-                <li><a href="accueil.html">ACCUEIL</a></li>
-                <li><a href="shop.html">SHOP</a></li>
-                <li><a href="evenementiel.html">ÉVÈNEMENTIEL</a></li>
-                <li><a href="entreprises.html">ENTREPRISES</a></li>
-                <li><a href="portfolio.html">PORTFOLIO</a></li>
-                <li><a href="contact.html">CONTACT</a></li>
-                <li><a href="subscription.html">ABONNEMENT</a></li>
-                <li><a href="panier.html">🛒</a></li>
+                <li><a href="accueil.html">Accueil</a></li>
+                <li><a href="shop.html">Boutique</a></li>
                 <li id="admin-access">
-                    <a href="admin.html" class="admin-nav-link active" title="Administration">ADMIN</a>
+                    <a href="admin.html" class="admin-nav-link active" title="Administration">Administration</a>
                 </li>
                 <li style="position:relative;">
                     <a href="#" id="profile-link" style="font-size:22px;vertical-align:middle;">👤</a>
@@ -185,7 +210,8 @@
     </header>
 
     <div class="admin-container">
-        <h1 style="text-align: center; color: #bc6288; margin-bottom: 30px;">Interface d'Administration</h1>
+        <h1 style="text-align: center; color: #bc6288; margin-bottom: 18px;">Administration du catalogue</h1>
+        <p id="admin-notice" class="admin-notice" hidden></p>
 
         <!-- SECTION CATÉGORIES -->
         <div class="admin-section">
@@ -298,6 +324,19 @@
                 .replace(/'/g, '&#39;');
         }
 
+        function showNotice(message, type) {
+            const el = document.getElementById('admin-notice');
+            if (!el) {
+                return;
+            }
+            el.hidden = !message;
+            if (!message) {
+                return;
+            }
+            el.textContent = message;
+            el.className = 'admin-notice admin-notice-' + (type || 'info');
+        }
+
         function getAdminHeaders() {
             const token = localStorage.getItem('auth_token') || '';
             return {
@@ -313,13 +352,15 @@
             return payload.error || payload.message || fallback;
         }
 
-        function redirectIfForbidden(response) {
-            if (response.status === 401 || response.status === 403) {
-                alert('Accès réservé aux administrateurs');
-                window.location.replace('accueil.html');
-                return true;
+        function sessionBlocked(response) {
+            if (response.status !== 401 && response.status !== 403) {
+                return false;
             }
-            return false;
+            const reconnect = response.status === 401
+                ? 'Session expirée. Reconnectez-vous pour modifier le catalogue.'
+                : 'Ce compte ne peut pas modifier le catalogue.';
+            showNotice(reconnect, 'error');
+            return true;
         }
 
         function isAdminSession() {
@@ -370,7 +411,7 @@
                 console.log('=== FIN CHARGEMENT ===');
             } catch (error) {
                 console.error('Erreur lors du chargement des données:', error);
-                alert('Erreur lors du chargement des données: ' + error.message);
+                showNotice('Erreur lors du chargement des données: ' + error.message, 'error');
             }
         }
 
@@ -380,7 +421,8 @@
                 const response = await fetch('/api/v1/payments/orders', {
                     headers: getAdminHeaders()
                 });
-                if (redirectIfForbidden(response)) {
+                if (sessionBlocked(response)) {
+                    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#bc6288;">Commandes indisponibles pour cette session.</td></tr>';
                     return;
                 }
                 if (!response.ok) {
@@ -423,7 +465,7 @@
         async function createCategory() {
             const name = document.getElementById('category-name').value.trim();
             if (!name) {
-                alert('Le nom de la catégorie est requis');
+                showNotice('Le nom de la catégorie est requis', 'error');
                 return;
             }
 
@@ -438,7 +480,7 @@
                 });
 
                 console.log('Réponse status:', response.status);
-                if (redirectIfForbidden(response)) {
+                if (sessionBlocked(response)) {
                     return;
                 }
                 const responseText = await response.text();
@@ -449,7 +491,7 @@
                     console.log('Catégorie créée:', result);
                     document.getElementById('category-name').value = '';
                     await loadData();
-                    alert('Catégorie créée avec succès !');
+                    showNotice('Catégorie créée.', 'success');
                 } else {
                     let errorMessage = 'Erreur inconnue';
                     try {
@@ -459,11 +501,11 @@
                         errorMessage = responseText || errorMessage;
                     }
                     console.error('Erreur création:', errorMessage);
-                    alert('Erreur: ' + errorMessage);
+                    showNotice('Erreur: ' + errorMessage, 'error');
                 }
             } catch (error) {
                 console.error('Erreur réseau:', error);
-                alert('Erreur de communication avec le serveur: ' + error.message);
+                showNotice('Erreur de communication avec le serveur: ' + error.message, 'error');
             }
         }
 
@@ -474,7 +516,7 @@
             const categoryId = document.getElementById('product-category').value;
 
             if (!name || !price || !categoryId) {
-                alert('Tous les champs sont requis');
+                showNotice('Tous les champs sont requis', 'error');
                 return;
             }
 
@@ -493,7 +535,7 @@
                 });
 
                 console.log('Réponse status:', response.status);
-                if (redirectIfForbidden(response)) {
+                if (sessionBlocked(response)) {
                     return;
                 }
                 const responseText = await response.text();
@@ -506,7 +548,7 @@
                     document.getElementById('product-price').value = '';
                     document.getElementById('product-category').value = '';
                     await loadData();
-                    alert('Produit créé avec succès !');
+                    showNotice('Produit créé.', 'success');
                 } else {
                     let errorMessage = 'Erreur inconnue';
                     try {
@@ -516,11 +558,11 @@
                         errorMessage = responseText || errorMessage;
                     }
                     console.error('Erreur création produit:', errorMessage);
-                    alert('Erreur: ' + errorMessage);
+                    showNotice('Erreur: ' + errorMessage, 'error');
                 }
             } catch (error) {
                 console.error('Erreur réseau produit:', error);
-                alert('Erreur de communication avec le serveur: ' + error.message);
+                showNotice('Erreur de communication avec le serveur: ' + error.message, 'error');
             }
         }
 
@@ -618,20 +660,20 @@
                     body: JSON.stringify({ name: newName })
                 });
 
-                if (redirectIfForbidden(response)) {
+                if (sessionBlocked(response)) {
                     return;
                 }
                 
                 if (response.ok) {
                     await loadData();
-                    alert('Catégorie modifiée avec succès !');
+                    showNotice('Catégorie modifiée.', 'success');
                 } else {
                     const error = await response.json();
-                    alert('Erreur: ' + apiErrorMessage(error, 'Erreur inconnue'));
+                    showNotice('Erreur: ' + apiErrorMessage(error, 'Erreur inconnue'), 'error');
                 }
             } catch (error) {
                 console.error('Erreur modification catégorie:', error);
-                alert('Erreur de communication');
+                showNotice('Erreur de communication', 'error');
             }
         }
 
@@ -643,20 +685,20 @@
                         headers: getAdminHeaders()
                     });
 
-                    if (redirectIfForbidden(response)) {
+                    if (sessionBlocked(response)) {
                         return;
                     }
                     
                     if (response.ok) {
                         await loadData();
-                        alert('Catégorie supprimée avec succès !');
+                        showNotice('Catégorie supprimée.', 'success');
                     } else {
                         const error = await response.json();
-                        alert('Erreur: ' + apiErrorMessage(error, 'Erreur inconnue'));
+                        showNotice('Erreur: ' + apiErrorMessage(error, 'Erreur inconnue'), 'error');
                     }
                 } catch (error) {
                     console.error('Erreur suppression catégorie:', error);
-                    alert('Erreur de communication');
+                    showNotice('Erreur de communication', 'error');
                 }
             }
         }
@@ -709,20 +751,20 @@
                     })
                 });
 
-                if (redirectIfForbidden(response)) {
+                if (sessionBlocked(response)) {
                     return;
                 }
                 
                 if (response.ok) {
                     await loadData();
-                    alert('Produit modifié avec succès !');
+                    showNotice('Produit modifié.', 'success');
                 } else {
                     const error = await response.json();
-                    alert('Erreur: ' + apiErrorMessage(error, 'Erreur inconnue'));
+                    showNotice('Erreur: ' + apiErrorMessage(error, 'Erreur inconnue'), 'error');
                 }
             } catch (error) {
                 console.error('Erreur modification produit:', error);
-                alert('Erreur de communication');
+                showNotice('Erreur de communication', 'error');
             }
         }
 
@@ -734,20 +776,20 @@
                         headers: getAdminHeaders()
                     });
 
-                    if (redirectIfForbidden(response)) {
+                    if (sessionBlocked(response)) {
                         return;
                     }
                     
                     if (response.ok) {
                         await loadData();
-                        alert('Produit supprimé avec succès !');
+                        showNotice('Produit supprimé.', 'success');
                     } else {
                         const error = await response.json();
-                        alert('Erreur: ' + apiErrorMessage(error, 'Erreur inconnue'));
+                        showNotice('Erreur: ' + apiErrorMessage(error, 'Erreur inconnue'), 'error');
                     }
                 } catch (error) {
                     console.error('Erreur suppression produit:', error);
-                    alert('Erreur de communication');
+                    showNotice('Erreur de communication', 'error');
                 }
             }
         }

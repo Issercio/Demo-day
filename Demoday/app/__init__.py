@@ -20,11 +20,30 @@ PLACEHOLDER_SECRET_KEYS = {
 
 
 def resolve_secret_key():
-    """Ignore published placeholders so a JWT cannot be forged from the repo."""
+    """Ignore published placeholders so a JWT cannot be forged from the repo.
+
+    A generated key is stored in instance/secret_key so a local restart does
+    not invalidate the florist's session (and pop an admin 401 overlay).
+    """
     key = (os.environ.get('SECRET_KEY') or '').strip()
-    if key in PLACEHOLDER_SECRET_KEYS or len(key) < 32:
+    if key not in PLACEHOLDER_SECRET_KEYS and len(key) >= 32:
+        return key
+
+    instance_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'instance'))
+    secret_path = os.path.join(instance_dir, 'secret_key')
+    try:
+        if os.path.isfile(secret_path):
+            stored = open(secret_path, encoding='utf-8').read().strip()
+            if len(stored) >= 32:
+                return stored
+        os.makedirs(instance_dir, exist_ok=True)
+        generated = os.urandom(32).hex()
+        fd = os.open(secret_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+            handle.write(generated)
+        return generated
+    except OSError:
         return os.urandom(32).hex()
-    return key
 
 
 def create_app():
