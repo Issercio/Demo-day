@@ -1,0 +1,57 @@
+# Secrets and local config
+.env
+.env.local
+.env.production
+.env.*.local
+!.env.example
+
+# Python virtual environments (never commit these)
+venv/
+.venv/
+ENV/
+env/
+virtualenv/
+pythonenv/
+
+# Bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.tox/
+.nox/
+.hypothesis/
+
+# Coverage generated at the repo root (committed evidence lives in docs/)
+.coverage
+htmlcov/
+coverage.xml
+
+# Local databases and Flask instance folder
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# Private keys and certificates
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+
+# Logs and OS/IDE noise
+*.log
+logs/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Packaging
+dist/
+build/
+*.egg-info/
+node_modules/

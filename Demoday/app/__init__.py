@@ -98,12 +98,20 @@ def create_app():
     
     return app
 
-# ----------- Fonction de test de la base de données (optionnelle) -----------
+# ----------- Optional PostgreSQL connectivity check (not used at request time) -----------
 
-import psycopg2
-from psycopg2.extras import DictCursor
+try:
+    import psycopg2
+    from psycopg2.extras import DictCursor
+except ImportError:
+    psycopg2 = None
+    DictCursor = None
 
 def test_database_connection():
+    if psycopg2 is None:
+        print('psycopg2 is not installed. This helper is only for PostgreSQL.')
+        return False
+
     print(f"Tentative de connexion à la base de données:")
     print(f"Host: {os.getenv('DB_HOST')}")
     print(f"Port: {os.getenv('DB_PORT')}")

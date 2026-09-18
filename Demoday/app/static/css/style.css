@@ -42,7 +42,7 @@ header {
 
 .logo {
     display: block;
-    margin: 60px auto 10px auto;
+    margin: 12px auto 10px auto;
     border-radius: 50%;
     box-shadow: var(--vintage-shadow);
     width: 110px;
@@ -62,13 +62,11 @@ nav {
     border-top: none;
     border-bottom: 2px solid var(--vintage-main);
     background: var(--vintage-card);
-    position: fixed;
+    position: sticky;
     top: 0;
-    left: 0;
-    right: 0;
     z-index: 1000;
-    min-height: 90px;
-    height: 90px;
+    min-height: 72px;
+    height: auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -86,13 +84,14 @@ nav ul {
     margin: 0 auto;
     padding: 0 18px;
     align-items: center;
-    height: 90px;
+    min-height: 72px;
+    height: auto;
     min-width: max-content;
 }
 
 #profile-panel {
-    position: fixed !important;
-    top: 98px !important;
+    position: absolute !important;
+    top: 76px !important;
     right: 16px !important;
     min-width: 260px !important;
     max-width: 320px;
@@ -276,13 +275,13 @@ nav {
     border-top: none;
     border-bottom: 2px solid #bc6288;
     background: #fff;
-    position: fixed;
+    position: sticky;
     top: 0;
     left: 0;
     right: 0;
     z-index: 1000;
-    min-height: 90px;
-    height: 90px;
+    min-height: 72px;
+    height: auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -299,7 +298,8 @@ nav ul {
     margin: 0 auto;
     padding: 0 18px;
     align-items: center;
-    height: 90px;
+    min-height: 72px;
+    height: auto;
     min-width: max-content;
 }
 

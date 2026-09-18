@@ -1,6 +1,7 @@
 """Server-side checkout: catalog prices, test cards, optional Stripe."""
 
 from datetime import datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
 import re
 import uuid
 
@@ -15,21 +16,21 @@ SUBSCRIPTION_PLANS = {
     'monthly': {
         'slug': 'monthly',
         'name': 'Abonnement Éclat Mensuel',
-        'price': 19.99,
+        'price': Decimal('19.99'),
         'duration': '1 mois',
         'cart_id': 'subscription_monthly',
     },
     'semester': {
         'slug': 'semester',
         'name': 'Abonnement Harmonie Semestrielle',
-        'price': 17.99,
+        'price': Decimal('17.99'),
         'duration': '6 mois',
         'cart_id': 'subscription_semester',
     },
     'yearly': {
         'slug': 'yearly',
         'name': 'Abonnement Collection Annuelle',
-        'price': 14.99,
+        'price': Decimal('14.99'),
         'duration': '12 mois',
         'cart_id': 'subscription_yearly',
     },
@@ -211,13 +212,21 @@ def _subscription_slug(item):
     return None
 
 
+CENTS = Decimal('0.01')
+
+
+def money(value):
+    """Round euro amounts to 2 decimals. Avoids binary float (0.1 + 0.2) errors."""
+    return Decimal(str(value)).quantize(CENTS, rounding=ROUND_HALF_UP)
+
+
 def build_order_lines(items):
     if not items:
         raise ValueError('Au moins un article est requis.')
 
     catalog = ensure_subscription_catalog()
     lines = []
-    total = 0.0
+    total = Decimal('0.00')
 
     for item in items:
         try:
@@ -242,7 +251,7 @@ def build_order_lines(items):
             if product.name in {plan['name'] for plan in SUBSCRIPTION_PLANS.values()}:
                 pass
 
-        unit_price = round(float(product.price), 2)
+        unit_price = money(product.price)
         total += unit_price * quantity
         lines.append({
             'product': product,
@@ -250,7 +259,7 @@ def build_order_lines(items):
             'price': unit_price,
         })
 
-    return lines, round(total, 2)
+    return lines, money(total)
 
 
 def _persist_order(email, name, user_id, total, method, status, card_last4, reference, stripe_id, lines):

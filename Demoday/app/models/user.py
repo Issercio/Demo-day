@@ -1,7 +1,7 @@
 from app.extensions import db
 from werkzeug.security import check_password_hash, generate_password_hash
 
-# Anciennes bases (recreate_db.py) stockaient du bcrypt $2b$...
+# Older databases stored bcrypt $2b$... hashes.
 # Werkzeug, lui, préfixe pbkdf2: / scrypt: / argon2:
 MODERN_HASH_PREFIXES = ('pbkdf2:', 'scrypt:', 'argon2:')
 BCRYPT_PREFIXES = ('$2a$', '$2b$', '$2y$')

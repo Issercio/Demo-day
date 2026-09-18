@@ -1,0 +1,47 @@
+Name                                       Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------
+app/__init__.py                               92     49    47%   96-97, 106-108, 111-172, 175
+app/__main__.py                                8      8     0%   1-10
+app/api/__init__.py                            0      0   100%
+app/api/v1/__init__.py                         0      0   100%
+app/api/v1/auth.py                            56     12    79%   47, 51, 66-68, 82, 85, 88, 109-112
+app/api/v1/auth_utils.py                      65     27    58%   10, 29-32, 50-51, 54, 60-67, 74-84
+app/api/v1/categories.py                      72     72     0%   1-108
+app/api/v1/categories_restx.py               119     93    22%   22-40, 47-80, 87-104, 111-147, 152-181
+app/api/v1/payments.py                       118     72    39%   21-22, 29-32, 62-64, 72-111, 119-141, 149-168, 176-187, 205-207
+app/api/v1/prices.py                          17     17     0%   1-24
+app/api/v1/products.py                        13     13     0%   1-23
+app/api/v1/products_restx.py                 112     87    22%   23-43, 50-92, 99-112, 119-149, 154-176
+app/api/v1/reviews.py                          0      0   100%
+app/api/v1/reviews_restx.py                   44     44     0%   1-71
+app/api/v1/special_offers.py                   8      8     0%   1-18
+app/api/v1/users.py                           21     21     0%   1-39
+app/api/v1/users_restx.py                     69     40    42%   37, 44-64, 72-75, 81-94, 98-103
+app/commands.py                               20     20     0%   1-27
+app/extensions.py                              2      0   100%
+app/forms.py                                  13     13     0%   1-16
+app/models/__init__.py                        14      0   100%
+app/models/association_tables.py               0      0   100%
+app/models/base_model.py                       7      7     0%   1-10
+app/models/category.py                        16      4    75%   19-22, 29
+app/models/order.py                           28      0   100%
+app/models/price.py                           10     10     0%   3-16
+app/models/review.py                           8      8     0%   1-10
+app/models/user.py                            30      1    97%   21
+app/persistence/__init__.py                    4      4     0%   1-4
+app/persistence/category_repository.py        90     90     0%   1-125
+app/persistence/price_repository.py            6      6     0%   1-8
+app/persistence/product_repository.py          4      4     0%   1-5
+app/persistence/repository.py                  0      0   100%
+app/persistence/review_repository.py           0      0   100%
+app/persistence/sqlalchemy_repository.py       0      0   100%
+app/persistence/user_repository.py             0      0   100%
+app/routes.py                                298    217    27%   54, 98, 102, 105-107, 119-138, 143-146, 159-197, 202-206, 221, 226, 236-237, 252-281, 286-338, 343-383, 389-424, 434-435, 440-480, 485-500, 505-526, 531, 537, 542-548, 553-555
+app/services/__init__.py                       0      0   100%
+app/services/checkout_service.py             206     50    76%   69-75, 100, 111, 131-132, 158-162, 169, 172, 183, 204-207, 211, 225, 234-235, 237, 246-247, 250, 252, 297, 299, 301, 312-327, 336-337
+app/services/demo_accounts.py                 20      0   100%
+app/services/facade.py                         8      8     0%   1-15
+app/services/stripe_service.py                65     65     0%   1-153
+app/services/test.py                           0      0   100%
+------------------------------------------------------------------------
+TOTAL                                       1663   1070    36%

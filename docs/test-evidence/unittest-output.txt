@@ -1,0 +1,34 @@
+test_demo_client_account_is_seeded (test_accounts.AccountsTestCase.test_demo_client_account_is_seeded) ... /home/ubuntu/.local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3592: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+ok
+test_demo_seed_resets_unusable_marie_password (test_accounts.AccountsTestCase.test_demo_seed_resets_unusable_marie_password) ... ok
+test_login_accepts_legacy_bcrypt_hash (test_accounts.AccountsTestCase.test_login_accepts_legacy_bcrypt_hash) ... ok
+test_login_accepts_legacy_plaintext_then_rehashes (test_accounts.AccountsTestCase.test_login_accepts_legacy_plaintext_then_rehashes) ... ok
+test_register_hashes_password_and_hides_it (test_accounts.AccountsTestCase.test_register_hashes_password_and_hides_it) ... ok
+test_admin_can_create_category (test_admin_guard.AdminGuardTestCase.test_admin_can_create_category) ... ok
+test_anonymous_cannot_create_category (test_admin_guard.AdminGuardTestCase.test_anonymous_cannot_create_category) ... ok
+test_client_cannot_create_category (test_admin_guard.AdminGuardTestCase.test_client_cannot_create_category) ... ok
+test_shop_catalog_stays_public (test_admin_guard.AdminGuardTestCase.test_shop_catalog_stays_public) ... ok
+test_user_detail_does_not_leak_password (test_admin_guard.AdminGuardTestCase.test_user_detail_does_not_leak_password) ... ok
+test_user_list_hides_from_client (test_admin_guard.AdminGuardTestCase.test_user_list_hides_from_client) ... ok
+test_admin_can_list_paid_orders (test_checkout.CheckoutTestCase.test_admin_can_list_paid_orders) ... ok
+test_card_success_creates_paid_order (test_checkout.CheckoutTestCase.test_card_success_creates_paid_order) ... ok
+test_checkout_total_uses_decimal_cents (test_checkout.CheckoutTestCase.test_checkout_total_uses_decimal_cents)
+10.10 x 3 must be 30.30, not a binary-float approximation. ... ok
+test_client_cannot_list_orders (test_checkout.CheckoutTestCase.test_client_cannot_list_orders) ... ok
+test_declined_card_records_failed_order (test_checkout.CheckoutTestCase.test_declined_card_records_failed_order) ... ok
+test_insufficient_funds_card (test_checkout.CheckoutTestCase.test_insufficient_funds_card) ... ok
+test_invalid_card_number_rejected (test_checkout.CheckoutTestCase.test_invalid_card_number_rejected) ... ok
+test_payment_config_is_test_mode (test_checkout.CheckoutTestCase.test_payment_config_is_test_mode) ... ok
+test_paypal_creates_paid_order (test_checkout.CheckoutTestCase.test_paypal_creates_paid_order) ... ok
+test_prices_come_from_database_not_client (test_checkout.CheckoutTestCase.test_prices_come_from_database_not_client) ... ok
+test_subscription_line_item (test_checkout.CheckoutTestCase.test_subscription_line_item) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 6.658s
+
+OK
+=== CREATION CATEGORIE ===
+Données reçues: {'name': 'Nouveautés'}
+Catégorie créée avec ID: 2
+Retour API: {'message': 'Catégorie créée avec succès', 'category': {'id': 2, 'name': 'Nouveautés'}}

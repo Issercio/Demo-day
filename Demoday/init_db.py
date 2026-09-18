@@ -1,27 +1,20 @@
+"""Create tables and seed demo accounts (hashed passwords)."""
+
 from app import create_app, db
-from app.models import User
+from app.services.demo_accounts import ensure_demo_accounts
+
 
 def init_db():
     app = create_app()
     with app.app_context():
-        # Drop and recreate all tables
-        db.drop_all()
         db.create_all()
-        
-        try:
-            # Create admin user
-            admin = User(username='admin', email='admin@florashop.com')
-            admin.password = 'adminpassword'  # Uses password property
-            admin.is_admin = True
-            
-            db.session.add(admin)
-            db.session.commit()
-            print("Database initialized successfully")
-            
-        except Exception as e:
-            print(f"Error creating admin user: {e}")
-            db.session.rollback()
-            raise
+        created = ensure_demo_accounts()
+        print('Database tables are ready.')
+        if created:
+            print('Created demo accounts:', ', '.join(created))
+        else:
+            print('Demo accounts already present (passwords re-hashed if needed).')
+
 
 if __name__ == '__main__':
     init_db()

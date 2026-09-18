@@ -177,6 +177,22 @@ class CheckoutTestCase(unittest.TestCase):
         self.assertEqual(len(orders), 1)
         self.assertEqual(orders[0]['email'], 'marie@test.com')
 
+    def test_checkout_total_uses_decimal_cents(self):
+        """10.10 x 3 must be 30.30, not a binary-float approximation."""
+        self.product.price = '10.10'
+        db.session.commit()
+        response = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 3}],
+        })
+        self.assertEqual(response.status_code, 201, response.get_json())
+        self.assertEqual(response.get_json()['order']['total_amount'], 30.30)
+
 
 if __name__ == '__main__':
     unittest.main()

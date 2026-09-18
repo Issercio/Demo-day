@@ -8,7 +8,7 @@ class Order(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Peut être null pour invités
     email = db.Column(db.String(120), nullable=False)  # Email du client
     customer_name = db.Column(db.String(120), nullable=True)
-    total_amount = db.Column(db.Float, nullable=False)  # Montant total en euros
+    total_amount = db.Column(db.Numeric(10, 2), nullable=False)
     stripe_payment_intent_id = db.Column(db.String(255), nullable=True)  # ID du paiement Stripe
     payment_method = db.Column(db.String(50), nullable=True)
     card_last4 = db.Column(db.String(4), nullable=True)
@@ -25,6 +25,7 @@ class Order(db.Model):
             'user_id': self.user_id,
             'email': self.email,
             'customer_name': self.customer_name,
+            # JSON number only; the column is Numeric(10, 2), not a binary float.
             'total_amount': float(self.total_amount),
             'stripe_payment_intent_id': self.stripe_payment_intent_id,
             'payment_method': self.payment_method,
@@ -42,7 +43,7 @@ class OrderItem(db.Model):
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=1)
-    price = db.Column(db.Float, nullable=False)  # Prix au moment de l'achat
+    price = db.Column(db.Numeric(10, 2), nullable=False)
     
     # Relations
     product = db.relationship('Product', backref='order_items')
@@ -52,6 +53,7 @@ class OrderItem(db.Model):
             'id': self.id,
             'product_id': self.product_id,
             'quantity': self.quantity,
+            # JSON number only; the column is Numeric(10, 2), not a binary float.
             'price': float(self.price),
             'product': self.product.to_dict() if self.product else None
         }

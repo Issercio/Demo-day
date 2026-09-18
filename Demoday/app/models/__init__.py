@@ -9,7 +9,7 @@ class Product(db.Model):
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
-    price = db.Column(db.Float, nullable=False)
+    price = db.Column(db.Numeric(10, 2), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id', ondelete='CASCADE'), nullable=True)
     is_on_sale = db.Column(db.Boolean, default=False)
     
@@ -18,6 +18,7 @@ class Product(db.Model):
         return {
             'id': int(self.id),
             'name': str(self.name),
+            # JSON number only; the column is Numeric(10, 2), not a binary float.
             'price': float(self.price),
             'category_id': int(self.category_id) if self.category_id else None,
             'is_on_sale': bool(self.is_on_sale) if hasattr(self, 'is_on_sale') else False,

@@ -7,7 +7,7 @@ class Price(BaseModel):
     __tablename__ = 'prices'
 
     id = db.Column(db.Integer, primary_key=True)
-    amount = db.Column(db.Float, nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     # Ajoute d'autres champs si besoin
