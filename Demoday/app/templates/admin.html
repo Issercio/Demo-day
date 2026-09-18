@@ -272,6 +272,119 @@
             font-size: 0.8rem;
         }
 
+        .orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .order-card {
+            background: #fff;
+            border: 1.5px solid #e7d6d6;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .order-card-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px 16px;
+            padding: 12px 16px;
+            background: #bc6288;
+            color: #fff;
+        }
+
+        .order-card-head strong {
+            font-size: 1.05rem;
+        }
+
+        .order-status {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .order-status.is-paid { background: #d4edda; color: #155724; }
+        .order-status.is-failed { background: #f8d7da; color: #721c24; }
+        .order-status.is-pending { background: #fff3cd; color: #856404; }
+
+        .order-card-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 20px;
+            padding: 14px 16px 8px 16px;
+            color: #5a3d48;
+            font-size: 0.95rem;
+        }
+
+        .order-card-meta dt {
+            color: #bc6288;
+            font-size: 0.72rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .order-card-meta dd {
+            margin: 0;
+        }
+
+        .order-lines {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+
+        .order-lines th,
+        .order-lines td {
+            padding: 10px 12px;
+            text-align: left;
+            border-top: 1px solid #f0e4e8;
+            vertical-align: middle;
+            font-size: 0.92rem;
+        }
+
+        .order-lines th {
+            background: #f8f0f4;
+            color: #bc6288;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .order-line-thumb {
+            width: 44px;
+            height: 44px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1.5px solid #e7d6d6;
+            background: #f8f5f2;
+            vertical-align: middle;
+        }
+
+        .order-line-name {
+            font-weight: 600;
+            color: #5a3d48;
+        }
+
+        .order-line-cat {
+            display: block;
+            color: #9a7a86;
+            font-size: 0.8rem;
+            font-weight: 400;
+        }
+
+        .order-empty {
+            text-align: center;
+            color: #bc6288;
+            padding: 24px 8px;
+        }
+
         .admin-vitrine-lead {
             color: #6c4a58;
             margin: 0 0 12px 0;
@@ -443,25 +556,10 @@
 
         <div class="admin-section">
             <h2>Commandes et paiements</h2>
-            <p style="margin-bottom: 16px; color: #6c4a58;">Les paiements validés apparaissent ici avec le montant recalculé côté serveur.</p>
-            <table class="data-table" id="orders-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Date</th>
-                        <th>Client</th>
-                        <th>Total</th>
-                        <th>Statut</th>
-                        <th>Méthode</th>
-                        <th>Articles</th>
-                    </tr>
-                </thead>
-                <tbody id="orders-list">
-                    <tr>
-                        <td colspan="7" style="text-align: center; color: #bc6288;">Chargement...</td>
-                    </tr>
-                </tbody>
-            </table>
+            <p style="margin-bottom: 16px; color: #6c4a58;">Chaque commande montre le client, le paiement et le détail des articles (quantité, prix unitaire, total ligne).</p>
+            <div id="orders-list" class="orders-list">
+                <p class="order-empty">Chargement...</p>
+            </div>
         </div>
     </div>
 
@@ -671,43 +769,139 @@
                     headers: getAdminHeaders()
                 });
                 if (sessionBlocked(response)) {
-                    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#bc6288;">Commandes indisponibles pour cette session.</td></tr>';
+                    body.innerHTML = '<p class="order-empty">Commandes indisponibles pour cette session.</p>';
                     return;
                 }
                 if (!response.ok) {
-                    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#dc3545;">Impossible de charger les commandes</td></tr>';
+                    body.innerHTML = '<p class="order-empty" style="color:#dc3545;">Impossible de charger les commandes</p>';
                     return;
                 }
                 const payload = await response.json();
                 const orders = payload.orders || [];
                 if (orders.length === 0) {
-                    body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#bc6288;">Aucune commande pour le moment</td></tr>';
+                    body.innerHTML = '<p class="order-empty">Aucune commande pour le moment</p>';
                     return;
                 }
-                body.innerHTML = orders.map((order) => {
-                    const items = (order.items || []).map((item) => {
-                        const name = escapeHtml((item.product && item.product.name) || `Produit #${item.product_id}`);
-                        return `${name} × ${item.quantity}`;
-                    }).join('<br>');
-                    const statusColor = order.status === 'paid' ? '#155724' : (order.status === 'failed' ? '#721c24' : '#856404');
-                    const method = order.payment_method || '-';
-                    const last4 = order.card_last4 ? ` •••• ${order.card_last4}` : '';
-                    const created = order.created_at ? order.created_at.replace('T', ' ').slice(0, 16) : '';
-                    return `
-                        <tr>
-                            <td>#${order.id}</td>
-                            <td>${created}</td>
-                            <td>${escapeHtml(order.customer_name || '-')}<br><small>${escapeHtml(order.email)}</small></td>
-                            <td><strong>${Number(order.total_amount).toFixed(2)} €</strong></td>
-                            <td style="color:${statusColor};font-weight:700;">${order.status}</td>
-                            <td>${escapeHtml(method)}${escapeHtml(last4)}<br><small>${escapeHtml(order.payment_reference || '')}</small></td>
-                            <td>${items}</td>
-                        </tr>
-                    `;
-                }).join('');
+                body.innerHTML = orders.map(renderOrderCard).join('');
             } catch (error) {
-                body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#dc3545;">${error.message}</td></tr>`;
+                body.innerHTML = `<p class="order-empty" style="color:#dc3545;">${escapeHtml(error.message)}</p>`;
             }
+        }
+
+        function formatOrderMoney(value) {
+            const amount = Number(value);
+            if (!Number.isFinite(amount)) {
+                return '—';
+            }
+            return amount.toFixed(2) + ' €';
+        }
+
+        function formatOrderDate(iso) {
+            if (!iso) {
+                return 'Date inconnue';
+            }
+            const parsed = new Date(iso);
+            if (Number.isNaN(parsed.getTime())) {
+                return escapeHtml(String(iso).replace('T', ' ').slice(0, 16));
+            }
+            return parsed.toLocaleString('fr-FR', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function orderStatusLabel(status) {
+            const labels = {
+                paid: 'Payée',
+                failed: 'Échouée',
+                pending: 'En attente',
+                cancelled: 'Annulée'
+            };
+            return labels[status] || status || 'Inconnu';
+        }
+
+        function orderMethodLabel(order) {
+            const method = String(order.payment_method || '').toLowerCase();
+            if (method === 'card') {
+                return 'Carte bancaire';
+            }
+            if (method === 'paypal') {
+                return 'PayPal';
+            }
+            if (method === 'saved') {
+                return 'Carte enregistrée';
+            }
+            return order.payment_method || 'Paiement';
+        }
+
+        function renderOrderCard(order) {
+            const items = order.items || [];
+            const status = order.status || 'pending';
+            const last4 = order.card_last4 ? ` •••• ${escapeHtml(order.card_last4)}` : '';
+            const account = order.user_id
+                ? `Compte client #${Number(order.user_id)}`
+                : 'Commande invitée';
+            const lines = items.map((item) => {
+                const name = (item.product && item.product.name) || `Produit #${item.product_id}`;
+                const category = item.product && item.product.category && item.product.category.name;
+                const photo = item.product && item.product.image;
+                const qty = Number(item.quantity) || 1;
+                const unit = Number(item.price);
+                const lineTotal = Number.isFinite(unit) ? unit * qty : null;
+                const thumb = photo
+                    ? `<img class="order-line-thumb" src="${escapeHtml(photo)}" alt="">`
+                    : '<span style="color:#9a7a86;">—</span>';
+                return `
+                    <tr>
+                        <td>${thumb}</td>
+                        <td>
+                            <span class="order-line-name">${escapeHtml(name)}</span>
+                            ${category ? `<span class="order-line-cat">${escapeHtml(category)}</span>` : ''}
+                        </td>
+                        <td>× ${qty}</td>
+                        <td>${formatOrderMoney(unit)}</td>
+                        <td><strong>${lineTotal === null ? '—' : formatOrderMoney(lineTotal)}</strong></td>
+                    </tr>
+                `;
+            }).join('') || '<tr><td colspan="5" class="order-empty">Aucun article</td></tr>';
+            const stripe = order.stripe_payment_intent_id
+                ? `<div><dt>Stripe</dt><dd>${escapeHtml(order.stripe_payment_intent_id)}</dd></div>`
+                : '';
+            return `
+                <article class="order-card" data-order-id="${Number(order.id)}">
+                    <div class="order-card-head">
+                        <span>Commande #${Number(order.id)} · ${formatOrderDate(order.created_at)}</span>
+                        <span class="order-status is-${escapeHtml(status)}">${escapeHtml(orderStatusLabel(status))}</span>
+                        <strong>${formatOrderMoney(order.total_amount)}</strong>
+                    </div>
+                    <dl class="order-card-meta">
+                        <div>
+                            <dt>Client</dt>
+                            <dd>${escapeHtml(order.customer_name || '—')}<br><small>${escapeHtml(order.email || '')}</small><br><small>${escapeHtml(account)}</small></dd>
+                        </div>
+                        <div>
+                            <dt>Paiement</dt>
+                            <dd>${escapeHtml(orderMethodLabel(order))}${last4}<br><small>Réf. ${escapeHtml(order.payment_reference || '—')}</small></dd>
+                        </div>
+                        ${stripe}
+                    </dl>
+                    <table class="order-lines">
+                        <thead>
+                            <tr>
+                                <th>Photo</th>
+                                <th>Article</th>
+                                <th>Qté</th>
+                                <th>Prix unit.</th>
+                                <th>Total ligne</th>
+                            </tr>
+                        </thead>
+                        <tbody>${lines}</tbody>
+                    </table>
+                </article>
+            `;
         }
 
         // CRÉATION DE CATÉGORIE

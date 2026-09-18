@@ -177,6 +177,12 @@ class CheckoutTestCase(unittest.TestCase):
         orders = response.get_json()['orders']
         self.assertEqual(len(orders), 1)
         self.assertEqual(orders[0]['email'], 'marie@test.com')
+        self.assertEqual(orders[0]['customer_name'], 'Marie Test')
+        self.assertEqual(orders[0]['payment_method'], 'card')
+        self.assertEqual(orders[0]['card_last4'], '4242')
+        self.assertEqual(orders[0]['items'][0]['quantity'], 1)
+        self.assertEqual(orders[0]['items'][0]['price'], 29.99)
+        self.assertEqual(orders[0]['items'][0]['product']['name'], 'Bouquet Test')
 
     def test_checkout_total_uses_decimal_cents(self):
         """10.10 x 3 must be 30.30, not a binary-float approximation."""
