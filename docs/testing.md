@@ -37,9 +37,9 @@ Postman collection for live API clicks: [postman/FloraShop.postman_collection.js
 
 | File | Critical path |
 | --- | --- |
-| `tests/test_accounts.py` | Demo client seed, flower catalog seed, register hashes + hides password, plaintext then rehash, legacy bcrypt login, unusable Marie hash reset, admin vitrine seasons/themes apply to the shop |
-| `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET, Admin-Token rejected, forged JWT `is_admin` ignored, POST/PUT cannot mint admin, register cannot mint admin, client cannot read/delete another user, placeholder SECRET_KEY cannot impersonate admin, debug categories 403 |
-| `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds / unknown Luhn card, invalid PAN, subscription line, PayPal, saved card, empty cart, unknown product, invalid JWT, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30`, order IDOR (401/200/403/404), spoofed checkout email ignored |
+| `tests/test_accounts.py` | Demo client seed, seven-category flower catalog with photos, register hashes + hides password, plaintext then rehash, legacy bcrypt login, unusable Marie hash reset, public `GET /themes`, admin-only vitrine `PUT`, shop payload follows Automne, season/theme combo `printemps,mariage` |
+| `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET, Admin-Token rejected, forged JWT `is_admin` ignored, POST/PUT cannot mint admin, register cannot mint admin, client cannot read/delete another user, placeholder SECRET_KEY cannot impersonate admin, debug categories 403, admin product photo upload, client cannot upload, non-image rejected, admin order cards (`renderOrderCard`, unit price) |
+| `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds / unknown Luhn card, invalid PAN, subscription line, PayPal, saved card, empty cart, unknown product, invalid JWT, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30`, order IDOR (401/200/403/404), spoofed checkout email ignored, admin order item unit price |
 
 ## What is not covered yet
 
@@ -65,6 +65,8 @@ Postman collection for live API clicks: [postman/FloraShop.postman_collection.js
 | Forged JWT `is_admin` / leaked example SECRET_KEY | Code audit | **Fixed** (roles from DB, placeholders ignored) |
 | Unknown Luhn card accepted as paid | Code audit | **Fixed** (only documented test cards) |
 | GET order without auth (IDOR) | Code audit | **Fixed** (owner or admin) |
+| Season picker on `/accueil.html` | Product review | **Fixed** (admin **Vitrine du shop**, public `GET /themes`) |
+| Admin orders as a one-line table | Demo walkthrough | **Fixed** (order cards with line prices and payment metadata) |
 
 ## Manual testing table
 
@@ -79,6 +81,8 @@ Use demo users from the README. Mark the result when you walk the jury scenario.
 | M5 | Checkout | Snapshot cart → `/checkout.html` → 4242 card | Paid order, non-empty lines | Automated `test_checkout` |
 | M6 | Decline | Card `4000000000000002` | 402, order `failed` | Automated |
 | M7 | Admin | `admin@florashop.com` lists `/api/v1/payments/orders` | 200 | Automated |
+| M8 | Vitrine | Admin applies Automne, then Printemps + Mariage; open `/shop.html` as a customer | Shop banner and catalog follow the applied vitrine; combo is a union | Automated `test_accounts` + Demo Day walkthrough |
+| M9 | Orders | Admin **Commandes et paiements** after Marie’s paid order | Order card with unit price, line total, last four digits, photo | Automated `test_admin_guard` / `test_checkout` + Demo Day walkthrough |
 
 ## Coverage notes
 
