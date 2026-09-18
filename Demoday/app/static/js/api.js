@@ -310,6 +310,23 @@ window.FloraCart = {
         // Relit la clé du compte courant (login / logout). Ne fusionne jamais les paniers.
         this.migrateLegacyCart();
     },
+    snapshotForCheckout() {
+        const cart = this.get();
+        sessionStorage.setItem('checkout_cart', JSON.stringify(cart));
+        return cart;
+    },
+    loadForCheckout() {
+        const cart = this.get();
+        if (cart.length) {
+            return cart;
+        }
+        try {
+            const snapshot = JSON.parse(sessionStorage.getItem('checkout_cart') || '[]');
+            return Array.isArray(snapshot) ? snapshot : [];
+        } catch (error) {
+            return [];
+        }
+    },
     itemKey(item) {
         if (!item) {
             return '';

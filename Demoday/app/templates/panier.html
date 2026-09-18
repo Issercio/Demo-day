@@ -239,14 +239,11 @@
     }
 
     document.getElementById('pay-btn').addEventListener('click', function() {
-      // Sauvegarder le panier et rediriger vers la page de checkout
-      const cart = FloraCart.get();
+      const cart = FloraCart.snapshotForCheckout();
       if (cart.length === 0) {
         alert('Votre panier est vide !');
         return;
       }
-      
-      // Redirection vers la page de checkout
       localStorage.setItem('selected_payment_method', 'card');
       window.location.href = 'checkout.html?method=card';
     });
@@ -370,7 +367,7 @@
 
     // Sélectionner une méthode de paiement
     window.selectPaymentMethod = function(method) {
-      const cart = FloraCart.get();
+      const cart = FloraCart.snapshotForCheckout();
       if (cart.length === 0) {
         alert('Votre panier est vide !');
         closePaymentModal();

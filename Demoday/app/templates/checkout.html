@@ -386,6 +386,7 @@
         <a href="cgv.html">Conditions générales de vente</a>
     </footer>
 
+    <script src="../static/js/api.js?v=20260918-cart"></script>
     <script>
         let cartItems = [];
         let selectedPaymentMethod = 'card';
@@ -478,6 +479,7 @@
             } else {
                 localStorage.removeItem('cart');
             }
+            sessionStorage.removeItem('checkout_cart');
             localStorage.removeItem('selected_payment_method');
             cartItems = [];
 
@@ -493,9 +495,35 @@
             displayCartItems();
         }
 
+        function readCartFallback() {
+            const keys = [];
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                if (user && user.id) {
+                    keys.push('cart:user:' + user.id);
+                }
+            } catch (e) {}
+            keys.push('cart:guest', 'cart');
+            for (const key of keys) {
+                try {
+                    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+                    if (Array.isArray(parsed) && parsed.length) {
+                        return parsed;
+                    }
+                } catch (e) {}
+            }
+            try {
+                const snapshot = JSON.parse(sessionStorage.getItem('checkout_cart') || '[]');
+                if (Array.isArray(snapshot) && snapshot.length) {
+                    return snapshot;
+                }
+            } catch (e) {}
+            return [];
+        }
+
         function loadCartFromStorage() {
             try {
-                const cart = (window.FloraCart ? FloraCart.get() : []);
+                const cart = window.FloraCart ? FloraCart.loadForCheckout() : readCartFallback();
                 cartItems = cart.map(item => ({
                     product_id: item.id || item.product_id,
                     quantity: item.quantity || 1,
