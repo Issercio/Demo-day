@@ -222,7 +222,7 @@ class ApiService {
                 }
             }
         }
-        if (isAdmin) {
+        if (isAdmin && onAdminPage) {
             const homeLink = document.querySelector('nav a[href="accueil.html"]');
             const shopLink = document.querySelector('nav a[href="shop.html"]');
             if (homeLink) {

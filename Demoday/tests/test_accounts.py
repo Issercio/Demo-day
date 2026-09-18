@@ -125,10 +125,12 @@ class AccountsTestCase(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         css = root.joinpath('app/static/css/style.css').read_text()
         js = root.joinpath('app/static/js/api.js').read_text()
-        self.assertIn('body.admin-session nav li:has(a[href="evenementiel.html"])', css)
+        self.assertIn('body.admin-page nav li:has(a[href="evenementiel.html"])', css)
+        self.assertNotIn('body.admin-session nav li:has(a[href="evenementiel.html"])', css)
         self.assertIn('nav a#profile-link:focus', css)
         self.assertIn('profile-icon-btn', css)
         self.assertIn("classList.toggle('admin-session', isAdmin)", js)
+        self.assertIn('isAdmin && onAdminPage', js)
         self.assertIn('isAdmin && !onAdminPage', js)
         self.assertIn('body.admin-page #admin-btn', css)
 
