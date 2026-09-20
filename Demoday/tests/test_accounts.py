@@ -273,6 +273,7 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('theme-accent-hex', admin)
         self.assertIn('can_delete', admin)
         self.assertIn('Nouveau thème', admin)
+        self.assertIn('max-width: none', admin.split('.theme-create-form', 1)[1][:500])
         self.assertNotIn('theme-kind', admin)
         self.assertIn('applyVitrine', admin)
         self.assertIn('PUT', admin)
