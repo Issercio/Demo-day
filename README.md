@@ -97,7 +97,7 @@ Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
 | Florist | Add, update and delete products and categories | Must have |
 | Florist | Upload a product photo from the catalog form | Must have |
 | Florist | Apply a season, a theme, or both as a combo to the live shop | Must have |
-| Florist | Create a custom shop theme from the admin catalog | Must have |
+| Florist | Create or delete shop event themes from the admin catalog | Must have |
 | Florist | Review paid orders with line prices, card last four digits, and payment reference | Must have |
 | Florist | Keep the back-office for administrators only | Must have |
 
@@ -310,7 +310,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | GET | `/api/v1/themes` | public | Seasons, event themes, and the applied shop vitrine |
 | POST | `/api/v1/themes` | admin JWT | Create a custom event theme (not a season) |
 | PUT | `/api/v1/themes` | admin JWT | Apply `{ "season", "theme" }` or a legacy `{ "id" }` |
-| DELETE | `/api/v1/themes/<id>` | admin JWT | Delete a custom theme (built-in ones stay) |
+| DELETE | `/api/v1/themes/<id>` | admin JWT | Delete an event theme (Mariage, a custom one, etc.). Seasons stay. |
 | POST | `/api/v1/products` | admin JWT | Create product (JSON or multipart with `image`) |
 | PUT / DELETE | `/api/v1/products/<id>` | admin JWT | Update or delete product (multipart photo allowed on PUT) |
 | GET | `/api/v1/categories` | public | List categories |
@@ -321,7 +321,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | GET | `/api/v1/payments/orders/<id>` | owner or admin JWT | Order detail |
 | GET | `/api/v1/payments/orders` | admin JWT | List orders |
 
-`GET /api/v1/themes` returns `applied`, `applied_ids`, `applied_season`, `applied_theme`, `label`, `blurb`, `product_names`, and the full theme list with `is_applied`. A customer token cannot change the vitrine.
+`GET /api/v1/themes` returns `applied`, `applied_ids`, `applied_season`, `applied_theme`, `label`, `blurb`, `product_names`, and the full theme list with `is_applied` and `can_delete`. A customer token cannot change the vitrine. Event themes can be removed; seasons cannot.
 
 ---
 
@@ -436,7 +436,7 @@ Issercio and Matthieu share this repository. Cadence for a demonstration: one lo
 Marie forgot her mother’s birthday. The boutique in Sciez is closed. She opens Pivoine & Lilas.
 
 1. Home — the boutique is open online (address and hours; no theme picker).
-2. Sign in as `admin@florashop.com` / `admin123`. Open **Vitrine du shop**. Apply **Automne**, or a combo such as **Printemps + Mariage**. Open `/shop.html` (or **SHOP** in another tab): the catalog follows that vitrine for every visitor. Reset filters does not clear the vitrine. **Catalogue complet** in admin restores the full shop.
+2. Sign in as `admin@florashop.com` / `admin123`. Open **Vitrine du shop**. Apply **Automne**, or a combo such as **Printemps + Mariage**. Open `/shop.html` (or **SHOP** in another tab): the catalog follows that vitrine for every visitor. Reset filters does not clear the vitrine. **Catalogue complet** in admin restores the full shop. A cross on an event theme (Mariage, Noël, or a theme you created) removes it; seasons stay.
 3. Shop as a customer — filter a category or a colour swatch, add one bouquet with its photo (Fleurs Fraîches, Compositions, Fleurs Séchées, Plantes, Mariage, Deuil, Cadeaux; product hex colors match the filter bar).
 4. Sign in as `marie@test.com` / `marie123`. The cart is hers. Open the account icon: email and **Déconnexion** sit under the icon, the navbar does not grow.
 5. Pay with `4242 4242 4242 4242`. The server recalculates the total. Status `paid`.

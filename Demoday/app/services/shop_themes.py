@@ -257,6 +257,10 @@ def _builtin_ids():
     return {theme['id'] for theme in SHOP_THEMES}
 
 
+def _builtin_event_ids():
+    return {theme['id'] for theme in SHOP_THEMES if theme['kind'] == 'evenement'}
+
+
 def custom_themes_file():
     override = current_app.config.get('SHOP_CUSTOM_THEMES_PATH')
     if override:
@@ -264,6 +268,56 @@ def custom_themes_file():
     folder = Path(current_app.instance_path)
     folder.mkdir(parents=True, exist_ok=True)
     return folder / 'custom_themes.json'
+
+
+def _empty_custom_store():
+    return {'themes': [], 'removed': []}
+
+
+def load_custom_store():
+    """Fichier {themes, removed}. Un ancien tableau JSON reste lisible."""
+    path = custom_themes_file()
+    try:
+        stored = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, json.JSONDecodeError):
+        return _empty_custom_store()
+    if isinstance(stored, list):
+        return {'themes': stored, 'removed': []}
+    if not isinstance(stored, dict):
+        return _empty_custom_store()
+    removed = []
+    seen = set()
+    allowed = _builtin_event_ids()
+    for raw in stored.get('removed') or []:
+        theme_id = str(raw or '').strip().lower()
+        if not theme_id or theme_id in seen or theme_id not in allowed:
+            continue
+        seen.add(theme_id)
+        removed.append(theme_id)
+    themes = stored.get('themes')
+    return {
+        'themes': themes if isinstance(themes, list) else [],
+        'removed': removed,
+    }
+
+
+def save_custom_store(themes, removed):
+    path = custom_themes_file()
+    payload = {
+        'removed': list(removed),
+        'themes': [],
+    }
+    for theme in themes:
+        payload['themes'].append({
+            'id': theme['id'],
+            'label': theme['label'],
+            'kind': theme['kind'],
+            'blurb': theme.get('blurb') or '',
+            'accent': theme.get('accent') or '#bc6288',
+            'months': list(theme.get('months') or ()),
+            'products': list(theme.get('products') or ()),
+        })
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
 def _theme_slug(label):
@@ -304,16 +358,10 @@ def _normalize_custom_theme(raw):
 
 
 def load_custom_themes():
-    path = custom_themes_file()
-    try:
-        stored = json.loads(path.read_text(encoding='utf-8'))
-    except (OSError, json.JSONDecodeError):
-        return []
-    if not isinstance(stored, list):
-        return []
+    store = load_custom_store()
     themes = []
     seen = set(_builtin_ids())
-    for raw in stored:
+    for raw in store['themes']:
         theme = _normalize_custom_theme(raw)
         if theme is None or theme['id'] in seen:
             continue
@@ -323,23 +371,12 @@ def load_custom_themes():
 
 
 def save_custom_themes(themes):
-    path = custom_themes_file()
-    payload = []
-    for theme in themes:
-        payload.append({
-            'id': theme['id'],
-            'label': theme['label'],
-            'kind': theme['kind'],
-            'blurb': theme.get('blurb') or '',
-            'accent': theme.get('accent') or '#bc6288',
-            'months': list(theme.get('months') or ()),
-            'products': list(theme.get('products') or ()),
-        })
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    save_custom_store(themes, load_custom_store()['removed'])
 
 
 def all_themes():
-    return list(SHOP_THEMES) + load_custom_themes()
+    removed = set(load_custom_store()['removed'])
+    return [theme for theme in SHOP_THEMES if theme['id'] not in removed] + load_custom_themes()
 
 
 def create_custom_theme(data):
@@ -380,15 +417,25 @@ def create_custom_theme(data):
 
 
 def delete_custom_theme(theme_id):
+    """Retire un thème événement, y compris Mariage / Noël / etc. Les saisons restent."""
     theme_id = (theme_id or '').strip().lower()
-    if theme_id in _builtin_ids():
-        raise ValueError('Les saisons et thèmes du catalogue ne peuvent pas être supprimés.')
-    custom = load_custom_themes()
-    remaining = [theme for theme in custom if theme['id'] != theme_id]
-    if len(remaining) == len(custom):
+    theme = get_theme(theme_id)
+    if theme is None:
         raise KeyError(theme_id)
-    save_custom_themes(remaining)
+    if theme['kind'] == 'saison':
+        raise ValueError('Les saisons ne peuvent pas être supprimées.')
     applied = get_applied_vitrine()
+    store = load_custom_store()
+    custom = load_custom_themes()
+    if theme.get('custom'):
+        remaining = [item for item in custom if item['id'] != theme_id]
+        if len(remaining) == len(custom):
+            raise KeyError(theme_id)
+        save_custom_store(remaining, store['removed'])
+    else:
+        removed = [item_id for item_id in store['removed'] if item_id != theme_id]
+        removed.append(theme_id)
+        save_custom_store(custom, removed)
     season = None if applied.get('season') == theme_id else applied.get('season')
     event = None if applied.get('theme') == theme_id else applied.get('theme')
     if season != applied.get('season') or event != applied.get('theme'):
@@ -533,6 +580,7 @@ def themes_payload(today=None):
                 'is_current_season': theme['id'] == calendar_season,
                 'is_applied': theme['id'] in ids,
                 'is_custom': bool(theme.get('custom')),
+                'can_delete': theme['kind'] == 'evenement',
             }
             for theme in all_themes()
         ],

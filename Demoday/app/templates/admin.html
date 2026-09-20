@@ -422,41 +422,130 @@
         }
 
         .theme-create-form {
-            margin-top: 18px;
-            padding-top: 16px;
-            border-top: 1px dashed #e7d6d6;
+            margin-top: 22px;
+            padding: 20px 22px 18px 22px;
+            border: 1px solid #eadfe2;
+            border-radius: 12px;
+            background: #fff;
         }
 
         .theme-create-form h3 {
             color: #bc6288;
-            font-size: 1.05rem;
-            margin: 0 0 12px 0;
+            font-size: 1.08rem;
+            margin: 0 0 6px 0;
         }
 
-        .theme-create-grid {
+        .theme-create-form .admin-vitrine-lead {
+            margin-bottom: 16px;
+            font-size: 0.94rem;
+        }
+
+        .theme-create-fields {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px 16px;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px 18px;
+            align-items: end;
+        }
+
+        .theme-create-form .form-group {
+            margin-bottom: 0;
+        }
+
+        .theme-create-form .form-group input,
+        .theme-create-form .form-group textarea,
+        .theme-create-form .form-group select {
+            width: 100%;
+            max-width: none;
+            box-sizing: border-box;
+        }
+
+        .theme-create-blurb,
+        .theme-create-bouquets {
+            grid-column: 1 / -1;
+        }
+
+        .theme-create-form textarea {
+            min-height: 72px;
+            padding: 10px 12px;
+            border: 1.5px solid #bc6288;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            line-height: 1.4;
+        }
+
+        .theme-accent-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 42px;
+        }
+
+        .theme-create-form input[type="color"] {
+            width: 48px;
+            height: 42px;
+            max-width: 48px;
+            padding: 0;
+            border-radius: 8px;
+            border: 1.5px solid #bc6288;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .theme-accent-hex {
+            font-size: 0.88rem;
+            color: #6c4a58;
+            letter-spacing: 0.04em;
+            min-width: 4.6em;
+        }
+
+        .theme-product-search {
+            margin-bottom: 8px;
         }
 
         .theme-product-picker {
-            max-height: 180px;
+            max-height: 320px;
             overflow: auto;
-            border: 1px solid #e7d6d6;
-            border-radius: 8px;
-            background: #fff;
-            padding: 8px 10px;
+            border: 1px solid #eadfe2;
+            border-radius: 10px;
+            background: #fbf8f6;
+            padding: 10px 12px 12px 12px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 4px 12px;
+            gap: 12px 20px;
+        }
+
+        .theme-product-group-title {
+            grid-column: 1 / -1;
+            margin: 4px 0 0 0;
+            font-size: 0.72rem;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: #bc6288;
+            font-weight: 700;
         }
 
         .theme-product-picker label {
             display: flex;
-            gap: 8px;
-            align-items: center;
-            font-size: 0.88rem;
-            color: #4a3a40;
+            gap: 10px;
+            align-items: flex-start;
+            font-size: 0.92rem;
+            line-height: 1.35;
+            color: #3f3036;
+            padding: 6px 8px;
+            border-radius: 6px;
+            background: #fff;
+            border: 1px solid #f0e6e8;
+        }
+
+        .theme-product-picker label:hover {
+            border-color: #d2a0b5;
+        }
+
+        .theme-product-picker input[type="checkbox"] {
+            margin-top: 2px;
+            flex: 0 0 auto;
         }
 
         .theme-chip-wrap {
@@ -464,23 +553,53 @@
             align-items: stretch;
         }
 
-        .theme-chip-delete {
-            border: 1.5px solid #e7d6d6;
-            border-left: 0;
-            background: #fff;
-            color: #8a1f2b;
-            border-radius: 0 999px 999px 0;
-            padding: 0 8px;
-            cursor: pointer;
-        }
-
         .theme-chip-wrap .theme-chip {
             border-top-right-radius: 0;
             border-bottom-right-radius: 0;
+            border-right: 0;
+            padding-right: 0.55rem;
+        }
+
+        .theme-chip-x {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            border: 1.5px solid #e7d6d6;
+            border-left: 0;
+            border-radius: 0 999px 999px 0;
+            background: #fff;
+            color: #8a1f2b;
+            font-size: 0.95rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 8px 0 4px;
+        }
+
+        .theme-chip-wrap .theme-chip.is-selected + .theme-chip-x {
+            background: #bc6288;
+            color: #fff;
+            border-color: #bc6288;
+        }
+
+        .theme-chip-x:hover,
+        .theme-chip-wrap .theme-chip.is-selected + .theme-chip-x:hover {
+            background: #8a1f2b;
+            border-color: #8a1f2b;
+            color: #fff;
+        }
+
+        .theme-create-actions {
+            margin-top: 16px;
+        }
+
+        .theme-create-actions .btn {
+            margin: 0;
+            padding: 10px 18px;
         }
 
         @media (max-width: 720px) {
-            .theme-create-grid,
+            .theme-create-fields,
             .theme-product-picker {
                 grid-template-columns: 1fr;
             }
@@ -544,29 +663,33 @@
                 <button type="button" id="vitrine-clear" class="btn">Catalogue complet</button>
             </div>
             <form class="theme-create-form" id="theme-create-form">
-                <h3>Créer un thème</h3>
-                <p class="admin-vitrine-lead">Ajoutez un thème (anniversaire, entreprise…) avec les bouquets à montrer dans le shop. Les saisons Printemps, Été, Automne et Hiver ne se créent ni ne se suppriment pas.</p>
-                <div class="theme-create-grid">
-                    <div class="form-group">
-                        <label for="theme-label">Nom :</label>
-                        <input type="text" id="theme-label" name="label" placeholder="Anniversaire, Entreprise…" required>
+                <h3>Nouveau thème</h3>
+                <p class="admin-vitrine-lead">Les saisons restent fixes. Chaque thème — Mariage, Noël, ou un thème à vous — peut être retiré avec la croix sur la pastille.</p>
+                <div class="theme-create-fields">
+                    <div class="form-group theme-create-name">
+                        <label for="theme-label">Nom</label>
+                        <input type="text" id="theme-label" name="label" placeholder="Anniversaire, entreprise…" required maxlength="80">
                     </div>
-                    <div class="form-group">
-                        <label for="theme-accent">Couleur :</label>
-                        <input type="color" id="theme-accent" name="accent" value="#bc6288">
+                    <div class="form-group theme-create-color">
+                        <label for="theme-accent">Couleur</label>
+                        <div class="theme-accent-wrap">
+                            <input type="color" id="theme-accent" name="accent" value="#bc6288" aria-label="Couleur du thème">
+                            <span class="theme-accent-hex" id="theme-accent-hex">#bc6288</span>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="theme-blurb-input">Description :</label>
-                        <input type="text" id="theme-blurb-input" name="blurb" placeholder="Une phrase pour la bannière du shop">
+                    <div class="form-group theme-create-blurb">
+                        <label for="theme-blurb-input">Phrase du shop</label>
+                        <textarea id="theme-blurb-input" name="blurb" rows="2" maxlength="240" placeholder="Une phrase courte pour la bannière du shop"></textarea>
+                    </div>
+                    <div class="form-group theme-create-bouquets">
+                        <label for="theme-product-search">Bouquets</label>
+                        <input type="search" id="theme-product-search" class="theme-product-search" placeholder="Filtrer par nom" autocomplete="off">
+                        <div class="theme-product-picker" id="theme-product-picker">
+                            <span style="color:#bc6288;">Chargement du catalogue…</span>
+                        </div>
                     </div>
                 </div>
-                <div class="form-group" style="margin-top:12px;">
-                    <label>Bouquets du thème :</label>
-                    <div class="theme-product-picker" id="theme-product-picker">
-                        <span style="color:#bc6288;">Chargement du catalogue…</span>
-                    </div>
-                </div>
-                <div class="admin-vitrine-actions">
+                <div class="theme-create-actions">
                     <button type="submit" id="create-theme-btn" class="btn">Créer le thème</button>
                 </div>
             </form>
@@ -671,6 +794,7 @@
         let categories = [];
         let products = [];
         let vitrineThemes = [];
+        let themeProductSelection = new Set();
 
         function escapeHtml(value) {
             return String(value == null ? '' : value)
@@ -732,16 +856,18 @@
                     return;
                 }
                 box.innerHTML = vitrineThemes.filter((theme) => theme.kind === kind).map((theme) => {
-                    const chip = `<button type="button" class="theme-chip${appliedIds.has(theme.id) ? ' is-selected' : ''}" data-theme="${escapeHtml(theme.id)}" data-kind="${escapeHtml(theme.kind)}" style="--theme-accent:${escapeHtml(theme.accent)}">${escapeHtml(theme.label)}</button>`;
-                    if (!theme.is_custom || theme.kind !== 'evenement') {
+                    const selected = appliedIds.has(theme.id) ? ' is-selected' : '';
+                    const canDelete = theme.can_delete || (theme.kind === 'evenement');
+                    const chip = `<button type="button" class="theme-chip${selected}${canDelete ? ' has-delete' : ''}" data-theme="${escapeHtml(theme.id)}" data-kind="${escapeHtml(theme.kind)}" style="--theme-accent:${escapeHtml(theme.accent)}">${escapeHtml(theme.label)}</button>`;
+                    if (!canDelete) {
                         return chip;
                     }
-                    return `<span class="theme-chip-wrap">${chip}<button type="button" class="theme-chip-delete" data-theme="${escapeHtml(theme.id)}" aria-label="Supprimer ${escapeHtml(theme.label)}">×</button></span>`;
+                    return `<span class="theme-chip-wrap">${chip}<button type="button" class="theme-chip-x" data-theme="${escapeHtml(theme.id)}" aria-label="Supprimer ${escapeHtml(theme.label)}">×</button></span>`;
                 }).join('');
                 box.querySelectorAll('.theme-chip').forEach((button) => {
                     button.addEventListener('click', () => toggleVitrineChip(button.dataset.theme, button.dataset.kind, payload));
                 });
-                box.querySelectorAll('.theme-chip-delete').forEach((button) => {
+                box.querySelectorAll('.theme-chip-x').forEach((button) => {
                     button.addEventListener('click', (event) => {
                         event.preventDefault();
                         event.stopPropagation();
@@ -806,6 +932,33 @@
             }
         }
 
+        function bindThemeCreateControls() {
+            const form = document.getElementById('theme-create-form');
+            if (form && !form.dataset.bound) {
+                form.dataset.bound = '1';
+                form.addEventListener('submit', submitCustomTheme);
+            }
+            const search = document.getElementById('theme-product-search');
+            if (search && !search.dataset.bound) {
+                search.dataset.bound = '1';
+                search.addEventListener('input', fillThemeProductPicker);
+            }
+            const accent = document.getElementById('theme-accent');
+            if (accent && !accent.dataset.bound) {
+                accent.dataset.bound = '1';
+                accent.addEventListener('input', syncThemeAccentHex);
+            }
+            syncThemeAccentHex();
+        }
+
+        function syncThemeAccentHex() {
+            const accent = document.getElementById('theme-accent');
+            const hex = document.getElementById('theme-accent-hex');
+            if (hex && accent) {
+                hex.textContent = (accent.value || '#bc6288').toLowerCase();
+            }
+        }
+
         async function setupAdminVitrine() {
             try {
                 const response = await fetch('/api/v1/themes');
@@ -818,14 +971,20 @@
                 if (clearBtn) {
                     clearBtn.addEventListener('click', () => applyVitrine({ season: null, theme: null }));
                 }
-                const form = document.getElementById('theme-create-form');
-                if (form && !form.dataset.bound) {
-                    form.dataset.bound = '1';
-                    form.addEventListener('submit', submitCustomTheme);
-                }
+                bindThemeCreateControls();
             } catch (error) {
                 showNotice('Erreur de communication avec le serveur: ' + error.message, 'error');
             }
+        }
+
+        function rememberThemeProductChecks() {
+            document.querySelectorAll('input[name="theme-product"]').forEach((input) => {
+                if (input.checked) {
+                    themeProductSelection.add(input.value);
+                } else {
+                    themeProductSelection.delete(input.value);
+                }
+            });
         }
 
         function fillThemeProductPicker() {
@@ -833,25 +992,65 @@
             if (!box) {
                 return;
             }
+            rememberThemeProductChecks();
+            const query = ((document.getElementById('theme-product-search') || {}).value || '').trim().toLowerCase();
             const catalog = (products || []).filter((product) => !(product.category && product.category.name === 'Abonnements'));
+            const visible = catalog.filter((product) => !query || (product.name || '').toLowerCase().includes(query));
             if (!catalog.length) {
                 box.innerHTML = '<span style="color:#bc6288;">Aucun bouquet dans le catalogue.</span>';
                 return;
             }
-            box.innerHTML = catalog.map((product) => `
-                <label>
-                    <input type="checkbox" name="theme-product" value="${escapeHtml(product.name)}">
-                    ${escapeHtml(product.name)}
-                </label>
-            `).join('');
+            if (!visible.length) {
+                box.innerHTML = '<span style="color:#bc6288;">Aucun bouquet ne correspond à la recherche.</span>';
+                return;
+            }
+            const groups = [];
+            const byCategory = new Map();
+            visible.forEach((product) => {
+                const categoryName = (product.category && product.category.name) || 'Autres';
+                if (!byCategory.has(categoryName)) {
+                    byCategory.set(categoryName, []);
+                    groups.push(categoryName);
+                }
+                byCategory.get(categoryName).push(product);
+            });
+            box.innerHTML = groups.map((categoryName) => {
+                const items = byCategory.get(categoryName).map((product) => {
+                    const checked = themeProductSelection.has(product.name) ? ' checked' : '';
+                    return `<label><input type="checkbox" name="theme-product" value="${escapeHtml(product.name)}"${checked}>${escapeHtml(product.name)}</label>`;
+                }).join('');
+                return `<p class="theme-product-group-title">${escapeHtml(categoryName)}</p>${items}`;
+            }).join('');
+            box.querySelectorAll('input[name="theme-product"]').forEach((input) => {
+                input.addEventListener('change', rememberThemeProductChecks);
+            });
+        }
+
+        function resetThemeCreateForm() {
+            const form = document.getElementById('theme-create-form');
+            if (form) {
+                form.reset();
+            }
+            const color = document.getElementById('theme-accent');
+            if (color) {
+                color.value = '#bc6288';
+            }
+            const search = document.getElementById('theme-product-search');
+            if (search) {
+                search.value = '';
+            }
+            themeProductSelection = new Set();
+            syncThemeAccentHex();
+            fillThemeProductPicker();
         }
 
         async function submitCustomTheme(event) {
             event.preventDefault();
+            rememberThemeProductChecks();
             const label = (document.getElementById('theme-label') || {}).value || '';
             const blurb = (document.getElementById('theme-blurb-input') || {}).value || '';
             const accent = (document.getElementById('theme-accent') || {}).value || '#bc6288';
-            const productsSelected = Array.from(document.querySelectorAll('input[name="theme-product"]:checked')).map((input) => input.value);
+            const productsSelected = Array.from(themeProductSelection);
             try {
                 const response = await fetch('/api/v1/themes', {
                     method: 'POST',
@@ -873,15 +1072,7 @@
                     return;
                 }
                 renderVitrine(payload);
-                const form = document.getElementById('theme-create-form');
-                if (form) {
-                    form.reset();
-                    const color = document.getElementById('theme-accent');
-                    if (color) {
-                        color.value = '#bc6288';
-                    }
-                }
-                fillThemeProductPicker();
+                resetThemeCreateForm();
                 showNotice(payload.message || 'Thème créé.', 'success');
             } catch (error) {
                 showNotice('Erreur de communication avec le serveur: ' + error.message, 'error');
@@ -889,7 +1080,7 @@
         }
 
         async function deleteCustomTheme(themeId) {
-            if (!themeId || !confirm('Supprimer ce thème ? Le shop reviendra au catalogue si ce thème était en vitrine.')) {
+            if (!themeId || !confirm('Retirer ce thème de la vitrine ? S’il était affiché dans le shop, le catalogue reprend sa place.')) {
                 return;
             }
             try {

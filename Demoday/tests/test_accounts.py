@@ -268,6 +268,11 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('theme-create-form', admin)
         self.assertIn('create-theme-btn', admin)
         self.assertIn('submitCustomTheme', admin)
+        self.assertIn('theme-chip-x', admin)
+        self.assertIn('theme-product-search', admin)
+        self.assertIn('theme-accent-hex', admin)
+        self.assertIn('can_delete', admin)
+        self.assertIn('Nouveau thème', admin)
         self.assertNotIn('theme-kind', admin)
         self.assertIn('applyVitrine', admin)
         self.assertIn('PUT', admin)
@@ -331,6 +336,8 @@ class AccountsTestCase(unittest.TestCase):
         self.assertEqual(kinds, {'saison', 'evenement'})
         self.assertIsNone(payload['applied'])
         self.assertEqual(payload['applied_ids'], [])
+        self.assertTrue(next(item for item in payload['themes'] if item['id'] == 'mariage')['can_delete'])
+        self.assertFalse(next(item for item in payload['themes'] if item['id'] == 'printemps')['can_delete'])
 
         combo = self.client.get('/api/v1/products?theme=printemps,mariage')
         self.assertEqual(combo.status_code, 200)
@@ -464,14 +471,31 @@ class AccountsTestCase(unittest.TestCase):
 
         applied = self.client.put(
             '/api/v1/themes',
-            json={'season': None, 'theme': custom['id']},
+            json={'season': 'printemps', 'theme': 'mariage'},
             headers=headers,
         )
         self.assertEqual(applied.status_code, 200, applied.get_json())
-        self.assertEqual(applied.get_json()['applied'], custom['id'])
+        self.assertEqual(applied.get_json()['applied_ids'], ['printemps', 'mariage'])
 
-        forbidden = self.client.delete('/api/v1/themes/mariage', headers=headers)
-        self.assertEqual(forbidden.status_code, 400)
+        removed_builtin = self.client.delete('/api/v1/themes/mariage', headers=headers)
+        self.assertEqual(removed_builtin.status_code, 200, removed_builtin.get_json())
+        remaining_ids = [item['id'] for item in removed_builtin.get_json()['themes']]
+        self.assertNotIn('mariage', remaining_ids)
+        self.assertEqual(removed_builtin.get_json()['applied_season'], 'printemps')
+        self.assertIsNone(removed_builtin.get_json()['applied_theme'])
+        self.assertNotIn('mariage', [item['id'] for item in self.client.get('/api/v1/themes').get_json()['themes']])
+
+        keep_season = self.client.delete('/api/v1/themes/printemps', headers=headers)
+        self.assertEqual(keep_season.status_code, 400)
+        self.assertIn('saison', keep_season.get_json().get('error', '').lower())
+
+        applied_custom = self.client.put(
+            '/api/v1/themes',
+            json={'season': None, 'theme': custom['id']},
+            headers=headers,
+        )
+        self.assertEqual(applied_custom.status_code, 200, applied_custom.get_json())
+        self.assertEqual(applied_custom.get_json()['applied'], custom['id'])
 
         deleted = self.client.delete(f'/api/v1/themes/{custom["id"]}', headers=headers)
         self.assertEqual(deleted.status_code, 200, deleted.get_json())
