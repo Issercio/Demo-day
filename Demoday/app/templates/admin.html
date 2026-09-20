@@ -420,6 +420,71 @@
             min-height: 0;
             margin: 0.6rem 0 0 0;
         }
+
+        .theme-create-form {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px dashed #e7d6d6;
+        }
+
+        .theme-create-form h3 {
+            color: #bc6288;
+            font-size: 1.05rem;
+            margin: 0 0 12px 0;
+        }
+
+        .theme-create-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 16px;
+        }
+
+        .theme-product-picker {
+            max-height: 180px;
+            overflow: auto;
+            border: 1px solid #e7d6d6;
+            border-radius: 8px;
+            background: #fff;
+            padding: 8px 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 12px;
+        }
+
+        .theme-product-picker label {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 0.88rem;
+            color: #4a3a40;
+        }
+
+        .theme-chip-wrap {
+            display: inline-flex;
+            align-items: stretch;
+        }
+
+        .theme-chip-delete {
+            border: 1.5px solid #e7d6d6;
+            border-left: 0;
+            background: #fff;
+            color: #8a1f2b;
+            border-radius: 0 999px 999px 0;
+            padding: 0 8px;
+            cursor: pointer;
+        }
+
+        .theme-chip-wrap .theme-chip {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        @media (max-width: 720px) {
+            .theme-create-grid,
+            .theme-product-picker {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body class="admin-page">
@@ -478,6 +543,40 @@
             <div class="admin-vitrine-actions">
                 <button type="button" id="vitrine-clear" class="btn">Catalogue complet</button>
             </div>
+            <form class="theme-create-form" id="theme-create-form">
+                <h3>Créer un thème</h3>
+                <p class="admin-vitrine-lead">Ajoutez une saison ou un thème (anniversaire, entreprise…) avec les bouquets à montrer dans le shop.</p>
+                <div class="theme-create-grid">
+                    <div class="form-group">
+                        <label for="theme-label">Nom :</label>
+                        <input type="text" id="theme-label" name="label" placeholder="Anniversaire, Entreprise…" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="theme-kind">Type :</label>
+                        <select id="theme-kind" name="kind">
+                            <option value="evenement">Thème</option>
+                            <option value="saison">Saison</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="theme-blurb-input">Description :</label>
+                        <input type="text" id="theme-blurb-input" name="blurb" placeholder="Une phrase pour la bannière du shop">
+                    </div>
+                    <div class="form-group">
+                        <label for="theme-accent">Couleur :</label>
+                        <input type="color" id="theme-accent" name="accent" value="#bc6288">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:12px;">
+                    <label>Bouquets du thème :</label>
+                    <div class="theme-product-picker" id="theme-product-picker">
+                        <span style="color:#bc6288;">Chargement du catalogue…</span>
+                    </div>
+                </div>
+                <div class="admin-vitrine-actions">
+                    <button type="submit" id="create-theme-btn" class="btn">Créer le thème</button>
+                </div>
+            </form>
         </div>
 
         <!-- SECTION CATÉGORIES -->
@@ -639,13 +738,22 @@
                 if (!box) {
                     return;
                 }
-                box.innerHTML = vitrineThemes.filter((theme) => theme.kind === kind).map((theme) => `
-                    <button type="button" class="theme-chip${appliedIds.has(theme.id) ? ' is-selected' : ''}" data-theme="${escapeHtml(theme.id)}" data-kind="${escapeHtml(theme.kind)}" style="--theme-accent:${escapeHtml(theme.accent)}">
-                        ${escapeHtml(theme.label)}
-                    </button>
-                `).join('');
-                box.querySelectorAll('button').forEach((button) => {
+                box.innerHTML = vitrineThemes.filter((theme) => theme.kind === kind).map((theme) => {
+                    const chip = `<button type="button" class="theme-chip${appliedIds.has(theme.id) ? ' is-selected' : ''}" data-theme="${escapeHtml(theme.id)}" data-kind="${escapeHtml(theme.kind)}" style="--theme-accent:${escapeHtml(theme.accent)}">${escapeHtml(theme.label)}</button>`;
+                    if (!theme.is_custom) {
+                        return chip;
+                    }
+                    return `<span class="theme-chip-wrap">${chip}<button type="button" class="theme-chip-delete" data-theme="${escapeHtml(theme.id)}" aria-label="Supprimer ${escapeHtml(theme.label)}">×</button></span>`;
+                }).join('');
+                box.querySelectorAll('.theme-chip').forEach((button) => {
                     button.addEventListener('click', () => toggleVitrineChip(button.dataset.theme, button.dataset.kind, payload));
+                });
+                box.querySelectorAll('.theme-chip-delete').forEach((button) => {
+                    button.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        deleteCustomTheme(button.dataset.theme);
+                    });
                 });
             });
             const status = document.getElementById('vitrine-status');
@@ -717,6 +825,96 @@
                 if (clearBtn) {
                     clearBtn.addEventListener('click', () => applyVitrine({ season: null, theme: null }));
                 }
+                const form = document.getElementById('theme-create-form');
+                if (form && !form.dataset.bound) {
+                    form.dataset.bound = '1';
+                    form.addEventListener('submit', submitCustomTheme);
+                }
+            } catch (error) {
+                showNotice('Erreur de communication avec le serveur: ' + error.message, 'error');
+            }
+        }
+
+        function fillThemeProductPicker() {
+            const box = document.getElementById('theme-product-picker');
+            if (!box) {
+                return;
+            }
+            const catalog = (products || []).filter((product) => !(product.category && product.category.name === 'Abonnements'));
+            if (!catalog.length) {
+                box.innerHTML = '<span style="color:#bc6288;">Aucun bouquet dans le catalogue.</span>';
+                return;
+            }
+            box.innerHTML = catalog.map((product) => `
+                <label>
+                    <input type="checkbox" name="theme-product" value="${escapeHtml(product.name)}">
+                    ${escapeHtml(product.name)}
+                </label>
+            `).join('');
+        }
+
+        async function submitCustomTheme(event) {
+            event.preventDefault();
+            const label = (document.getElementById('theme-label') || {}).value || '';
+            const kind = (document.getElementById('theme-kind') || {}).value || 'evenement';
+            const blurb = (document.getElementById('theme-blurb-input') || {}).value || '';
+            const accent = (document.getElementById('theme-accent') || {}).value || '#bc6288';
+            const productsSelected = Array.from(document.querySelectorAll('input[name="theme-product"]:checked')).map((input) => input.value);
+            try {
+                const response = await fetch('/api/v1/themes', {
+                    method: 'POST',
+                    headers: getAdminHeaders(),
+                    body: JSON.stringify({
+                        label: label.trim(),
+                        kind,
+                        blurb: blurb.trim(),
+                        accent,
+                        products: productsSelected
+                    })
+                });
+                if (sessionBlocked(response)) {
+                    return;
+                }
+                const payload = await response.json();
+                if (!response.ok) {
+                    showNotice(apiErrorMessage(payload, 'Impossible de créer le thème'), 'error');
+                    return;
+                }
+                renderVitrine(payload);
+                const form = document.getElementById('theme-create-form');
+                if (form) {
+                    form.reset();
+                    const color = document.getElementById('theme-accent');
+                    if (color) {
+                        color.value = '#bc6288';
+                    }
+                }
+                fillThemeProductPicker();
+                showNotice(payload.message || 'Thème créé.', 'success');
+            } catch (error) {
+                showNotice('Erreur de communication avec le serveur: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteCustomTheme(themeId) {
+            if (!themeId || !confirm('Supprimer ce thème ? Le shop reviendra au catalogue si ce thème était en vitrine.')) {
+                return;
+            }
+            try {
+                const response = await fetch('/api/v1/themes/' + encodeURIComponent(themeId), {
+                    method: 'DELETE',
+                    headers: getAdminHeaders()
+                });
+                if (sessionBlocked(response)) {
+                    return;
+                }
+                const payload = await response.json();
+                if (!response.ok) {
+                    showNotice(apiErrorMessage(payload, 'Impossible de supprimer le thème'), 'error');
+                    return;
+                }
+                renderVitrine(payload);
+                showNotice(payload.message || 'Thème supprimé.', 'success');
             } catch (error) {
                 showNotice('Erreur de communication avec le serveur: ' + error.message, 'error');
             }
@@ -765,6 +963,7 @@
                 renderCategories();
                 renderProducts();
                 updateCategoryOptions();
+                fillThemeProductPicker();
                 await loadOrders();
                 
                 console.log('=== FIN CHARGEMENT ===');

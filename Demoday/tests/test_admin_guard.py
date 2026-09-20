@@ -227,6 +227,8 @@ class AdminGuardTestCase(unittest.TestCase):
         self.assertIn('product-image-preview', html)
         self.assertIn('renderOrderCard', html)
         self.assertIn('Prix unit.', html)
+        self.assertIn('create-theme-btn', html)
+        self.assertIn('theme-create-form', html)
         self.assertIn('Payée', html)
         self.assertIn('Carte bancaire', html)
         self.assertIn('orderProductImage', html)

@@ -5,6 +5,8 @@ from . import db
 from app.api.v1.auth_utils import admin_required_response, self_or_admin_required_response
 from app.services.product_images import payload_from_request, save_product_image
 from app.services.shop_themes import (
+    create_custom_theme,
+    delete_custom_theme,
     filter_products_by_theme,
     set_applied_theme_id,
     set_applied_vitrine,
@@ -545,8 +547,21 @@ def delete_product(product_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@api_bp.route('/themes', methods=['GET', 'PUT'])
+@api_bp.route('/themes', methods=['GET', 'PUT', 'POST'])
 def shop_themes():
+    if request.method == 'POST':
+        denied = admin_required_response()
+        if denied:
+            return denied
+        data = request.get_json(silent=True) or {}
+        try:
+            created = create_custom_theme(data)
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
+        payload = themes_payload()
+        payload['message'] = f'Thème créé : {created["label"]}.'
+        return jsonify(payload), 201
+
     if request.method == 'PUT':
         # Seul le fleuriste change la vitrine ; le shop public relit GET ensuite.
         denied = admin_required_response()
@@ -573,6 +588,22 @@ def shop_themes():
         return jsonify(payload)
 
     return jsonify(themes_payload())
+
+
+@api_bp.route('/themes/<theme_id>', methods=['DELETE'])
+def delete_shop_theme(theme_id):
+    denied = admin_required_response()
+    if denied:
+        return denied
+    try:
+        delete_custom_theme(theme_id)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    except KeyError:
+        return jsonify({'error': 'Thème inconnu'}), 404
+    payload = themes_payload()
+    payload['message'] = 'Thème supprimé.'
+    return jsonify(payload)
 
 
 # ENDPOINT DE DEBUG pour diagnostiquer les IDs

@@ -189,19 +189,20 @@ SHOP_THEMES = (
     },
 )
 
-_THEME_BY_ID = {theme['id']: theme for theme in SHOP_THEMES}
-
-
 def current_theme_id(today=None):
     month = (today or date.today()).month
-    for theme in SHOP_THEMES:
-        if theme['kind'] == 'saison' and month in theme['months']:
+    for theme in all_themes():
+        if theme['kind'] == 'saison' and month in theme.get('months', ()):
             return theme['id']
     return 'automne'
 
 
 def get_theme(theme_id):
-    return _THEME_BY_ID.get((theme_id or '').strip().lower())
+    wanted = (theme_id or '').strip().lower()
+    for theme in all_themes():
+        if theme['id'] == wanted:
+            return theme
+    return None
 
 
 def product_names_for_theme(theme_id):
@@ -250,6 +251,162 @@ def product_names_for_ids(theme_ids):
             seen.add(name)
             names.append(name)
     return names
+
+
+def _builtin_ids():
+    return {theme['id'] for theme in SHOP_THEMES}
+
+
+def custom_themes_file():
+    override = current_app.config.get('SHOP_CUSTOM_THEMES_PATH')
+    if override:
+        return Path(override)
+    folder = Path(current_app.instance_path)
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder / 'custom_themes.json'
+
+
+def _theme_slug(label):
+    from app.services.demo_accounts import product_slug
+    slug = product_slug(label) or 'theme'
+    theme_id = f'custom-{slug}'
+    existing = {theme['id'] for theme in all_themes()}
+    if theme_id not in existing:
+        return theme_id
+    suffix = 2
+    while f'{theme_id}-{suffix}' in existing:
+        suffix += 1
+    return f'{theme_id}-{suffix}'
+
+
+def _normalize_custom_theme(raw):
+    if not isinstance(raw, dict):
+        return None
+    theme_id = str(raw.get('id') or '').strip().lower()
+    label = str(raw.get('label') or '').strip()
+    kind = str(raw.get('kind') or 'evenement').strip().lower()
+    if kind not in ('saison', 'evenement'):
+        kind = 'evenement'
+    if not theme_id or not label:
+        return None
+    products = raw.get('products') or ()
+    names = tuple(str(name).strip() for name in products if str(name).strip())
+    months = tuple(int(month) for month in (raw.get('months') or ()) if str(month).isdigit() and 1 <= int(month) <= 12)
+    accent = str(raw.get('accent') or '#bc6288').strip().lower()
+    if len(accent) != 7 or not accent.startswith('#'):
+        accent = '#bc6288'
+    return {
+        'id': theme_id,
+        'label': label[:80],
+        'kind': kind,
+        'blurb': str(raw.get('blurb') or '').strip()[:240],
+        'accent': accent,
+        'months': months,
+        'products': names,
+        'custom': True,
+    }
+
+
+def load_custom_themes():
+    path = custom_themes_file()
+    try:
+        stored = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, json.JSONDecodeError):
+        return []
+    if not isinstance(stored, list):
+        return []
+    themes = []
+    seen = set(_builtin_ids())
+    for raw in stored:
+        theme = _normalize_custom_theme(raw)
+        if theme is None or theme['id'] in seen:
+            continue
+        seen.add(theme['id'])
+        themes.append(theme)
+    return themes
+
+
+def save_custom_themes(themes):
+    path = custom_themes_file()
+    payload = []
+    for theme in themes:
+        payload.append({
+            'id': theme['id'],
+            'label': theme['label'],
+            'kind': theme['kind'],
+            'blurb': theme.get('blurb') or '',
+            'accent': theme.get('accent') or '#bc6288',
+            'months': list(theme.get('months') or ()),
+            'products': list(theme.get('products') or ()),
+        })
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+
+def all_themes():
+    return list(SHOP_THEMES) + load_custom_themes()
+
+
+def create_custom_theme(data):
+    from app.models import Product
+
+    label = str((data or {}).get('label') or '').strip()
+    if len(label) < 2:
+        raise ValueError('Le nom du thème est requis.')
+    kind = str((data or {}).get('kind') or 'evenement').strip().lower()
+    if kind not in ('saison', 'evenement'):
+        raise ValueError('Le type doit être saison ou thème.')
+    raw_products = (data or {}).get('products') or []
+    if isinstance(raw_products, str):
+        raw_products = [part.strip() for part in raw_products.split(',')]
+    wanted = [str(name).strip() for name in raw_products if str(name).strip()]
+    if not wanted:
+        raise ValueError('Choisissez au moins un bouquet pour ce thème.')
+    catalog = {product.name for product in Product.query.all()}
+    names = tuple(name for name in wanted if name in catalog)
+    if not names:
+        raise ValueError('Aucun produit du catalogue ne correspond à ce thème.')
+    accent = str((data or {}).get('accent') or '#bc6288').strip().lower()
+    if len(accent) != 7 or not accent.startswith('#'):
+        accent = '#bc6288'
+    months = []
+    for month in (data or {}).get('months') or ():
+        try:
+            value = int(month)
+        except (TypeError, ValueError):
+            continue
+        if 1 <= value <= 12:
+            months.append(value)
+    theme = {
+        'id': _theme_slug(label),
+        'label': label[:80],
+        'kind': kind,
+        'blurb': str((data or {}).get('blurb') or '').strip()[:240],
+        'accent': accent,
+        'months': tuple(months),
+        'products': names,
+        'custom': True,
+    }
+    custom = load_custom_themes()
+    custom.append(theme)
+    save_custom_themes(custom)
+    return theme
+
+
+def delete_custom_theme(theme_id):
+    theme_id = (theme_id or '').strip().lower()
+    if theme_id in _builtin_ids():
+        raise ValueError('Les saisons et thèmes du catalogue ne peuvent pas être supprimés.')
+    custom = load_custom_themes()
+    remaining = [theme for theme in custom if theme['id'] != theme_id]
+    if len(remaining) == len(custom):
+        raise KeyError(theme_id)
+    save_custom_themes(remaining)
+    applied = get_applied_vitrine()
+    season = None if applied.get('season') == theme_id else applied.get('season')
+    event = None if applied.get('theme') == theme_id else applied.get('theme')
+    if season != applied.get('season') or event != applied.get('theme'):
+        set_applied_vitrine(season, event)
+    return theme_id
 
 
 def applied_theme_file():
@@ -388,7 +545,8 @@ def themes_payload(today=None):
                 'product_names': list(theme['products']),
                 'is_current_season': theme['id'] == calendar_season,
                 'is_applied': theme['id'] in ids,
+                'is_custom': bool(theme.get('custom')),
             }
-            for theme in SHOP_THEMES
+            for theme in all_themes()
         ],
     }

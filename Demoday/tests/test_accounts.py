@@ -17,6 +17,7 @@ class AccountsTestCase(unittest.TestCase):
         self.app = create_app()
         self.app.config['TESTING'] = True
         self.app.config['SHOP_THEME_PATH'] = os.path.join(self._theme_dir.name, 'shop_theme')
+        self.app.config['SHOP_CUSTOM_THEMES_PATH'] = os.path.join(self._theme_dir.name, 'custom_themes.json')
         self.client = self.app.test_client()
         self.ctx = self.app.app_context()
         self.ctx.push()
@@ -34,7 +35,7 @@ class AccountsTestCase(unittest.TestCase):
         client = User.query.filter_by(email='client@test.com').first()
         self.assertIsNotNone(client)
         self.assertFalse(client.is_admin)
-        self.assertEqual(client.username, 'client')
+        self.assertEqual(client.username, 'Léa Martin')
         self.assertTrue(client.check_password('client123'))
         self.assertNotEqual(client.password, 'client123')
 
@@ -88,6 +89,7 @@ class AccountsTestCase(unittest.TestCase):
         ensure_demo_accounts()
         user = User.query.filter_by(email='marie@test.com').first()
         self.assertTrue(user.check_password('marie123'))
+        self.assertEqual(user.username, 'Marie Dupont')
 
     def test_demo_flower_catalog_is_seeded(self):
         from app.models import Category, Product
@@ -159,6 +161,7 @@ class AccountsTestCase(unittest.TestCase):
         payload = response.get_json()
         self.assertTrue(payload['data']['user']['is_admin'])
         self.assertEqual(payload['data']['user']['email'], 'admin@florashop.com')
+        self.assertEqual(payload['data']['user']['username'], 'Camille Pivoine')
 
     def test_demo_seed_restores_admin_flag(self):
         ensure_demo_accounts()
@@ -262,6 +265,9 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('Saisons', admin)
         self.assertIn('Thèmes', admin)
         self.assertIn('setupAdminVitrine', admin)
+        self.assertIn('theme-create-form', admin)
+        self.assertIn('create-theme-btn', admin)
+        self.assertIn('submitCustomTheme', admin)
         self.assertIn('applyVitrine', admin)
         self.assertIn('PUT', admin)
         self.assertIn('/api/v1/themes', admin)
@@ -413,6 +419,54 @@ class AccountsTestCase(unittest.TestCase):
         self.assertEqual(cleared.status_code, 200)
         self.assertIsNone(cleared.get_json()['applied'])
         self.assertEqual(cleared.get_json()['applied_ids'], [])
+
+    def test_admin_can_create_and_delete_custom_theme(self):
+        ensure_demo_accounts()
+        ensure_demo_catalog()
+        admin_login = self.client.post('/api/v1/auth/login', json={
+            'email': 'admin@florashop.com',
+            'password': 'admin123',
+        })
+        headers = {'Authorization': f'Bearer {admin_login.get_json()["data"]["token"]}'}
+
+        guest = self.client.post('/api/v1/themes', json={
+            'label': 'Anniversaire',
+            'kind': 'evenement',
+            'products': ['Bouquet Pivoine'],
+        })
+        self.assertEqual(guest.status_code, 401)
+
+        created = self.client.post('/api/v1/themes', json={
+            'label': 'Anniversaire',
+            'kind': 'evenement',
+            'blurb': 'Pour un gâteau et un bouquet.',
+            'accent': '#d94f70',
+            'products': ['Bouquet Pivoine', 'Mini bouquet'],
+        }, headers=headers)
+        self.assertEqual(created.status_code, 201, created.get_json())
+        payload = created.get_json()
+        custom = next(item for item in payload['themes'] if item['label'] == 'Anniversaire')
+        self.assertTrue(custom['is_custom'])
+        self.assertEqual(custom['kind'], 'evenement')
+        self.assertIn('Bouquet Pivoine', custom['product_names'])
+        self.assertTrue(custom['id'].startswith('custom-'))
+
+        applied = self.client.put(
+            '/api/v1/themes',
+            json={'season': None, 'theme': custom['id']},
+            headers=headers,
+        )
+        self.assertEqual(applied.status_code, 200, applied.get_json())
+        self.assertEqual(applied.get_json()['applied'], custom['id'])
+
+        forbidden = self.client.delete('/api/v1/themes/mariage', headers=headers)
+        self.assertEqual(forbidden.status_code, 400)
+
+        deleted = self.client.delete(f'/api/v1/themes/{custom["id"]}', headers=headers)
+        self.assertEqual(deleted.status_code, 200, deleted.get_json())
+        ids = [item['id'] for item in deleted.get_json()['themes']]
+        self.assertNotIn(custom['id'], ids)
+        self.assertIsNone(deleted.get_json()['applied'])
 
 
 if __name__ == '__main__':

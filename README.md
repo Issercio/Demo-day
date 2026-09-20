@@ -72,11 +72,11 @@ Copy [`.env.example`](.env.example) to `Demoday/.env`. Never commit `.env`. Secr
 
 ### Demo accounts
 
-| Role | Email | Password |
-| --- | --- | --- |
-| Customer | `marie@test.com` | `marie123` |
-| Customer | `client@test.com` | `client123` |
-| Florist (admin) | `admin@florashop.com` | `admin123` |
+| Role | Name | Email | Password |
+| --- | --- | --- | --- |
+| Customer | Marie Dupont | `marie@test.com` | `marie123` |
+| Customer | Léa Martin | `client@test.com` | `client123` |
+| Florist (admin) | Camille Pivoine | `admin@florashop.com` | `admin123` |
 
 Successful payment: `4242 4242 4242 4242`, any future expiry, CVC `123`.  
 Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
@@ -97,6 +97,7 @@ Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
 | Florist | Add, update and delete products and categories | Must have |
 | Florist | Upload a product photo from the catalog form | Must have |
 | Florist | Apply a season, a theme, or both as a combo to the live shop | Must have |
+| Florist | Create a custom shop theme from the admin catalog | Must have |
 | Florist | Review paid orders with line prices, card last four digits, and payment reference | Must have |
 | Florist | Keep the back-office for administrators only | Must have |
 
@@ -307,7 +308,9 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | POST | `/api/v1/auth/login` | public | Sign in |
 | GET | `/api/v1/products` | public | Full catalog (`?theme=` season, event, or comma-separated combo) |
 | GET | `/api/v1/themes` | public | Seasons, event themes, and the applied shop vitrine |
+| POST | `/api/v1/themes` | admin JWT | Create a custom season or event theme |
 | PUT | `/api/v1/themes` | admin JWT | Apply `{ "season", "theme" }` or a legacy `{ "id" }` |
+| DELETE | `/api/v1/themes/<id>` | admin JWT | Delete a custom theme (built-in ones stay) |
 | POST | `/api/v1/products` | admin JWT | Create product (JSON or multipart with `image`) |
 | PUT / DELETE | `/api/v1/products/<id>` | admin JWT | Update or delete product (multipart photo allowed on PUT) |
 | GET | `/api/v1/categories` | public | List categories |
