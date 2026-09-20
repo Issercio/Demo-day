@@ -273,7 +273,8 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('theme-accent-hex', admin)
         self.assertIn('can_delete', admin)
         self.assertIn('Nouveau thème', admin)
-        self.assertIn('max-width: none', admin.split('.theme-create-form', 1)[1][:500])
+        self.assertNotIn('Les saisons restent', admin)
+        self.assertNotIn('ne se créent', admin)
         self.assertNotIn('theme-kind', admin)
         self.assertIn('applyVitrine', admin)
         self.assertIn('PUT', admin)
@@ -298,6 +299,15 @@ class AccountsTestCase(unittest.TestCase):
         from app.services.shop_themes import SHOP_THEMES, current_theme_id, product_names_for_theme
 
         ensure_demo_catalog()
+        from app.models.shop_theme import ShopTheme, ThemeProduct, ShopVitrine
+        automne = db.session.get(ShopTheme, 'automne')
+        self.assertIsNotNone(automne)
+        self.assertTrue(automne.links)
+        self.assertTrue(all(isinstance(link.product_id, int) for link in automne.links))
+        self.assertEqual(automne.links[0].product.name, automne.product_names[0])
+        self.assertIsNotNone(automne.links[0].product.category_id)
+        self.assertIsNotNone(db.session.get(ShopVitrine, 1))
+        self.assertGreaterEqual(ThemeProduct.query.count(), 8)
         catalog_names = {name for _, items in DEMO_CATALOG for name, _, _ in items}
         for theme in SHOP_THEMES:
             for name in theme['products']:
@@ -488,7 +498,7 @@ class AccountsTestCase(unittest.TestCase):
 
         keep_season = self.client.delete('/api/v1/themes/printemps', headers=headers)
         self.assertEqual(keep_season.status_code, 400)
-        self.assertIn('saison', keep_season.get_json().get('error', '').lower())
+        self.assertIn('printemps', [item['id'] for item in self.client.get('/api/v1/themes').get_json()['themes']])
 
         applied_custom = self.client.put(
             '/api/v1/themes',

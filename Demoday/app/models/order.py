@@ -5,7 +5,8 @@ class Order(db.Model):
     __tablename__ = 'orders'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Peut être null pour invités
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # invité = null
+    user = db.relationship('User', back_populates='orders')
     email = db.Column(db.String(120), nullable=False)  # Email du client
     customer_name = db.Column(db.String(120), nullable=True)
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)

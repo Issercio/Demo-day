@@ -167,7 +167,7 @@ flowchart LR
     Auth[JWT]
   end
   DB[(SQLite or PostgreSQL)]
-  Disk[(instance/shop_theme + static photos)]
+  Disk[(static product photos)]
   Pages --> JS
   JS -->|JSON + Bearer| Restx
   JS -->|POST checkout| Pay
@@ -176,7 +176,7 @@ flowchart LR
   Restx --> Photos
   Restx --> DB
   Pay --> DB
-  Themes --> Disk
+  Themes --> DB
   Photos --> Disk
 ```
 
@@ -186,7 +186,7 @@ The public shop does not auto-filter `GET /api/v1/products`. After load it reads
 
 **Frontend.** Templates in `Demoday/app/templates/` (home, shop, cart, checkout, account, admin, subscription). Shared CSS in `static/css/style.css`. Cart and session in `static/js/api.js`. Vanilla JavaScript and Jinja — no React.
 
-**Backend.** `create_app()` in `app/__init__.py` wires CORS, SQLAlchemy, Flask-RESTX namespaces (`auth`, `products`, `categories`, `users`) and the payments blueprint. Domain logic lives in `app/services/` (`checkout_service.py`, `demo_accounts.py`, `shop_themes.py`, `product_images.py`, `stripe_service.py`). The applied vitrine is persisted under `Demoday/instance/shop_theme` (overridable with `SHOP_THEME_PATH` in tests).
+**Backend.** `create_app()` in `app/__init__.py` wires CORS, SQLAlchemy, Flask-RESTX namespaces (`auth`, `products`, `categories`, `users`) and the payments blueprint. Domain logic lives in `app/services/` (`checkout_service.py`, `demo_accounts.py`, `shop_themes.py`, `product_images.py`, `stripe_service.py`). Seasons, event themes and the applied vitrine are SQL tables (`shop_themes`, `theme_products`, `shop_vitrine`) linked to `products`.
 
 ---
 
@@ -202,6 +202,9 @@ erDiagram
   products ||--o{ order_items : appears_in
   orders ||--o{ order_items : contains
   products ||--o{ prices : optional_history
+  shop_themes ||--o{ theme_products : lists
+  products ||--o{ theme_products : featured_in
+  shop_themes ||--o| shop_vitrine : season_or_theme
 
   users {
     int id PK
@@ -223,6 +226,22 @@ erDiagram
     string color
     string image
   }
+  shop_themes {
+    string id PK
+    string label
+    string kind
+    bool is_builtin
+  }
+  theme_products {
+    string theme_id FK
+    int product_id FK
+    int position
+  }
+  shop_vitrine {
+    int id PK
+    string season_id FK
+    string theme_id FK
+  }
   orders {
     int id PK
     int user_id FK
@@ -243,9 +262,7 @@ erDiagram
   }
 ```
 
-`reviews` and `prices` exist as models but are not on the purchase path. Product `color` is a hex code (`VARCHAR(7)`). Product `image` is a path under `/static/img/products/`. Card numbers are not stored; `card_last4` is at most four digits.
-
-The shop vitrine is not a SQL table. Seasons and event themes live in `shop_themes.py`. The florist’s current choice is a JSON file `{ "season": "...", "theme": "..." }`.
+`reviews` and `prices` exist as models but are not on the purchase path. Product `color` is a hex code (`VARCHAR(7)`). Product `image` is a path under `/static/img/products/`. Card numbers are not stored; `card_last4` is at most four digits. Each vitrine theme stores an ordered list of `product_id` rows in `theme_products`. The live shop selection is one `shop_vitrine` row (`season_id`, `theme_id`).
 
 ### UML
 
@@ -289,10 +306,17 @@ classDiagram
     +int quantity
     +Decimal price
   }
+  class ShopTheme {
+    +str id
+    +str label
+    +str kind
+  }
   User "1" --> "*" Order
   Category "1" --> "*" Product
   Order "1" --> "*" OrderItem
   Product "1" --> "*" OrderItem
+  ShopTheme "*" --> "*" Product
+  ShopTheme "1" --> "0..1" ShopVitrine
 ```
 
 ---
@@ -310,7 +334,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | GET | `/api/v1/themes` | public | Seasons, event themes, and the applied shop vitrine |
 | POST | `/api/v1/themes` | admin JWT | Create a custom event theme (not a season) |
 | PUT | `/api/v1/themes` | admin JWT | Apply `{ "season", "theme" }` or a legacy `{ "id" }` |
-| DELETE | `/api/v1/themes/<id>` | admin JWT | Delete an event theme (Mariage, a custom one, etc.). Seasons stay. |
+| DELETE | `/api/v1/themes/<id>` | admin JWT | Delete an event theme |
 | POST | `/api/v1/products` | admin JWT | Create product (JSON or multipart with `image`) |
 | PUT / DELETE | `/api/v1/products/<id>` | admin JWT | Update or delete product (multipart photo allowed on PUT) |
 | GET | `/api/v1/categories` | public | List categories |
@@ -321,7 +345,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | GET | `/api/v1/payments/orders/<id>` | owner or admin JWT | Order detail |
 | GET | `/api/v1/payments/orders` | admin JWT | List orders |
 
-`GET /api/v1/themes` returns `applied`, `applied_ids`, `applied_season`, `applied_theme`, `label`, `blurb`, `product_names`, and the full theme list with `is_applied` and `can_delete`. A customer token cannot change the vitrine. Event themes can be removed; seasons cannot.
+`GET /api/v1/themes` returns `applied`, `applied_ids`, `applied_season`, `applied_theme`, `label`, `blurb`, `product_names`, and the full theme list with `is_applied` and `can_delete`. A customer token cannot change the vitrine.
 
 ---
 
@@ -436,7 +460,7 @@ Issercio and Matthieu share this repository. Cadence for a demonstration: one lo
 Marie forgot her mother’s birthday. The boutique in Sciez is closed. She opens Pivoine & Lilas.
 
 1. Home — the boutique is open online (address and hours; no theme picker).
-2. Sign in as `admin@florashop.com` / `admin123`. Open **Vitrine du shop**. Apply **Automne**, or a combo such as **Printemps + Mariage**. Open `/shop.html` (or **SHOP** in another tab): the catalog follows that vitrine for every visitor. Reset filters does not clear the vitrine. **Catalogue complet** in admin restores the full shop. A cross on an event theme (Mariage, Noël, or a theme you created) removes it; seasons stay.
+2. Sign in as `admin@florashop.com` / `admin123`. Open **Vitrine du shop**. Apply **Automne**, or a combo such as **Printemps + Mariage**. Open `/shop.html` (or **SHOP** in another tab): the catalog follows that vitrine for every visitor. Reset filters does not clear the vitrine. **Catalogue complet** in admin restores the full shop.
 3. Shop as a customer — filter a category or a colour swatch, add one bouquet with its photo (Fleurs Fraîches, Compositions, Fleurs Séchées, Plantes, Mariage, Deuil, Cadeaux; product hex colors match the filter bar).
 4. Sign in as `marie@test.com` / `marie123`. The cart is hers. Open the account icon: email and **Déconnexion** sit under the icon, the navbar does not grow.
 5. Pay with `4242 4242 4242 4242`. The server recalculates the total. Status `paid`.

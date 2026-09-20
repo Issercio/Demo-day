@@ -674,7 +674,6 @@
             </div>
             <form class="theme-create-form" id="theme-create-form">
                 <h3>Nouveau thème</h3>
-                <p class="admin-vitrine-lead">Les saisons restent fixes. Chaque thème — Mariage, Noël, ou un thème à vous — peut être retiré avec la croix sur la pastille.</p>
                 <div class="theme-create-fields">
                     <div class="form-group theme-create-name">
                         <label for="theme-label">Nom</label>
@@ -1090,7 +1089,7 @@
         }
 
         async function deleteCustomTheme(themeId) {
-            if (!themeId || !confirm('Retirer ce thème de la vitrine ? S’il était affiché dans le shop, le catalogue reprend sa place.')) {
+            if (!themeId || !confirm('Retirer ce thème de la vitrine ?')) {
                 return;
             }
             try {

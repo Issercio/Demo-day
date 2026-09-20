@@ -223,3 +223,5 @@ def ensure_demo_catalog():
                 product.color = color
                 product.image = image
     db.session.commit()
+    from app.services.shop_themes import ensure_shop_themes
+    ensure_shop_themes()

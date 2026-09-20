@@ -1,6 +1,7 @@
 from .category import Category
 from .user import User
 from .order import Order, OrderItem
+from .shop_theme import ShopTheme, ShopVitrine, ThemeProduct
 from app.extensions import db
 
 # Définition du modèle Product directement dans __init__.py
@@ -15,8 +16,11 @@ class Product(db.Model):
     color = db.Column(db.String(7), nullable=True)  # hex #rrggbb pour le filtre boutique
     image = db.Column(db.String(255), nullable=True)  # chemin /static/img/products/...
 
+    category = db.relationship('Category', back_populates='products')
+    theme_links = db.relationship('ThemeProduct', back_populates='product', cascade='all, delete-orphan')
+
     def to_dict(self):
-        category = db.session.get(Category, self.category_id) if self.category_id else None
+        category = self.category
         color = str(self.color).lower() if self.color else None
         return {
             'id': int(self.id),

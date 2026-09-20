@@ -76,7 +76,7 @@ def create_app():
     migrate.init_app(app, db)
 
     # Import des modèles pour l'initialisation
-    from .models import Category, Product, User, Order, OrderItem
+    from .models import Category, Product, User, Order, OrderItem, ShopTheme, ShopVitrine, ThemeProduct
 
     # Swagger UI : ajout du header Authorization
     authorizations = {

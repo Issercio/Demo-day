@@ -92,14 +92,11 @@ def payment_config():
 
 
 def ensure_runtime_schema():
+    db.create_all()
     inspector = inspect(db.engine)
     tables = inspector.get_table_names()
     if 'orders' not in tables:
-        db.create_all()
-        inspector = inspect(db.engine)
-        tables = inspector.get_table_names()
-        if 'orders' not in tables:
-            return
+        return
 
     existing = {column['name'] for column in inspector.get_columns('orders')}
     additions = {

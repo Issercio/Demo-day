@@ -1,10 +1,12 @@
-"""Saisons et thèmes événement : listes de noms produits, pas une table SQL."""
+"""Saisons et thèmes événement : listes liées aux produits en base."""
 
 import json
 from datetime import date
 from pathlib import Path
 
 from flask import current_app
+
+from app.extensions import db
 
 SHOP_THEMES = (
     {
@@ -253,203 +255,246 @@ def product_names_for_ids(theme_ids):
     return names
 
 
-def _builtin_ids():
-    return {theme['id'] for theme in SHOP_THEMES}
+def _theme_dict(row):
+    return {
+        'id': row.id,
+        'label': row.label,
+        'kind': row.kind,
+        'blurb': row.blurb or '',
+        'accent': row.accent or '#bc6288',
+        'months': row.month_tuple,
+        'products': row.product_names,
+        'custom': not row.is_builtin,
+    }
 
 
-def _builtin_event_ids():
-    return {theme['id'] for theme in SHOP_THEMES if theme['kind'] == 'evenement'}
+def _set_theme_products(row, names, by_name):
+    from app.models.shop_theme import ThemeProduct
+
+    row.links.clear()
+    position = 0
+    seen = set()
+    for name in names:
+        product = by_name.get(name)
+        if product is None or product.id in seen:
+            continue
+        seen.add(product.id)
+        row.links.append(ThemeProduct(product_id=product.id, position=position))
+        position += 1
 
 
-def custom_themes_file():
+def _legacy_custom_path():
     override = current_app.config.get('SHOP_CUSTOM_THEMES_PATH')
     if override:
         return Path(override)
-    folder = Path(current_app.instance_path)
-    folder.mkdir(parents=True, exist_ok=True)
-    return folder / 'custom_themes.json'
+    return Path(current_app.instance_path) / 'custom_themes.json'
 
 
-def _empty_custom_store():
-    return {'themes': [], 'removed': []}
+def _legacy_vitrine_path():
+    override = current_app.config.get('SHOP_THEME_PATH')
+    if override:
+        return Path(override)
+    return Path(current_app.instance_path) / 'shop_theme'
 
 
-def load_custom_store():
-    """Fichier {themes, removed}. Un ancien tableau JSON reste lisible."""
-    path = custom_themes_file()
+def _import_legacy_json(by_name):
+    """Une fois : anciens fichiers instance/ → lignes SQL, puis on n’y écrit plus."""
+    from app.models.shop_theme import ShopTheme
+
+    path = _legacy_custom_path()
     try:
         stored = json.loads(path.read_text(encoding='utf-8'))
     except (OSError, json.JSONDecodeError):
-        return _empty_custom_store()
+        return
     if isinstance(stored, list):
-        return {'themes': stored, 'removed': []}
-    if not isinstance(stored, dict):
-        return _empty_custom_store()
-    removed = []
-    seen = set()
-    allowed = _builtin_event_ids()
-    for raw in stored.get('removed') or []:
-        theme_id = str(raw or '').strip().lower()
-        if not theme_id or theme_id in seen or theme_id not in allowed:
+        themes, removed = stored, []
+    elif isinstance(stored, dict):
+        themes, removed = stored.get('themes') or [], stored.get('removed') or []
+    else:
+        return
+    for theme_id in removed:
+        row = db.session.get(ShopTheme, str(theme_id).strip().lower())
+        if row is not None and row.is_builtin:
+            row.is_active = False
+    for raw in themes:
+        if not isinstance(raw, dict):
             continue
-        seen.add(theme_id)
-        removed.append(theme_id)
-    themes = stored.get('themes')
-    return {
-        'themes': themes if isinstance(themes, list) else [],
-        'removed': removed,
-    }
+        theme_id = str(raw.get('id') or '').strip().lower()
+        label = str(raw.get('label') or '').strip()
+        if not theme_id or not label or db.session.get(ShopTheme, theme_id):
+            continue
+        accent = str(raw.get('accent') or '#bc6288').strip().lower()
+        if len(accent) != 7 or not accent.startswith('#'):
+            accent = '#bc6288'
+        row = ShopTheme(
+            id=theme_id,
+            label=label[:80],
+            kind='evenement',
+            blurb=str(raw.get('blurb') or '').strip()[:240],
+            accent=accent,
+            months='',
+            is_builtin=False,
+            is_active=True,
+        )
+        db.session.add(row)
+        _set_theme_products(row, raw.get('products') or (), by_name)
 
 
-def save_custom_store(themes, removed):
-    path = custom_themes_file()
-    payload = {
-        'removed': list(removed),
-        'themes': [],
-    }
-    for theme in themes:
-        payload['themes'].append({
-            'id': theme['id'],
-            'label': theme['label'],
-            'kind': theme['kind'],
-            'blurb': theme.get('blurb') or '',
-            'accent': theme.get('accent') or '#bc6288',
-            'months': list(theme.get('months') or ()),
-            'products': list(theme.get('products') or ()),
-        })
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+def ensure_shop_themes():
+    """Crée les tables vitrine et relie chaque thème aux Product.id du catalogue."""
+    from app.models import Product
+    from app.models.shop_theme import ShopTheme, ShopVitrine
+
+    db.create_all()
+    by_name = {product.name: product for product in Product.query.all()}
+    for spec in SHOP_THEMES:
+        row = db.session.get(ShopTheme, spec['id'])
+        if row is None:
+            row = ShopTheme(
+                id=spec['id'],
+                label=spec['label'],
+                kind=spec['kind'],
+                blurb=spec['blurb'],
+                accent=spec['accent'],
+                months=','.join(str(month) for month in spec.get('months') or ()),
+                is_builtin=True,
+                is_active=True,
+            )
+            db.session.add(row)
+            _set_theme_products(row, spec['products'], by_name)
+        elif row.is_builtin and row.is_active:
+            row.label = spec['label']
+            row.kind = spec['kind']
+            row.blurb = spec['blurb']
+            row.accent = spec['accent']
+            row.months = ','.join(str(month) for month in spec.get('months') or ())
+            _set_theme_products(row, spec['products'], by_name)
+    _import_legacy_json(by_name)
+    if db.session.get(ShopVitrine, 1) is None:
+        db.session.add(ShopVitrine(id=1, season_id=None, theme_id=None))
+    db.session.commit()
+    _import_legacy_vitrine_file()
+
+
+def _import_legacy_vitrine_file():
+    path = _legacy_vitrine_path()
+    try:
+        stored = path.read_text(encoding='utf-8').strip()
+    except OSError:
+        return
+    if not stored or stored.lower() in ('none', 'all', 'catalogue'):
+        return
+    from app.models.shop_theme import ShopVitrine
+
+    row = db.session.get(ShopVitrine, 1)
+    if row is None or row.season_id or row.theme_id:
+        return
+    season = theme = None
+    if stored.startswith('{'):
+        try:
+            data = json.loads(stored)
+        except json.JSONDecodeError:
+            return
+        season, theme = data.get('season'), data.get('theme')
+    else:
+        try:
+            ids = parse_theme_ids(stored)
+        except KeyError:
+            return
+        for theme_id in ids:
+            item = get_theme(theme_id)
+            if item['kind'] == 'saison':
+                season = item['id']
+            else:
+                theme = item['id']
+    try:
+        set_applied_vitrine(season, theme)
+    except KeyError:
+        pass
 
 
 def _theme_slug(label):
     from app.services.demo_accounts import product_slug
+    from app.models.shop_theme import ShopTheme
+
     slug = product_slug(label) or 'theme'
     theme_id = f'custom-{slug}'
-    existing = {theme['id'] for theme in all_themes()}
-    if theme_id not in existing:
+    if db.session.get(ShopTheme, theme_id) is None:
         return theme_id
     suffix = 2
-    while f'{theme_id}-{suffix}' in existing:
+    while db.session.get(ShopTheme, f'{theme_id}-{suffix}') is not None:
         suffix += 1
     return f'{theme_id}-{suffix}'
 
 
-def _normalize_custom_theme(raw):
-    if not isinstance(raw, dict):
-        return None
-    theme_id = str(raw.get('id') or '').strip().lower()
-    label = str(raw.get('label') or '').strip()
-    if not theme_id or not label:
-        return None
-    products = raw.get('products') or ()
-    names = tuple(str(name).strip() for name in products if str(name).strip())
-    accent = str(raw.get('accent') or '#bc6288').strip().lower()
-    if len(accent) != 7 or not accent.startswith('#'):
-        accent = '#bc6288'
-    return {
-        'id': theme_id,
-        'label': label[:80],
-        'kind': 'evenement',
-        'blurb': str(raw.get('blurb') or '').strip()[:240],
-        'accent': accent,
-        'months': (),
-        'products': names,
-        'custom': True,
-    }
-
-
-def load_custom_themes():
-    store = load_custom_store()
-    themes = []
-    seen = set(_builtin_ids())
-    for raw in store['themes']:
-        theme = _normalize_custom_theme(raw)
-        if theme is None or theme['id'] in seen:
-            continue
-        seen.add(theme['id'])
-        themes.append(theme)
-    return themes
-
-
-def save_custom_themes(themes):
-    save_custom_store(themes, load_custom_store()['removed'])
-
-
 def all_themes():
-    removed = set(load_custom_store()['removed'])
-    return [theme for theme in SHOP_THEMES if theme['id'] not in removed] + load_custom_themes()
+    from app.models.shop_theme import ShopTheme
+
+    rows = (
+        ShopTheme.query.filter_by(is_active=True)
+        .order_by(ShopTheme.kind.desc(), ShopTheme.id)
+        .all()
+    )
+    return [_theme_dict(row) for row in rows]
 
 
 def create_custom_theme(data):
     from app.models import Product
+    from app.models.shop_theme import ShopTheme
 
     label = str((data or {}).get('label') or '').strip()
     if len(label) < 2:
         raise ValueError('Le nom du thème est requis.')
-    # Les saisons (Printemps…Hiver) restent fixes ; on ne crée que des thèmes événement.
-    kind = 'evenement'
     raw_products = (data or {}).get('products') or []
     if isinstance(raw_products, str):
         raw_products = [part.strip() for part in raw_products.split(',')]
     wanted = [str(name).strip() for name in raw_products if str(name).strip()]
     if not wanted:
         raise ValueError('Choisissez au moins un bouquet pour ce thème.')
-    catalog = {product.name for product in Product.query.all()}
-    names = tuple(name for name in wanted if name in catalog)
+    by_name = {product.name: product for product in Product.query.all()}
+    names = [name for name in wanted if name in by_name]
     if not names:
         raise ValueError('Aucun produit du catalogue ne correspond à ce thème.')
     accent = str((data or {}).get('accent') or '#bc6288').strip().lower()
     if len(accent) != 7 or not accent.startswith('#'):
         accent = '#bc6288'
-    theme = {
-        'id': _theme_slug(label),
-        'label': label[:80],
-        'kind': kind,
-        'blurb': str((data or {}).get('blurb') or '').strip()[:240],
-        'accent': accent,
-        'months': (),
-        'products': names,
-        'custom': True,
-    }
-    custom = load_custom_themes()
-    custom.append(theme)
-    save_custom_themes(custom)
-    return theme
+    row = ShopTheme(
+        id=_theme_slug(label),
+        label=label[:80],
+        kind='evenement',
+        blurb=str((data or {}).get('blurb') or '').strip()[:240],
+        accent=accent,
+        months='',
+        is_builtin=False,
+        is_active=True,
+    )
+    db.session.add(row)
+    _set_theme_products(row, names, by_name)
+    db.session.commit()
+    return _theme_dict(row)
 
 
 def delete_custom_theme(theme_id):
-    """Retire un thème événement, y compris Mariage / Noël / etc. Les saisons restent."""
+    from app.models.shop_theme import ShopTheme
+
     theme_id = (theme_id or '').strip().lower()
-    theme = get_theme(theme_id)
-    if theme is None:
+    row = db.session.get(ShopTheme, theme_id)
+    if row is None or not row.is_active:
         raise KeyError(theme_id)
-    if theme['kind'] == 'saison':
-        raise ValueError('Les saisons ne peuvent pas être supprimées.')
+    if row.kind != 'evenement':
+        raise ValueError('Thème introuvable.')
     applied = get_applied_vitrine()
-    store = load_custom_store()
-    custom = load_custom_themes()
-    if theme.get('custom'):
-        remaining = [item for item in custom if item['id'] != theme_id]
-        if len(remaining) == len(custom):
-            raise KeyError(theme_id)
-        save_custom_store(remaining, store['removed'])
+    if row.is_builtin:
+        row.is_active = False
+        row.links.clear()
     else:
-        removed = [item_id for item_id in store['removed'] if item_id != theme_id]
-        removed.append(theme_id)
-        save_custom_store(custom, removed)
+        db.session.delete(row)
+    db.session.commit()
     season = None if applied.get('season') == theme_id else applied.get('season')
     event = None if applied.get('theme') == theme_id else applied.get('theme')
     if season != applied.get('season') or event != applied.get('theme'):
         set_applied_vitrine(season, event)
     return theme_id
-
-
-def applied_theme_file():
-    override = current_app.config.get('SHOP_THEME_PATH')
-    if override:
-        return Path(override)
-    folder = Path(current_app.instance_path)
-    folder.mkdir(parents=True, exist_ok=True)
-    return folder / 'shop_theme'  # JSON {season, theme} partagé par tous les visiteurs
 
 
 def _empty_applied():
@@ -470,39 +515,26 @@ def applied_ids(applied=None):
     return [theme_id for theme_id in (applied.get('season'), applied.get('theme')) if theme_id]
 
 
+def _vitrine_row():
+    from app.models.shop_theme import ShopVitrine
+
+    row = db.session.get(ShopVitrine, 1)
+    if row is None:
+        row = ShopVitrine(id=1)
+        db.session.add(row)
+        db.session.commit()
+    return row
+
+
 def get_applied_vitrine():
-    path = applied_theme_file()
+    row = _vitrine_row()
     try:
-        stored = path.read_text(encoding='utf-8').strip()
-    except OSError:
-        return _empty_applied()
-    if not stored or stored.lower() in ('none', 'all', 'catalogue'):
-        return _empty_applied()
-    if stored.startswith('{'):
-        try:
-            data = json.loads(stored)
-        except json.JSONDecodeError:
-            return _empty_applied()
-        try:
-            return {
-                'season': _normalize_slot(data.get('season'), 'saison'),
-                'theme': _normalize_slot(data.get('theme'), 'evenement'),
-            }
-        except KeyError:
-            return _empty_applied()
-    try:
-        ids = parse_theme_ids(stored)
+        return {
+            'season': _normalize_slot(row.season_id, 'saison'),
+            'theme': _normalize_slot(row.theme_id, 'evenement'),
+        }
     except KeyError:
         return _empty_applied()
-    season = None
-    theme = None
-    for theme_id in ids:
-        item = get_theme(theme_id)
-        if item['kind'] == 'saison':
-            season = item['id']
-        else:
-            theme = item['id']
-    return {'season': season, 'theme': theme}
 
 
 def get_applied_theme_id():
@@ -513,19 +545,14 @@ def get_applied_theme_id():
 
 
 def set_applied_vitrine(season_id=None, theme_id=None):
-    # Un slot saison + un slot événement. Les deux vides = catalogue complet.
     applied = {
         'season': _normalize_slot(season_id, 'saison'),
         'theme': _normalize_slot(theme_id, 'evenement'),
     }
-    path = applied_theme_file()
-    if applied['season'] is None and applied['theme'] is None:
-        try:
-            path.unlink()
-        except FileNotFoundError:
-            pass
-        return applied
-    path.write_text(json.dumps(applied, ensure_ascii=False) + '\n', encoding='utf-8')
+    row = _vitrine_row()
+    row.season_id = applied['season']
+    row.theme_id = applied['theme']
+    db.session.commit()
     return applied
 
 

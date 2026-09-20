@@ -8,8 +8,7 @@ class Category(db.Model):
     name = db.Column(db.String(100), unique=True, nullable=False)
     created_at = db.Column(db.DateTime, default=utc_now)
     
-    # Relation avec Product
-    products = db.relationship('Product', backref='category_ref', lazy=True, cascade='all, delete-orphan')
+    products = db.relationship('Product', back_populates='category', lazy=True, cascade='all, delete-orphan')
     
     def __init__(self, name):
         self.name = name
