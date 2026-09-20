@@ -422,11 +422,15 @@
         }
 
         .theme-create-form {
-            margin-top: 22px;
+            display: block;
+            width: 100%;
+            max-width: none;
+            margin: 22px 0 0 0;
             padding: 20px 22px 18px 22px;
             border: 1px solid #eadfe2;
             border-radius: 12px;
             background: #fff;
+            box-sizing: border-box;
         }
 
         .theme-create-form h3 {
@@ -506,7 +510,8 @@
 
         .theme-product-picker {
             max-height: 320px;
-            overflow: auto;
+            overflow-x: hidden;
+            overflow-y: auto;
             border: 1px solid #eadfe2;
             border-radius: 10px;
             background: #fbf8f6;
@@ -530,6 +535,7 @@
             display: flex;
             gap: 10px;
             align-items: flex-start;
+            min-width: 0;
             font-size: 0.92rem;
             line-height: 1.35;
             color: #3f3036;
@@ -543,9 +549,13 @@
             border-color: #d2a0b5;
         }
 
-        .theme-product-picker input[type="checkbox"] {
-            margin-top: 2px;
+        .theme-create-form input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            max-width: 16px;
+            margin: 2px 0 0 0;
             flex: 0 0 auto;
+            accent-color: #bc6288;
         }
 
         .theme-chip-wrap {
