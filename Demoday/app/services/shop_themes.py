@@ -284,24 +284,20 @@ def _normalize_custom_theme(raw):
         return None
     theme_id = str(raw.get('id') or '').strip().lower()
     label = str(raw.get('label') or '').strip()
-    kind = str(raw.get('kind') or 'evenement').strip().lower()
-    if kind not in ('saison', 'evenement'):
-        kind = 'evenement'
     if not theme_id or not label:
         return None
     products = raw.get('products') or ()
     names = tuple(str(name).strip() for name in products if str(name).strip())
-    months = tuple(int(month) for month in (raw.get('months') or ()) if str(month).isdigit() and 1 <= int(month) <= 12)
     accent = str(raw.get('accent') or '#bc6288').strip().lower()
     if len(accent) != 7 or not accent.startswith('#'):
         accent = '#bc6288'
     return {
         'id': theme_id,
         'label': label[:80],
-        'kind': kind,
+        'kind': 'evenement',
         'blurb': str(raw.get('blurb') or '').strip()[:240],
         'accent': accent,
-        'months': months,
+        'months': (),
         'products': names,
         'custom': True,
     }
@@ -352,9 +348,8 @@ def create_custom_theme(data):
     label = str((data or {}).get('label') or '').strip()
     if len(label) < 2:
         raise ValueError('Le nom du thème est requis.')
-    kind = str((data or {}).get('kind') or 'evenement').strip().lower()
-    if kind not in ('saison', 'evenement'):
-        raise ValueError('Le type doit être saison ou thème.')
+    # Les saisons (Printemps…Hiver) restent fixes ; on ne crée que des thèmes événement.
+    kind = 'evenement'
     raw_products = (data or {}).get('products') or []
     if isinstance(raw_products, str):
         raw_products = [part.strip() for part in raw_products.split(',')]
@@ -368,21 +363,13 @@ def create_custom_theme(data):
     accent = str((data or {}).get('accent') or '#bc6288').strip().lower()
     if len(accent) != 7 or not accent.startswith('#'):
         accent = '#bc6288'
-    months = []
-    for month in (data or {}).get('months') or ():
-        try:
-            value = int(month)
-        except (TypeError, ValueError):
-            continue
-        if 1 <= value <= 12:
-            months.append(value)
     theme = {
         'id': _theme_slug(label),
         'label': label[:80],
         'kind': kind,
         'blurb': str((data or {}).get('blurb') or '').strip()[:240],
         'accent': accent,
-        'months': tuple(months),
+        'months': (),
         'products': names,
         'custom': True,
     }

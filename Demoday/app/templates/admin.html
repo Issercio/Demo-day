@@ -545,26 +545,19 @@
             </div>
             <form class="theme-create-form" id="theme-create-form">
                 <h3>Créer un thème</h3>
-                <p class="admin-vitrine-lead">Ajoutez une saison ou un thème (anniversaire, entreprise…) avec les bouquets à montrer dans le shop.</p>
+                <p class="admin-vitrine-lead">Ajoutez un thème (anniversaire, entreprise…) avec les bouquets à montrer dans le shop. Les saisons Printemps, Été, Automne et Hiver ne se créent ni ne se suppriment pas.</p>
                 <div class="theme-create-grid">
                     <div class="form-group">
                         <label for="theme-label">Nom :</label>
                         <input type="text" id="theme-label" name="label" placeholder="Anniversaire, Entreprise…" required>
                     </div>
                     <div class="form-group">
-                        <label for="theme-kind">Type :</label>
-                        <select id="theme-kind" name="kind">
-                            <option value="evenement">Thème</option>
-                            <option value="saison">Saison</option>
-                        </select>
+                        <label for="theme-accent">Couleur :</label>
+                        <input type="color" id="theme-accent" name="accent" value="#bc6288">
                     </div>
                     <div class="form-group">
                         <label for="theme-blurb-input">Description :</label>
                         <input type="text" id="theme-blurb-input" name="blurb" placeholder="Une phrase pour la bannière du shop">
-                    </div>
-                    <div class="form-group">
-                        <label for="theme-accent">Couleur :</label>
-                        <input type="color" id="theme-accent" name="accent" value="#bc6288">
                     </div>
                 </div>
                 <div class="form-group" style="margin-top:12px;">
@@ -740,7 +733,7 @@
                 }
                 box.innerHTML = vitrineThemes.filter((theme) => theme.kind === kind).map((theme) => {
                     const chip = `<button type="button" class="theme-chip${appliedIds.has(theme.id) ? ' is-selected' : ''}" data-theme="${escapeHtml(theme.id)}" data-kind="${escapeHtml(theme.kind)}" style="--theme-accent:${escapeHtml(theme.accent)}">${escapeHtml(theme.label)}</button>`;
-                    if (!theme.is_custom) {
+                    if (!theme.is_custom || theme.kind !== 'evenement') {
                         return chip;
                     }
                     return `<span class="theme-chip-wrap">${chip}<button type="button" class="theme-chip-delete" data-theme="${escapeHtml(theme.id)}" aria-label="Supprimer ${escapeHtml(theme.label)}">×</button></span>`;
@@ -856,7 +849,6 @@
         async function submitCustomTheme(event) {
             event.preventDefault();
             const label = (document.getElementById('theme-label') || {}).value || '';
-            const kind = (document.getElementById('theme-kind') || {}).value || 'evenement';
             const blurb = (document.getElementById('theme-blurb-input') || {}).value || '';
             const accent = (document.getElementById('theme-accent') || {}).value || '#bc6288';
             const productsSelected = Array.from(document.querySelectorAll('input[name="theme-product"]:checked')).map((input) => input.value);
@@ -866,7 +858,7 @@
                     headers: getAdminHeaders(),
                     body: JSON.stringify({
                         label: label.trim(),
-                        kind,
+                        kind: 'evenement',
                         blurb: blurb.trim(),
                         accent,
                         products: productsSelected

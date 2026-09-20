@@ -308,7 +308,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | POST | `/api/v1/auth/login` | public | Sign in |
 | GET | `/api/v1/products` | public | Full catalog (`?theme=` season, event, or comma-separated combo) |
 | GET | `/api/v1/themes` | public | Seasons, event themes, and the applied shop vitrine |
-| POST | `/api/v1/themes` | admin JWT | Create a custom season or event theme |
+| POST | `/api/v1/themes` | admin JWT | Create a custom event theme (not a season) |
 | PUT | `/api/v1/themes` | admin JWT | Apply `{ "season", "theme" }` or a legacy `{ "id" }` |
 | DELETE | `/api/v1/themes/<id>` | admin JWT | Delete a custom theme (built-in ones stay) |
 | POST | `/api/v1/products` | admin JWT | Create product (JSON or multipart with `image`) |

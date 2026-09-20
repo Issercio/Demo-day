@@ -268,6 +268,7 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('theme-create-form', admin)
         self.assertIn('create-theme-btn', admin)
         self.assertIn('submitCustomTheme', admin)
+        self.assertNotIn('theme-kind', admin)
         self.assertIn('applyVitrine', admin)
         self.assertIn('PUT', admin)
         self.assertIn('/api/v1/themes', admin)
@@ -450,6 +451,16 @@ class AccountsTestCase(unittest.TestCase):
         self.assertEqual(custom['kind'], 'evenement')
         self.assertIn('Bouquet Pivoine', custom['product_names'])
         self.assertTrue(custom['id'].startswith('custom-'))
+
+        as_season = self.client.post('/api/v1/themes', json={
+            'label': 'Fausse saison',
+            'kind': 'saison',
+            'products': ['Bouquet Lilas'],
+        }, headers=headers)
+        self.assertEqual(as_season.status_code, 201, as_season.get_json())
+        fake = next(item for item in as_season.get_json()['themes'] if item['label'] == 'Fausse saison')
+        self.assertEqual(fake['kind'], 'evenement')
+        self.assertTrue(fake['is_custom'])
 
         applied = self.client.put(
             '/api/v1/themes',
