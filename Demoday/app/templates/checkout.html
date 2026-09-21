@@ -567,6 +567,18 @@
 
             document.getElementById('payment-form').style.display = 'none';
             document.querySelector('.order-summary').style.display = 'none';
+            const methodNote = document.getElementById('payment-method-note');
+            if (methodNote) {
+                methodNote.style.display = 'none';
+            }
+            const payHeading = document.querySelector('.payment-form > h3');
+            if (payHeading) {
+                payHeading.style.display = 'none';
+            }
+            const result = document.getElementById('payment-result');
+            if (result) {
+                result.scrollIntoView({ block: 'start' });
+            }
         }
 
         function restorePayButton() {

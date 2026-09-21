@@ -511,8 +511,12 @@ class CheckoutTestCase(unittest.TestCase):
         self.assertIn('track-steps', html)
         self.assertIn('À préparer', html)
         from pathlib import Path
-        js = Path(__file__).resolve().parents[1].joinpath('app/static/js/api.js').read_text()
+        root = Path(__file__).resolve().parents[1]
+        js = root.joinpath('app/static/js/api.js').read_text()
         self.assertIn('Mes commandes', js)
+        checkout = self.client.get('/checkout.html').get_data(as_text=True)
+        self.assertIn('Suivre ma commande', checkout)
+        self.assertIn('commandes.html#order-', checkout)
 
 
 if __name__ == '__main__':
