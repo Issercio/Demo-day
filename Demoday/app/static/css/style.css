@@ -26,7 +26,7 @@ body {
     font-family: 'EB Garamond', 'Inter', serif;
     font-size: 18px;
     letter-spacing: 0.01em;
-    display: flex;
+    display: flex; /* colonne : le footer reste sous le contenu, pas par-dessus */
     flex-direction: column;
 }
 
@@ -288,8 +288,8 @@ footer,
     letter-spacing: 0.01em;
     font-weight: 600;
     position: relative;
-    z-index: 2;
-    flex-shrink: 0;
+    z-index: 2; /* au-dessus du fond shop, sous le panel profil */
+    flex-shrink: 0; /* ne pas écraser la dernière rangée de bouquets */
     width: 100%;
 }
 
@@ -439,7 +439,7 @@ body, .main-content, .shop-container {
     width: 248px;
     min-width: 228px;
     max-width: 280px;
-    height: auto;
+    height: auto; /* pas 100vh : sinon le sticky recouvre le footer CGV */
     max-height: calc(100vh - 72px);
     background: #fff;
     padding: 0.8rem 0.75rem 0.85rem 0.75rem;
@@ -755,7 +755,7 @@ body:has(.home-themes) .main-content {
 .products-area {
     flex: 1 1 auto;
     min-width: 0;
-    padding: 2rem 2vw 4.5rem 2vw;
+    padding: 2rem 2vw 4.5rem 2vw; /* air sous la dernière rangée, au-dessus du footer */
     min-height: calc(100vh - 110px);
     margin-top: 0;
     background: #f8f5f2;

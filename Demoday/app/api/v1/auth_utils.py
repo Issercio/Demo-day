@@ -17,7 +17,7 @@ def _extract_bearer_token():
     auth = request.headers.get('Authorization', '') or ''
     if auth.lower().startswith('bearer '):
         return auth[7:].strip()
-    return auth.strip() or None
+    return auth.strip() or None  # JWT nu, sans préfixe Bearer
 
 
 def get_token_payload():
@@ -27,7 +27,7 @@ def get_token_payload():
         return None, ({'success': False, 'message': 'Authentification requise'}, 401)
 
     try:
-        payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+        payload = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])  # HS256 only : pas d'algo none
         return payload, None
     except jwt.ExpiredSignatureError:
         return None, ({'success': False, 'message': 'Session expirée'}, 401)
@@ -64,6 +64,7 @@ def admin_required_response():
         body, status = error
         return jsonify(body), status
     if not user.is_admin:
+        # is_admin lu en base, pas le claim JWT (un JWT falsifié ne suffit pas).
         return jsonify({'success': False, 'message': 'Accès réservé aux administrateurs'}), 403
     return None
 
@@ -83,7 +84,7 @@ def require_admin_token(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if request.method == 'OPTIONS':
-            return f(*args, **kwargs)
+            return f(*args, **kwargs)  # preflight CORS : pas d'auth
         user, error = load_current_user()
         if error:
             return error
@@ -97,7 +98,7 @@ def require_self_or_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if request.method == 'OPTIONS':
-            return f(*args, **kwargs)
+            return f(*args, **kwargs)  # preflight CORS : pas d'auth
         user, error = load_current_user()
         if error:
             return error

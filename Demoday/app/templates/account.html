@@ -89,7 +89,7 @@
             const result = await apiService.login(email, password);
             if (result.success) {
                 const user = (result.data && result.data.user) || {};
-                window.location.href = user.is_admin ? 'admin.html' : 'accueil.html';
+                window.location.href = user.is_admin ? 'admin.html' : 'accueil.html';  // UI : le panel admin est re-vérifié en base
             } else {
                 alert(result.error);
             }

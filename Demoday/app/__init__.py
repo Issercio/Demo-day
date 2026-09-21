@@ -16,7 +16,7 @@ PLACEHOLDER_SECRET_KEYS = {
     '',
     'change-me-to-a-long-random-string-min-32-chars',
     'florashop-dev-secret-key-min-32-chars',
-}
+}  # clés d'exemple du dépôt : un JWT signé avec elles serait forgeable
 
 
 def resolve_secret_key():
@@ -39,7 +39,7 @@ def resolve_secret_key():
                 return stored
         os.makedirs(instance_dir, exist_ok=True)
         generated = os.urandom(32).hex()
-        fd = os.open(secret_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        fd = os.open(secret_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)  # lecture propriétaire seule
         with os.fdopen(fd, 'w', encoding='utf-8') as handle:
             handle.write(generated)
         return generated

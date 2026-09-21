@@ -14,7 +14,7 @@ def create_admin_command(username, email, password):
         user = User(
             username=username,
             email=email,
-            is_admin=True,
+            is_admin=True,  # CLI flask create-admin uniquement, pas l'API publique
             password='x',
         )
         user.set_password(password)

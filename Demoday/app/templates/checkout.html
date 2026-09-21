@@ -451,7 +451,7 @@
             if (!depositWanted()) {
                 return cents;
             }
-            return Math.round(cents * 30 / 100);
+            return Math.round(cents * 30 / 100);  // UI 30 % : le serveur recalcule DEPOSIT_RATE
         }
 
         function refreshDepositUi() {
@@ -474,6 +474,7 @@
         }
 
         function escapeHtml(value) {
+            // Nom / email de confirmation : pas de HTML brut du JSON.
             return String(value || '')
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
@@ -549,6 +550,7 @@
             const prepLine = order.prep_label
                 ? `<p>Atelier : <strong>${escapeHtml(order.prep_label)}</strong></p>`
                 : '';
+            // #order-id : commandes.html ouvre cette carte après le paiement.
             document.getElementById('payment-result').innerHTML = `
                 <div class="success">
                     <h3>✅ ${escapeHtml(paymentLabel)}</h3>
@@ -568,7 +570,7 @@
             `;
 
             if (window.FloraCart) {
-                FloraCart.clear();
+                FloraCart.clear();  // succès : vide le panier du compte, pas celui d'un autre
             } else {
                 localStorage.removeItem('cart');
             }
@@ -825,7 +827,7 @@
             const headers = { 'Content-Type': 'application/json' };
             const token = localStorage.getItem('auth_token');
             if (token) {
-                headers.Authorization = `Bearer ${token}`;
+                headers.Authorization = `Bearer ${token}`;  // optionnel : checkout invité autorisé
             }
 
             try {

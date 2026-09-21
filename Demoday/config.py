@@ -9,7 +9,7 @@ PLACEHOLDER_SECRET_KEYS = {
     '',
     'change-me-to-a-long-random-string-min-32-chars',
     'florashop-dev-secret-key-min-32-chars',
-}
+}  # clés d'exemple : un JWT signé avec elles serait forgeable
 
 
 def _resolve_secret_key():

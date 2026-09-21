@@ -54,7 +54,7 @@ class UserList(Resource):
         user = User(
             username=username,
             email=email,
-            password='x',
+            password='x',  # NOT NULL ; hash posé par set_password
             is_admin=False  # même un admin connecté ne crée pas un second fleuriste par JSON
         )
         user.set_password(password)

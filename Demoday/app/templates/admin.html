@@ -469,7 +469,7 @@
         .theme-create-form {
             display: block;
             width: 100%;
-            max-width: none;
+            max-width: none; /* annule le form { max-width: 420px } global */
             margin: 22px 0 0 0;
             padding: 20px 22px 18px 22px;
             border: 1px solid #eadfe2;
@@ -609,7 +609,7 @@
             vertical-align: middle;
             border: 1.5px solid #e7d6d6;
             border-radius: 999px;
-            overflow: hidden;
+            overflow: hidden; /* une seule pilule : le × ne dépasse pas le bord */
             background: #fff;
         }
 
@@ -869,6 +869,7 @@
         let themeProductSelection = new Set();
 
         function escapeHtml(value) {
+            // Noms / emails / id Stripe du JSON : jamais injectés tels quels.
             return String(value == null ? '' : value)
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
@@ -898,6 +899,7 @@
             if (includeJson !== false) {
                 headers['Content-Type'] = 'application/json';
             }
+            // FormData (photo produit) : ne pas forcer Content-Type, le boundary multipart est automatique.
             return headers;
         }
 
@@ -966,7 +968,7 @@
             const theme = payload && payload.applied_theme;
             if (kind === 'saison') {
                 applyVitrine({
-                    season: season === themeId ? null : themeId,
+                    season: season === themeId ? null : themeId,  // combo : saison et thème indépendants
                     theme: theme || null
                 });
                 return;
@@ -1176,6 +1178,7 @@
         }
 
         function isAdminSession() {
+            // UI seule : le serveur relit users.is_admin en base sur chaque requête.
             try {
                 const user = JSON.parse(localStorage.getItem('user') || 'null');
                 const token = localStorage.getItem('auth_token');
@@ -1372,7 +1375,7 @@
                 `;
             }).join('') || '<tr><td colspan="5" class="order-empty">Aucun article</td></tr>';
             const stripe = order.stripe_payment_intent_id
-                ? `<div><dt>Stripe</dt><dd>${escapeHtml(order.stripe_payment_intent_id)}</dd></div>`
+                ? `<div><dt>Stripe</dt><dd>${escapeHtml(order.stripe_payment_intent_id)}</dd></div>`  // id Stripe : API admin seulement
                 : '';
             const paymentLabel = order.payment_label || orderStatusLabel(status);
             const prepStatus = order.prep_status || '';

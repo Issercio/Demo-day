@@ -2,6 +2,7 @@
 const API_BASE_URL = '/api/v1';
 
 function escapeHtml(value) {
+    // Noms / emails du JSON : jamais injectés tels quels dans le HTML.
     return String(value == null ? '' : value)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -150,6 +151,7 @@ class ApiService {
     }
 
     isAdmin() {
+        // UI seule : is_admin du localStorage. Les API relisent users.is_admin en base.
         return !!(this.user && this.user.is_admin && this.token);
     }
 
@@ -171,7 +173,7 @@ class ApiService {
                 logoutBtn.style.display = 'block';
             }
             if (deleteBtn) {
-                deleteBtn.style.display = this.isAdmin() ? 'none' : 'block';
+                deleteBtn.style.display = this.isAdmin() ? 'none' : 'block';  // fleuriste : pas de self-delete
             }
         } else {
             if (userEmail) {
@@ -374,7 +376,7 @@ window.FloraCart = {
         }
         const key = this.storageKey();
         if (!localStorage.getItem(key)) {
-            localStorage.setItem(key, legacy);
+            localStorage.setItem(key, legacy);  // ancien 'cart' unique → clé par compte
         }
         localStorage.removeItem('cart');
     },
@@ -424,7 +426,7 @@ window.FloraCart = {
         if (item.type === 'subscription' || String(item.id || '').startsWith('subscription_')) {
             return `sub:${item.id || item.plan || item.name}`;
         }
-        return `p:${item.id || item.product_id}`;
+        return `p:${item.id || item.product_id}`;  // ne pas fusionner un bouquet et un abonnement
     },
     count(cart) {
         const items = cart || this.get();
@@ -435,7 +437,7 @@ window.FloraCart = {
         const incomingQty = Number(product.quantity) || 1;
         if (product.type === 'subscription') {
             const withoutOld = cart.filter((item) => item.type !== 'subscription');
-            withoutOld.push({ ...product, quantity: 1 });
+            withoutOld.push({ ...product, quantity: 1 });  // un seul abonnement à la fois
             this.save(withoutOld);
             return withoutOld;
         }

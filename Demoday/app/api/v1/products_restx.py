@@ -23,7 +23,7 @@ class ProductList(Resource):
         """Récupérer tous les produits"""
         try:
             print("=== GET PRODUCTS RESTX ===")
-            products = Product.query.all()
+            products = Product.query.all()  # catalogue complet, sans filtre vitrine (le shop filtre côté client)
             result = []
             
             for prod in products:

@@ -108,11 +108,11 @@ def api_index():
 @api_bp.route('/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
 def get_user(user_id):
     if request.method == 'PUT':
-        denied = admin_required_response()
+        denied = admin_required_response()  # PUT profil : fleuriste only
         if denied:
             return denied
     else:
-        denied = self_or_admin_required_response(user_id)
+        denied = self_or_admin_required_response(user_id)  # GET/DELETE : soi-même ou fleuriste
         if denied:
             return denied
 
@@ -206,7 +206,7 @@ def users():
             user = User(
                 username=data['username'],
                 email=data['email'],
-                password='x',
+                password='x',  # NOT NULL ; hash posé juste après
                 is_admin=False  # le JSON ne peut pas créer un fleuriste
             )
             user.set_password(data['password'])
@@ -226,7 +226,7 @@ def users():
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
 
-    denied = admin_required_response()
+    denied = admin_required_response()  # liste emails / rôles : fleuriste only
     if denied:
         return denied
     try:
@@ -421,7 +421,7 @@ def products():
         if denied:
             return denied
         try:
-            data, image_file = payload_from_request()
+            data, image_file = payload_from_request()  # JSON ou multipart (photo produit)
             required_fields = ['name', 'price', 'category_id']
             for field in required_fields:
                 if not data or data.get(field) in (None, ''):
@@ -552,7 +552,7 @@ def delete_product(product_id):
 @api_bp.route('/themes', methods=['GET', 'PUT', 'POST'])
 def shop_themes():
     if request.method == 'POST':
-        denied = admin_required_response()
+        denied = admin_required_response()  # création de thème événement, pas une saison
         if denied:
             return denied
         data = request.get_json(silent=True) or {}
@@ -589,12 +589,12 @@ def shop_themes():
         )
         return jsonify(payload)
 
-    return jsonify(themes_payload())
+    return jsonify(themes_payload())  # GET public : le shop lit la vitrine sans JWT
 
 
 @api_bp.route('/themes/<theme_id>', methods=['DELETE'])
 def delete_shop_theme(theme_id):
-    denied = admin_required_response()
+    denied = admin_required_response()  # saison refusée plus bas ; thème événement OK
     if denied:
         return denied
     try:

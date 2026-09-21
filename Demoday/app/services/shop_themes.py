@@ -461,7 +461,7 @@ def create_custom_theme(data):
     row = ShopTheme(
         id=_theme_slug(label),
         label=label[:80],
-        kind='evenement',
+        kind='evenement',  # POST fleuriste : jamais une saison (printemps/été/…)
         blurb=str((data or {}).get('blurb') or '').strip()[:240],
         accent=accent,
         months='',
@@ -485,10 +485,10 @@ def delete_custom_theme(theme_id):
         raise ValueError('Thème introuvable.')
     applied = get_applied_vitrine()
     if row.is_builtin:
-        row.is_active = False
+        row.is_active = False  # thème livré : on le masque, on ne drop pas la ligne
         row.links.clear()
     else:
-        db.session.delete(row)
+        db.session.delete(row)  # thème créé par le fleuriste : suppression réelle
     db.session.commit()
     season = None if applied.get('season') == theme_id else applied.get('season')
     event = None if applied.get('theme') == theme_id else applied.get('theme')
@@ -506,7 +506,7 @@ def _normalize_slot(theme_id, expected_kind):
         return None
     theme = get_theme(theme_id)
     if theme is None or theme['kind'] != expected_kind:
-        raise KeyError(theme_id)
+        raise KeyError(theme_id)  # slot typé : une saison n'entre pas dans le thème événement
     return theme['id']
 
 
@@ -551,7 +551,7 @@ def set_applied_vitrine(season_id=None, theme_id=None):
     }
     row = _vitrine_row()
     row.season_id = applied['season']
-    row.theme_id = applied['theme']
+    row.theme_id = applied['theme']  # combo : une saison et/ou un thème événement
     db.session.commit()
     return applied
 
@@ -566,7 +566,7 @@ def set_applied_theme_id(theme_id):
     for item_id in ids:
         item = get_theme(item_id)
         if item['kind'] == 'saison':
-            season = None if season == item['id'] and len(ids) == 1 else item['id']
+            season = None if season == item['id'] and len(ids) == 1 else item['id']  # même id renvoyé seul = off
         else:
             theme = None if theme == item['id'] and len(ids) == 1 else item['id']
     return set_applied_vitrine(season, theme)
@@ -595,7 +595,7 @@ def themes_payload(today=None):
         'applied_ids': ids,
         'label': vitrine_label(applied),
         'blurb': vitrine_blurb(applied),
-        'product_names': product_names_for_ids(ids),
+        'product_names': product_names_for_ids(ids),  # union des listes du combo appliqué
         'themes': [
             {
                 'id': theme['id'],
@@ -607,7 +607,7 @@ def themes_payload(today=None):
                 'is_current_season': theme['id'] == calendar_season,
                 'is_applied': theme['id'] in ids,
                 'is_custom': bool(theme.get('custom')),
-                'can_delete': theme['kind'] == 'evenement',
+                'can_delete': theme['kind'] == 'evenement',  # on ne supprime pas une saison
             }
             for theme in all_themes()
         ],

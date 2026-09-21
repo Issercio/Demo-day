@@ -230,6 +230,7 @@
     ];
 
     function escapeHtml(value) {
+      // Les noms / emails du JSON ne doivent pas exécuter de script.
       return String(value == null ? '' : value)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -238,7 +239,7 @@
     }
 
     function money(value) {
-      const cents = Math.round(Number(value) * 100);
+      const cents = Math.round(Number(value) * 100);  // affichage € via centimes, pas float JS
       if (!Number.isFinite(cents)) {
         return '—';
       }
@@ -307,7 +308,7 @@
         const name = (item.product && item.product.name) || `Produit #${item.product_id}`;
         const category = item.product && item.product.category && item.product.category.name;
         const qty = Number(item.quantity) || 1;
-        const unitCents = Math.round(Number(item.price) * 100);
+        const unitCents = Math.round(Number(item.price) * 100);  // ligne en centimes, pas float JS
         const lineTotal = Number.isFinite(unitCents) ? (unitCents * qty) / 100 : null;
         const photo = safeImage(item.product);
         const thumb = photo
@@ -325,7 +326,7 @@
     }
 
     function renderDetail(order) {
-      const last4 = order.card_last4 ? ` •••• ${escapeHtml(order.card_last4)}` : '';
+      const last4 = order.card_last4 ? ` •••• ${escapeHtml(order.card_last4)}` : '';  // jamais le PAN complet
       const deposit = order.status === 'deposit' && order.deposit_amount != null
         ? `<div><dt>Acompte</dt><dd>${money(order.deposit_amount)} versé<br><small>Reste ${money(order.remaining_amount)}</small></dd></div>`
         : '';
@@ -376,7 +377,7 @@
       `;
     }
 
-    const detailCache = new Map();
+    const detailCache = new Map();  // un seul GET /orders/:id par commande
 
     async function fetchOrderDetail(orderId) {
       if (detailCache.has(orderId)) {
@@ -384,14 +385,14 @@
       }
       const token = localStorage.getItem('auth_token');
       const response = await fetch('/api/v1/payments/orders/' + orderId, {
-        headers: { Authorization: 'Bearer ' + token }
+        headers: { Authorization: 'Bearer ' + token }  // le serveur revérifie l'IDOR
       });
       if (response.status === 401) {
         window.location.replace('account.html');
         return null;
       }
       if (response.status === 403 || response.status === 404) {
-        throw new Error('Cette commande n’est pas accessible.');
+        throw new Error('Cette commande n’est pas accessible.');  // pas de fuite sur l'existence d'une commande d'autrui
       }
       if (!response.ok) {
         throw new Error('Impossible de charger le détail.');
@@ -416,7 +417,7 @@
       if (persistHash) {
         history.replaceState(null, '', '#order-' + orderId);
       }
-      if (detail && !detail.dataset.loaded) {
+      if (detail && !detail.dataset.loaded) {  // lazy-load : fetch seulement à l'ouverture
         detail.innerHTML = '<p>Chargement du détail…</p>';
         try {
           const order = await fetchOrderDetail(orderId);
@@ -447,7 +448,7 @@
       const body = document.getElementById('orders-list');
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        window.location.replace('account.html');
+        window.location.replace('account.html');  // suivi réservé au compte connecté
         return;
       }
       const response = await fetch('/api/v1/payments/my-orders', {
@@ -485,11 +486,11 @@
           }
           return;
         }
-        body.querySelectorAll('.track-card.is-open').forEach(closeOrder);
+        body.querySelectorAll('.track-card.is-open').forEach(closeOrder);  // une seule commande dépliée
         await openOrder(card, orderId, true);
         card.scrollIntoView({ block: 'start' });
       });
-      const match = /^#order-(\d+)$/.exec(location.hash || '');
+      const match = /^#order-(\d+)$/.exec(location.hash || '');  // deep-link après « Suivre ma commande »
       if (match) {
         const card = document.getElementById('order-' + match[1]);
         if (card) {

@@ -12,8 +12,8 @@ class ShopTheme(db.Model):
     blurb = db.Column(db.String(240), default='')
     accent = db.Column(db.String(7), default='#bc6288')
     months = db.Column(db.String(32), default='')  # "3,4,5" pour une saison
-    is_builtin = db.Column(db.Boolean, default=False)
-    is_active = db.Column(db.Boolean, default=True)
+    is_builtin = db.Column(db.Boolean, default=False)  # thème livré vs créé par le fleuriste
+    is_active = db.Column(db.Boolean, default=True)  # False = soft-delete (Mariage, Cadeau, …)
 
     links = db.relationship(
         'ThemeProduct',

@@ -34,6 +34,7 @@ class StripeService:
             order_items = []
             
             for item in order_data['items']:
+                # Prix catalogue en base, jamais item['price'] envoyé par le navigateur.
                 product = Product.query.get(item['product_id'])
                 if not product:
                     raise ValueError(f"Produit {item['product_id']} non trouvé")
@@ -70,7 +71,7 @@ class StripeService:
             
             # Créer le Payment Intent chez Stripe
             intent = stripe.PaymentIntent.create(
-                amount=int(total_amount * 100),  # Stripe utilise les centimes
+                amount=int(total_amount * 100),  # Stripe encaisse en centimes, pas en euros
                 currency='eur',
                 metadata={
                     'order_id': order.id,
@@ -124,7 +125,7 @@ class StripeService:
             
             return {
                 'status': order.status,
-                'order': order.to_dict()
+                'order': order.to_dict(),  # include_stripe=False : le client ne voit pas l'id PI
             }
             
         except Exception as e:
@@ -136,6 +137,7 @@ class StripeService:
         Gère les webhooks Stripe pour les événements de paiement
         """
         try:
+            # Signature HMAC Stripe : on ne fait pas confiance au JSON brut du POST.
             event = stripe.Webhook.construct_event(
                 payload, sig_header, current_app.config['STRIPE_WEBHOOK_SECRET']
             )

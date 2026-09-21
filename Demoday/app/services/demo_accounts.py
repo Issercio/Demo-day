@@ -29,7 +29,7 @@ DEMO_ACCOUNTS = (
 
 
 def _price(value):
-    return Decimal(value)
+    return Decimal(value)  # prix catalogue en Decimal, jamais float
 
 
 # Same 12 swatches as shop.html colorPalette. Every product color must be one of these.
@@ -166,7 +166,7 @@ def ensure_demo_accounts():
             continue
         user.email = email
         user.username = username
-        user.is_admin = is_admin
+        user.is_admin = is_admin  # à chaque boot : Camille reste fleuriste, Marie/Léa clientes
         # Compte démo déjà là mais hash incompatible (bcrypt, etc.) → on rétablit marie123 / admin123.
         if not user.check_password(password) or not user.has_modern_hash():
             user.set_password(password)

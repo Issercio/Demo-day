@@ -60,6 +60,7 @@ def create_checkout():
             data['email'] = user.email
             if not (data.get('name') or data.get('customer_name')):
                 data['name'] = user.username
+        # Invité : user_id null ; connecté : la commande est liée au compte JWT.
         order = checkout(data, user_id=user.id if user else None)
         return jsonify({
             'message': 'Paiement confirmé',
@@ -104,6 +105,7 @@ def create_payment_intent():
                 return jsonify({'error': 'La quantité doit être positive'}), 400
 
         if not data.get('user_id'):
+            # user_id du JWT, jamais celui du JSON (évite d'attribuer le paiement à un autre compte).
             data['user_id'] = _current_user_id()
 
         stripe_service = get_stripe_service()
@@ -163,7 +165,7 @@ def stripe_webhook():
         return jsonify({'error': 'Stripe n\'est pas configuré'}), 503
 
     try:
-        payload = request.get_data()
+        payload = request.get_data()  # brut : on ne parse pas le JSON avant la signature Stripe
         sig_header = request.headers.get('Stripe-Signature')
         
         if not sig_header:
@@ -187,6 +189,7 @@ def _user_owns_order(user, order):
         return True
     if order.user_id and order.user_id == user.id:
         return True
+    # Commande invitée : même email que le JWT (marie@test.com après un checkout guest).
     order_email = (order.email or '').lower()
     user_email = (user.email or '').lower()
     return bool(order_email and user_email and order_email == user_email)
@@ -210,7 +213,7 @@ def get_order(order_id):
         return jsonify({'error': 'Commande non trouvée'}), 404
     # IDOR : un client ne lit que sa commande ; la liste complète est admin-only.
     if not _user_owns_order(user, order):
-        return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+        return jsonify({'success': False, 'message': 'Accès refusé'}), 403  # 403, pas 404 : on ne masque pas, on refuse
     return jsonify({'order': _serialize_order(user, order)}), 200
 
 
@@ -240,6 +243,7 @@ def patch_order(order_id):
 
     settle = bool(data.get('settle_payment')) or data.get('status') == 'paid'
     if settle:
+        # Solde encaissé → paid ; l'atelier démarre si prep_status était encore vide.
         if order.status == 'deposit':
             order.status = 'paid'
             if not order.prep_status:
@@ -259,6 +263,7 @@ def patch_order(order_id):
         return jsonify({'error': 'Aucun champ à mettre à jour.'}), 400
 
     db.session.commit()
+    # Réponse fleuriste : id Stripe inclus pour le suivi processeur.
     return jsonify({'order': order.to_dict(include_stripe=True)}), 200
 
 
@@ -270,6 +275,7 @@ def get_my_orders():
         body, status = error
         return jsonify(body), status
     email = (user.email or '').strip().lower()
+    # Liste client : id du compte OU même email (commandes passées en invité).
     filters = [Order.user_id == user.id]
     if email:
         filters.append(func.lower(Order.email) == email)
@@ -293,6 +299,7 @@ def get_orders():
         orders = Order.query.order_by(Order.created_at.desc()).all()
         
         return jsonify({
+            # Admin : toutes les commandes, id Stripe visible.
             'orders': [order.to_dict(include_stripe=True) for order in orders]
         }), 200
         

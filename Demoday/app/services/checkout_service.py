@@ -60,7 +60,7 @@ PLACEHOLDER_PUBLISHABLE = {
 class PaymentDeclined(Exception):
     def __init__(self, message, order=None):
         super().__init__(message)
-        self.order = order
+        self.order = order  # commande failed à renvoyer en HTTP 402
 
 
 def stripe_configured():
@@ -174,7 +174,7 @@ def _parse_expiry(value):
         month = int(match.group(1))
         year = int(match.group(2))
     if year < 100:
-        year += 2000
+        year += 2000  # AA → 20AA (29 → 2029)
     if month < 1 or month > 12:
         raise ValueError('Mois d\'expiration invalide.')
     now = datetime.now(timezone.utc)
@@ -196,6 +196,7 @@ def process_test_card(card_number, expiry, cvc):
         number,
         ('unknown', 'Carte de test inconnue. Utilisez 4242 4242 4242 4242.'),
     )
+    # Hors whitelist démo → refus, même si le numéro passe Luhn.
     if result != 'success':
         raise PaymentDeclined(message)
     return number[-4:]
@@ -241,7 +242,7 @@ def deposit_of(total):
 def _wants_deposit(data):
     raw = data.get('deposit', data.get('acompte', False))
     if isinstance(raw, str):
-        return raw.strip().lower() in ('1', 'true', 'yes', 'on')
+        return raw.strip().lower() in ('1', 'true', 'yes', 'on')  # JSON parfois stringy
     return bool(raw)
 
 
@@ -353,6 +354,7 @@ def checkout(data, user_id=None):
                     stripe_payment_intent_id=data['payment_intent_id']
                 ).first()
                 if existing:
+                    # Même payment_intent : on réutilise la commande déjà créée.
                     existing.customer_name = name
                     existing.payment_method = 'card'
                     existing.payment_reference = data['payment_intent_id']
@@ -370,7 +372,7 @@ def checkout(data, user_id=None):
                 )
                 reference = f'TEST-{uuid.uuid4().hex[:10].upper()}'
         elif method == 'saved':
-            card_last4 = '4242'
+            card_last4 = '4242'  # sandbox : carte enregistrée = •••• 4242
             reference = f'SAVED-{uuid.uuid4().hex[:10].upper()}'
         else:
             reference = f'PAYPAL-{uuid.uuid4().hex[:10].upper()}'
@@ -378,7 +380,7 @@ def checkout(data, user_id=None):
         order = _persist_order(
             email, name, user_id, total, method, 'failed',
             None, f'FAIL-{uuid.uuid4().hex[:10].upper()}', None, lines,
-            prep_status=None, deposit_amount=None,
+            prep_status=None, deposit_amount=None,  # refus : pas d'atelier
         )
         raise PaymentDeclined(str(error), order=order) from error
 

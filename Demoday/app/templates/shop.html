@@ -128,7 +128,7 @@
       const seed = `${product.id || ''}-${product.name || ''}`;
       let hash = 0;
       for (let i = 0; i < seed.length; i += 1) {
-        hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+        hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;  // sans color en base : teinte stable dérivée de id+nom
       }
       return colorPalette[hash % colorPalette.length];
     }
@@ -192,7 +192,7 @@
         }
 
         if (themeProductNames && !themeProductNames.has(product.name)) {
-          return false;
+          return false;  // vitrine : ne garder que les noms renvoyés par GET /themes
         }
 
         return true;
@@ -452,7 +452,7 @@
     }
 
     function getProductStockStatus(productId) {
-      const stockData = JSON.parse(localStorage.getItem('productStock') || '{}');
+      const stockData = JSON.parse(localStorage.getItem('productStock') || '{}');  // stock démo UI, pas une vérité serveur
       return stockData[productId] || 'available';
     }
 

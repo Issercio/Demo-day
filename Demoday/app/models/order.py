@@ -19,7 +19,7 @@ PREP_LABELS = {
 }
 
 PREP_STATUSES = tuple(PREP_LABELS)
-PAID_LIKE = ('paid', 'deposit')
+PAID_LIKE = ('paid', 'deposit')  # seules ces commandes passent en atelier
 
 
 class Order(db.Model):
@@ -55,7 +55,7 @@ class Order(db.Model):
             return None
         total = Decimal(str(self.total_amount or 0))
         deposit = Decimal(str(self.deposit_amount or 0))
-        return (total - deposit).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        return (total - deposit).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)  # jamais un float binaire
 
     def to_dict(self, include_stripe=False):
         deposit = float(self.deposit_amount) if self.deposit_amount is not None else None

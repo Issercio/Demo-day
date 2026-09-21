@@ -46,7 +46,7 @@ class Login(Resource):
             if not email or not password:
                 return {'success': False, 'message': 'Email et mot de passe requis'}, 400
 
-            user = User.query.filter(func.lower(User.email) == email.lower()).first()
+            user = User.query.filter(func.lower(User.email) == email.lower()).first()  # casse ignorée
             if not user or not user.check_password(password):
                 return {'success': False, 'message': 'Email ou mot de passe incorrect'}, 401
 
@@ -91,7 +91,7 @@ class Register(Resource):
             user = User(
                 username=username,
                 email=email,
-                password='x',
+                password='x',  # NOT NULL ; le hash réel est posé par set_password juste après
                 is_admin=False
             )
             user.set_password(password)
