@@ -37,7 +37,7 @@ Postman collection for live API clicks: [postman/FloraShop.postman_collection.js
 
 | File | Critical path |
 | --- | --- |
-| `tests/test_accounts.py` | Demo client seed (Marie Dupont, Léa Martin, Camille Pivoine), seven-category flower catalog with photos, register hashes + hides password, plaintext then rehash, legacy bcrypt login, unusable Marie hash reset, public `GET /themes`, admin-only vitrine `PUT`, event theme POST/DELETE with `theme_products` FKs, shop payload follows Automne, season/theme combo `printemps,mariage` |
+| `tests/test_accounts.py` | Demo client seed (Marie Dupont, Léa Martin, Camille Pivoine), seven-category flower catalog with photos, register hashes + hides password, plaintext login rejected, legacy bcrypt login, unusable Marie hash reset, public `GET /themes`, admin-only vitrine `PUT`, event theme POST/DELETE with `theme_products` FKs, shop payload follows Automne, season/theme combo `printemps,mariage` |
 | `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET, Admin-Token rejected, forged JWT `is_admin` ignored, POST/PUT cannot mint admin, register cannot mint admin, client cannot read/delete another user, placeholder SECRET_KEY cannot impersonate admin, debug categories 403, admin product photo upload, client cannot upload, non-image rejected, admin order cards (`renderOrderCard`, unit price, acompte, à préparer) |
 | `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds / unknown Luhn card, invalid PAN, subscription line, PayPal, saved card, 30 % deposit, admin prep PATCH / settle deposit, empty cart, unknown product, invalid JWT, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30`, order IDOR (401/200/403/404), spoofed checkout email ignored, admin order item unit price, customer `GET /payments/my-orders` (own orders only, guest-by-email after login), `/commandes.html` tracking page |
 
@@ -87,7 +87,7 @@ Use demo users from the README. Mark the result when you walk the jury scenario.
 
 ## Coverage notes
 
-Latest captured run: **70 tests, OK** (`test-evidence/unittest-output.txt`).
+Latest captured run: **75 tests, OK**.
 
 `coverage` is measured on the `app` package (templates and static JS are excluded):
 
@@ -95,7 +95,7 @@ Latest captured run: **70 tests, OK** (`test-evidence/unittest-output.txt`).
 | --- | --- | --- |
 | `app/models/order.py` | 100% | Money columns, payment/prep labels, order JSON |
 | `app/services/demo_accounts.py` | 89% | Demo logins + flower catalog |
-| `app/models/user.py` | 97% | Hash / bcrypt / plaintext |
+| `app/models/user.py` | 97% | Hash / bcrypt (plaintext refused) |
 | `app/services/checkout_service.py` | 79% | Totals, Luhn, test cards, 30 % deposit |
 | `app/api/v1/auth.py` | 79% | Login / register |
 | Whole `app` package | 51% | Unused leftovers (`prices`, `reviews_restx`, Stripe live, old repositories) pull the average down |

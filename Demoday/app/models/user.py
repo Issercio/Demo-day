@@ -13,7 +13,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    # Hash Werkzeug (pbkdf2:...). Les anciens comptes en clair restent lisibles via check_password().
+    # Hash Werkzeug (pbkdf2:...). Un mot de passe encore en clair est refusé (seed démo le répare).
     password = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)  # jamais admin par défaut
     orders = db.relationship('Order', back_populates='user', lazy=True)
@@ -29,7 +29,7 @@ class User(db.Model):
         return (self.password or '').startswith(MODERN_HASH_PREFIXES)  # pbkdf2/scrypt/argon2
 
     def check_password(self, raw_password):
-        """Accepte Werkzeug, bcrypt ($2b$), ou un ancien mot de passe encore en clair."""
+        """Accepte Werkzeug ou bcrypt ($2b$). Un mot de passe encore en clair est refusé."""
         stored = self.password or ''
         if stored.startswith(MODERN_HASH_PREFIXES):
             return check_password_hash(stored, raw_password)
@@ -39,7 +39,7 @@ class User(db.Model):
                 return bcrypt.checkpw(raw_password.encode('utf-8'), stored.encode('utf-8'))
             except (ValueError, TypeError, Exception):
                 return False
-        return stored == raw_password  # ancien compte clair : le login migrera vers Werkzeug
+        return False
 
     def to_dict(self):
         # Jamais de mot de passe dans le JSON envoyé au navigateur.

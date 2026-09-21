@@ -29,13 +29,6 @@ def get_stripe_service():
     return StripeService()
 
 
-def _current_user_id():
-    user, error = load_current_user_optional()
-    if error or not user:
-        return None
-    return user.id
-
-
 @payments_bp.route('/config', methods=['GET'])
 def get_payment_config():
     return jsonify(payment_config()), 200
@@ -83,6 +76,10 @@ def create_payment_intent():
     """
     Crée un Payment Intent Stripe. Nécessite des clés Stripe valides.
     """
+    user, error = load_current_user_optional()
+    if error:
+        body, status = error
+        return jsonify(body), status
     if not stripe_configured():
         return jsonify({
             'error': 'Stripe n\'est pas configuré. Utilisez POST /api/v1/payments/checkout en mode test.',
@@ -90,9 +87,13 @@ def create_payment_intent():
         }), 503
 
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
+        # user_id / email du JWT uniquement : le JSON ne peut pas rattacher le paiement à un autre compte.
+        data['user_id'] = user.id if user else None
+        if user:
+            data['email'] = user.email
         
-        if not data or 'items' not in data or 'email' not in data:
+        if not data.get('items') or not data.get('email'):
             return jsonify({'error': 'Items et email requis'}), 400
         
         if not data['items']:
@@ -103,10 +104,6 @@ def create_payment_intent():
                 return jsonify({'error': 'Chaque item doit avoir product_id et quantity'}), 400
             if item['quantity'] <= 0:
                 return jsonify({'error': 'La quantité doit être positive'}), 400
-
-        if not data.get('user_id'):
-            # user_id du JWT, jamais celui du JSON (évite d'attribuer le paiement à un autre compte).
-            data['user_id'] = _current_user_id()
 
         stripe_service = get_stripe_service()
         result = stripe_service.create_payment_intent(data)
@@ -129,24 +126,34 @@ def create_payment_intent():
 @payments_bp.route('/confirm-payment', methods=['POST'])
 def confirm_payment():
     """
-    Confirme un paiement après validation côté client
+    Confirme un paiement Stripe. JWT obligatoire : on ne synchronise pas une commande d'autrui.
     """
-    if not stripe_configured():
-        return jsonify({'error': 'Stripe n\'est pas configuré'}), 503
+    user, error = load_current_user()
+    if error:
+        body, status = error
+        return jsonify(body), status
 
     try:
-        data = request.get_json()
-        
-        if not data or 'payment_intent_id' not in data:
+        data = request.get_json() or {}
+        payment_intent_id = data.get('payment_intent_id')
+        if not payment_intent_id:
             return jsonify({'error': 'payment_intent_id requis'}), 400
-        
+
+        order = Order.query.filter_by(stripe_payment_intent_id=payment_intent_id).first()
+        if not order:
+            return jsonify({'error': 'Commande non trouvée'}), 404
+        if not _user_owns_order(user, order):
+            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+        if not stripe_configured():
+            return jsonify({'error': 'Stripe n\'est pas configuré'}), 503
+
         stripe_service = get_stripe_service()
-        result = stripe_service.confirm_payment(data['payment_intent_id'])
-        
+        result = stripe_service.confirm_payment(payment_intent_id)
+        order = db.session.get(Order, order.id)
         return jsonify({
             'message': 'Paiement confirmé',
             'status': result['status'],
-            'order': result['order']
+            'order': _serialize_order(user, order),
         }), 200
         
     except ValueError as e:

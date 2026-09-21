@@ -4,6 +4,7 @@ from flask import request
 from app.models import Product, Category
 from app import db
 from app.api.v1.auth_utils import require_admin_token
+from app.services.checkout_service import parse_money
 
 api = Namespace('products', description='Gestion des produits')
 
@@ -60,14 +61,18 @@ class ProductList(Resource):
                     api.abort(400, f'Le champ {field} est requis')
             
             # Vérifier que la catégorie existe
-            category = Category.query.get(int(data['category_id']))
+            category = db.session.get(Category, int(data['category_id']))
             if not category:
                 api.abort(400, 'Catégorie non trouvée')
             
-            # PLUS de stock dans la création
+            try:
+                price = parse_money(data['price'])
+            except ValueError as exc:
+                api.abort(400, str(exc))
+
             product = Product(
                 name=data['name'],
-                price=float(data['price']),
+                price=price,
                 category_id=int(data['category_id']),
                 color=(data.get('color') or data.get('hex_color') or None),
             )
@@ -100,7 +105,7 @@ class ProductResource(Resource):
     def get(self, product_id):
         """Récupérer un produit par ID"""
         try:
-            product = Product.query.get(product_id)
+            product = db.session.get(Product, product_id)
             if not product:
                 api.abort(404, 'Produit non trouvé')
             
@@ -122,16 +127,19 @@ class ProductResource(Resource):
         """Modifier un produit"""
         try:
             data = request.json
-            product = Product.query.get(product_id)
+            product = db.session.get(Product, product_id)
             if not product:
                 api.abort(404, 'Produit non trouvé')
             
             if 'name' in data:
                 product.name = str(data['name'])
             if 'price' in data:
-                product.price = float(data['price'])
+                try:
+                    product.price = parse_money(data['price'])
+                except ValueError as exc:
+                    api.abort(400, str(exc))
             if 'category_id' in data:
-                category = Category.query.get(int(data['category_id']))
+                category = db.session.get(Category, int(data['category_id']))
                 if not category:
                     api.abort(400, 'Catégorie non trouvée')
                 product.category_id = int(data['category_id'])
@@ -159,7 +167,7 @@ class ProductResource(Resource):
     def delete(self, product_id):
         """Supprimer un produit"""
         try:
-            product = Product.query.get(product_id)
+            product = db.session.get(Product, product_id)
             if not product:
                 api.abort(404, 'Produit non trouvé')
             
@@ -169,15 +177,6 @@ class ProductResource(Resource):
             
             return {'message': f'Produit "{product_name}" supprimé'}, 200
             
-        except Exception as e:
-            db.session.rollback()
-            api.abort(500, f"Erreur: {str(e)}")
-        except Exception as e:
-            db.session.rollback()
-            api.abort(500, f"Erreur: {str(e)}")
-        except Exception as e:
-            db.session.rollback()
-            api.abort(500, f"Erreur: {str(e)}")
         except Exception as e:
             db.session.rollback()
             api.abort(500, f"Erreur: {str(e)}")

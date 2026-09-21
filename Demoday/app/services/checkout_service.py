@@ -235,6 +235,22 @@ def money(value):
     return Decimal(str(value)).quantize(CENTS, rounding=ROUND_HALF_UP)
 
 
+def parse_money(value):
+    """Prix catalogue : Decimal strict, jamais float(data['price'])."""
+    try:
+        amount = money(value)
+    except (ArithmeticError, TypeError, ValueError) as exc:
+        raise ValueError('Prix invalide.') from exc
+    if amount < 0:
+        raise ValueError('Prix invalide.')
+    return amount
+
+
+def to_cents(amount):
+    """Montant Stripe : centimes entiers, sans float binaire."""
+    return int((money(amount) * 100).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+
+
 def deposit_of(total):
     return money(Decimal(str(total)) * DEPOSIT_RATE)
 
@@ -357,13 +373,15 @@ def checkout(data, user_id=None):
                     # Même payment_intent : on réutilise la commande déjà créée.
                     existing.customer_name = name
                     existing.payment_method = 'card'
-                    existing.payment_reference = data['payment_intent_id']
+                    # Ne jamais recopier pi_… dans payment_reference (visible client).
+                    if not existing.payment_reference or str(existing.payment_reference).startswith('pi_'):
+                        existing.payment_reference = f'STRIPE-{uuid.uuid4().hex[:10].upper()}'
                     if existing.status in PAID_LIKE and not existing.prep_status:
                         existing.prep_status = 'a_preparer'
                     db.session.commit()
                     return existing
                 stripe_id = data['payment_intent_id']
-                reference = data['payment_intent_id']
+                reference = f'STRIPE-{uuid.uuid4().hex[:10].upper()}'
             else:
                 card_last4 = process_test_card(
                     data.get('card_number'),

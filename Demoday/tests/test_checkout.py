@@ -20,9 +20,12 @@ class CheckoutTestCase(unittest.TestCase):
         self.ctx.push()
         db.drop_all()
         db.create_all()
-        admin = User(username='admin', email='admin@florashop.com', password='admin123', is_admin=True)
-        client = User(username='marie', email='marie@test.com', password='marie123', is_admin=False)
-        other = User(username='client', email='client@test.com', password='client123', is_admin=False)
+        admin = User(username='admin', email='admin@florashop.com', password='x', is_admin=True)
+        client = User(username='marie', email='marie@test.com', password='x', is_admin=False)
+        other = User(username='client', email='client@test.com', password='x', is_admin=False)
+        admin.set_password('admin123')
+        client.set_password('marie123')
+        other.set_password('client123')
         db.session.add_all([admin, client, other])
         category = Category(name='Fleurs Fraîches')
         db.session.add(category)
@@ -506,6 +509,7 @@ class CheckoutTestCase(unittest.TestCase):
         order_id, token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')
         order = db.session.get(Order, order_id)
         order.stripe_payment_intent_id = 'pi_secret_should_not_leak'
+        order.payment_reference = 'pi_secret_should_not_leak'
         db.session.commit()
         mine = self.client.get(
             '/api/v1/payments/my-orders',
@@ -513,6 +517,7 @@ class CheckoutTestCase(unittest.TestCase):
         )
         payload = next(row for row in mine.get_json()['orders'] if row['id'] == order_id)
         self.assertNotIn('stripe_payment_intent_id', payload)
+        self.assertNotEqual(payload.get('payment_reference'), 'pi_secret_should_not_leak')
         detail = self.client.get(
             f'/api/v1/payments/orders/{order_id}',
             headers={'Authorization': f'Bearer {token}'},
@@ -548,6 +553,52 @@ class CheckoutTestCase(unittest.TestCase):
         self.assertIn('Suivre ma commande', checkout)
         self.assertIn('commandes.html#order-', checkout)
         self.assertIn('success-actions', checkout)
+
+    def test_confirm_payment_requires_auth(self):
+        response = self.client.post(
+            '/api/v1/payments/confirm-payment',
+            json={'payment_intent_id': 'pi_anything'},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_confirm_payment_rejects_other_client(self):
+        order_id, _token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')
+        order = db.session.get(Order, order_id)
+        order.stripe_payment_intent_id = 'pi_owned_by_marie'
+        db.session.commit()
+        other = self.login('client@test.com', 'client123')
+        response = self.client.post(
+            '/api/v1/payments/confirm-payment',
+            json={'payment_intent_id': 'pi_owned_by_marie'},
+            headers={'Authorization': f'Bearer {other}'},
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_create_payment_intent_rejects_bad_token(self):
+        response = self.client.post(
+            '/api/v1/payments/create-payment-intent',
+            json={
+                'email': 'admin@florashop.com',
+                'user_id': 1,
+                'items': [{'product_id': self.product.id, 'quantity': 1}],
+            },
+            headers={'Authorization': 'Bearer not-a-jwt'},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_card_success_reference_is_not_a_stripe_id(self):
+        response = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        order = response.get_json()['order']
+        self.assertFalse(str(order.get('payment_reference') or '').startswith('pi_'))
+        self.assertNotIn('stripe_payment_intent_id', order)
 
 
 if __name__ == '__main__':

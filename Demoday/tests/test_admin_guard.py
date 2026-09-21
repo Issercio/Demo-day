@@ -16,8 +16,10 @@ class AdminGuardTestCase(unittest.TestCase):
         self.ctx.push()
         db.drop_all()
         db.create_all()
-        admin = User(username='admin', email='admin@florashop.com', password='admin123', is_admin=True)
-        client = User(username='marie', email='marie@test.com', password='marie123', is_admin=False)
+        admin = User(username='admin', email='admin@florashop.com', password='x', is_admin=True)
+        client = User(username='marie', email='marie@test.com', password='x', is_admin=False)
+        admin.set_password('admin123')
+        client.set_password('marie123')
         db.session.add_all([admin, client])
         category = Category(name='Fleurs Fraîches')
         db.session.add(category)
@@ -200,13 +202,13 @@ class AdminGuardTestCase(unittest.TestCase):
         ))
         self.assertGreaterEqual(len(self.app.config['SECRET_KEY']), 32)
 
-    def test_client_cannot_hit_debug_categories(self):
-        token = self.login('marie@test.com', 'marie123')
+    def test_debug_categories_route_is_gone(self):
+        token = self.login('admin@florashop.com', 'admin123')
         response = self.client.get(
             '/api/v1/debug/categories',
             headers={'Authorization': f'Bearer {token}'},
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
 
     def test_secret_key_survives_app_restart(self):
         from app import create_app
@@ -269,7 +271,8 @@ class AdminGuardTestCase(unittest.TestCase):
         saved.unlink()
 
     def test_json_product_create_still_works(self):
-        from app.models import Category
+        from decimal import Decimal
+        from app.models import Category, Product
         token = self.login('admin@florashop.com', 'admin123')
         category = Category.query.filter_by(name='Fleurs Fraîches').first()
         response = self.client.post(
@@ -279,6 +282,8 @@ class AdminGuardTestCase(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 201, response.get_data(as_text=True))
         self.assertEqual(response.get_json()['product']['name'], 'Bouquet json')
+        stored = Product.query.filter_by(name='Bouquet json').first()
+        self.assertEqual(stored.price, Decimal('18.50'))
 
     def test_client_cannot_upload_product_image(self):
         from io import BytesIO

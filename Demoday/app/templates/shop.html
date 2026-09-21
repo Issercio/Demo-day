@@ -103,7 +103,14 @@
 
     function productImage(product) {
       // Photo catalogue seulement : un slug inventé ferait un 404 (abonnements, produit sans image).
-      return (product && product.image) ? product.image : '';
+      const src = product && product.image;
+      if (typeof src !== 'string' || !src) {
+        return '';
+      }
+      if (src.startsWith('/static/') || src.startsWith('https://') || src.startsWith('http://')) {
+        return src;
+      }
+      return '';
     }
 
     function categoryBlurb(categoryName) {

@@ -86,7 +86,7 @@ class CategoryResource(Resource):
         """Récupérer une catégorie par ID"""
         try:
             print(f"=== GET CATEGORY {category_id} RESTX ===")
-            category = Category.query.get(category_id)
+            category = db.session.get(Category, category_id)
             if not category:
                 api.abort(404, 'Catégorie non trouvée')
             
@@ -116,7 +116,7 @@ class CategoryResource(Resource):
             if not data or not data.get('name'):
                 api.abort(400, 'Le nom est requis')
             
-            category = Category.query.get(category_id)
+            category = db.session.get(Category, category_id)
             if not category:
                 api.abort(404, 'Catégorie non trouvée')
             
@@ -151,7 +151,7 @@ class CategoryResource(Resource):
         """Supprimer une catégorie"""
         try:
             print(f"=== DELETE CATEGORY {category_id} RESTX ===")
-            category = Category.query.get(category_id)
+            category = db.session.get(Category, category_id)
             if not category:
                 api.abort(404, 'Catégorie non trouvée')
             

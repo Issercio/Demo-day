@@ -1,7 +1,18 @@
+import uuid
+
 import stripe
 from flask import current_app
-from app.models import Order, OrderItem, Product
+
 from app.extensions import db
+from app.models import Order, OrderItem
+from app.services.checkout_service import build_order_lines, to_cents
+
+PLACEHOLDER_WEBHOOKS = {
+    '',
+    'whsec_...',
+    'whsec_VOTRE_WEBHOOK_SECRET',
+}
+
 
 class StripeService:
     def __init__(self):
@@ -9,108 +20,69 @@ class StripeService:
         if not secret:
             raise ValueError('Clé Stripe secrète manquante')
         stripe.api_key = secret
-    
+
     def create_payment_intent(self, order_data):
         """
-        Crée un Payment Intent Stripe pour une commande
-        
-        Args:
-            order_data: {
-                'items': [{'product_id': int, 'quantity': int}],
-                'email': str,
-                'user_id': int (optionnel)
-            }
-        
-        Returns:
-            dict: {
-                'client_secret': str,
-                'order_id': int,
-                'total_amount': float
-            }
+        Crée un Payment Intent Stripe pour une commande.
+
+        Prix catalogue via build_order_lines (Decimal), jamais le JSON client.
         """
         try:
-            # Calculer le montant total
-            total_amount = 0
-            order_items = []
-            
-            for item in order_data['items']:
-                # Prix catalogue en base, jamais item['price'] envoyé par le navigateur.
-                product = Product.query.get(item['product_id'])
-                if not product:
-                    raise ValueError(f"Produit {item['product_id']} non trouvé")
-                
-                quantity = item['quantity']
-                item_total = product.price * quantity
-                total_amount += item_total
-                
-                order_items.append({
-                    'product_id': product.id,
-                    'quantity': quantity,
-                    'price': product.price
-                })
-            
-            # Créer la commande en base
+            lines, total = build_order_lines(order_data.get('items') or [])
             order = Order(
                 user_id=order_data.get('user_id'),
                 email=order_data['email'],
-                total_amount=total_amount,
-                status='pending'
+                customer_name=order_data.get('name') or order_data.get('customer_name'),
+                total_amount=total,
+                status='pending',
+                payment_method='card',
+                payment_reference=f'STRIPE-{uuid.uuid4().hex[:10].upper()}',
             )
             db.session.add(order)
-            db.session.flush()  # Pour obtenir l'ID
-            
-            # Ajouter les items
-            for item_data in order_items:
-                order_item = OrderItem(
+            db.session.flush()
+
+            for line in lines:
+                db.session.add(OrderItem(
                     order_id=order.id,
-                    product_id=item_data['product_id'],
-                    quantity=item_data['quantity'],
-                    price=item_data['price']
-                )
-                db.session.add(order_item)
-            
-            # Créer le Payment Intent chez Stripe
+                    product_id=line['product'].id,
+                    quantity=line['quantity'],
+                    price=line['price'],
+                ))
+
             intent = stripe.PaymentIntent.create(
-                amount=int(total_amount * 100),  # Stripe encaisse en centimes, pas en euros
+                amount=to_cents(total),
                 currency='eur',
                 metadata={
                     'order_id': order.id,
-                    'email': order_data['email']
+                    'email': order_data['email'],
                 },
                 automatic_payment_methods={
                     'enabled': True,
-                }
+                },
             )
-            
-            # Sauvegarder l'ID Stripe
+
             order.stripe_payment_intent_id = intent.id
             db.session.commit()
-            
+
             return {
                 'client_secret': intent.client_secret,
                 'order_id': order.id,
-                'total_amount': total_amount,
-                'stripe_publishable_key': current_app.config['STRIPE_PUBLISHABLE_KEY']
+                'total_amount': float(total),
+                'stripe_publishable_key': current_app.config['STRIPE_PUBLISHABLE_KEY'],
             }
-            
-        except Exception as e:
+
+        except Exception:
             db.session.rollback()
-            raise e
-    
+            raise
+
     def confirm_payment(self, payment_intent_id):
-        """
-        Confirme un paiement et met à jour le statut de la commande
-        """
+        """Met à jour le statut d'une commande déjà liée à ce Payment Intent."""
         try:
-            # Récupérer le Payment Intent depuis Stripe
             intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-            
-            # Trouver la commande correspondante
             order = Order.query.filter_by(stripe_payment_intent_id=payment_intent_id).first()
             if not order:
                 raise ValueError("Commande non trouvée")
-            
-            # Mettre à jour le statut selon le résultat
+
             if intent.status == 'succeeded':
                 order.status = 'paid'
                 if not order.prep_status:
@@ -120,39 +92,27 @@ class StripeService:
                 order.prep_status = None
             else:
                 order.status = 'pending'
-            
+
             db.session.commit()
-            
             return {
                 'status': order.status,
-                'order': order.to_dict(),  # include_stripe=False : le client ne voit pas l'id PI
+                'order': order.to_dict(),  # include_stripe=False : pas d'id PI
             }
-            
-        except Exception as e:
+        except Exception:
             db.session.rollback()
-            raise e
-    
+            raise
+
     def handle_webhook(self, payload, sig_header):
-        """
-        Gère les webhooks Stripe pour les événements de paiement
-        """
+        webhook_secret = (current_app.config.get('STRIPE_WEBHOOK_SECRET') or '').strip()
+        if webhook_secret in PLACEHOLDER_WEBHOOKS:
+            raise ValueError('Webhook Stripe non configuré')
         try:
-            # Signature HMAC Stripe : on ne fait pas confiance au JSON brut du POST.
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, current_app.config['STRIPE_WEBHOOK_SECRET']
-            )
-            
-            if event['type'] == 'payment_intent.succeeded':
+            event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+
+            if event['type'] in ('payment_intent.succeeded', 'payment_intent.payment_failed'):
                 payment_intent = event['data']['object']
                 self.confirm_payment(payment_intent['id'])
-                
-            elif event['type'] == 'payment_intent.payment_failed':
-                payment_intent = event['data']['object']
-                self.confirm_payment(payment_intent['id'])
-            
+
             return {'status': 'success'}
-            
         except ValueError as e:
-            raise ValueError(f"Signature invalide: {str(e)}")
-        except Exception as e:
-            raise e
+            raise ValueError(f"Signature invalide: {str(e)}") from e

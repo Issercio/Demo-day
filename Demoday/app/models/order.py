@@ -70,7 +70,9 @@ class Order(db.Model):
             'remaining_amount': float(remaining) if remaining is not None else None,
             'payment_method': self.payment_method,
             'card_last4': self.card_last4,  # jamais le PAN complet
-            'payment_reference': self.payment_reference,
+            'payment_reference': None if (
+                not include_stripe and str(self.payment_reference or '').startswith('pi_')
+            ) else self.payment_reference,
             'status': self.status,
             'payment_label': self.payment_label(),
             'prep_status': self.prep_status,

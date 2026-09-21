@@ -878,6 +878,16 @@
                 .replace(/'/g, '&#39;');
         }
 
+        function safeImageSrc(src) {
+            if (typeof src !== 'string' || !src) {
+                return '';
+            }
+            if (src.startsWith('/static/') || src.startsWith('https://') || src.startsWith('http://')) {
+                return src;
+            }
+            return '';
+        }
+
         function showNotice(message, type) {
             const el = document.getElementById('admin-notice');
             if (!el) {
@@ -1268,7 +1278,14 @@
 
         function orderProductImage(product) {
             // Pas de slug inventé : un abonnement n'a souvent pas de photo, on affiche « — » sans 404.
-            return (product && product.image) ? product.image : '';
+            const src = product && product.image;
+            if (typeof src !== 'string' || !src) {
+                return '';
+            }
+            if (src.startsWith('/static/') || src.startsWith('https://') || src.startsWith('http://')) {
+                return src;
+            }
+            return '';
         }
 
         function formatOrderDate(iso) {
@@ -1650,7 +1667,7 @@
                 <tr data-product-id="${prod.id}">
                     <td>${prod.id}</td>
                     <td>
-                        ${prod.image ? `<img class="product-thumb" src="${escapeHtml(prod.image)}" alt="">` : '<span style="color:#9a7a86;">—</span>'}
+                        ${safeImageSrc(prod.image) ? `<img class="product-thumb" src="${escapeHtml(safeImageSrc(prod.image))}" alt="">` : '<span style="color:#9a7a86;">—</span>'}
                         <input type="file" class="edit-input product-image-edit" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;">
                     </td>
                     <td>
@@ -1758,7 +1775,7 @@
         function updateCategoryOptions() {
             const select = document.getElementById('product-category');
             select.innerHTML = '<option value="">Choisir une catégorie</option>' +
-                categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
+                categories.map(cat => `<option value="${cat.id}">${escapeHtml(cat.name)}</option>`).join('');
         }
 
         // FONCTIONS PRODUITS

@@ -3,6 +3,7 @@ from flask_cors import CORS
 from .models import Product, Category, User
 from . import db
 from app.api.v1.auth_utils import admin_required_response, self_or_admin_required_response
+from app.services.checkout_service import parse_money
 from app.services.product_images import payload_from_request, save_product_image
 from app.services.shop_themes import (
     create_custom_theme,
@@ -436,9 +437,14 @@ def products():
             except ValueError as exc:
                 return jsonify({'error': str(exc)}), 400
 
+            try:
+                price = parse_money(data['price'])
+            except ValueError as exc:
+                return jsonify({'error': str(exc)}), 400
+
             product = Product(
                 name=data['name'],
-                price=float(data['price']),
+                price=price,
                 category_id=int(data['category_id']),
                 color=(data.get('color') or data.get('hex_color') or None),
                 image=image_url,
@@ -502,7 +508,10 @@ def update_product(product_id):
         if data.get('name') not in (None, ''):
             product.name = str(data['name'])
         if data.get('price') not in (None, ''):
-            product.price = float(data['price'])
+            try:
+                product.price = parse_money(data['price'])
+            except ValueError as exc:
+                return jsonify({'error': str(exc)}), 400
         if data.get('category_id') not in (None, ''):
             category = db.session.get(Category, int(data['category_id']))
             if not category:
@@ -607,32 +616,6 @@ def delete_shop_theme(theme_id):
     payload['message'] = 'Thème supprimé.'
     return jsonify(payload)
 
-
-# ENDPOINT DE DEBUG pour diagnostiquer les IDs
-@api_bp.route('/debug/categories', methods=['GET'])
-def debug_categories():
-    denied = admin_required_response()
-    if denied:
-        return denied
-    try:
-        categories = Category.query.all()
-        debug_info = []
-        
-        for c in categories:
-            debug_info.append({
-                'raw_id': c.id,
-                'id_type': type(c.id).__name__,
-                'id_is_none': c.id is None,
-                'name': c.name,
-                'str_id': str(c.id) if c.id is not None else 'None'
-            })
-        
-        return jsonify({
-            'total_categories': len(categories),
-            'debug_info': debug_info
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/')
 def index():

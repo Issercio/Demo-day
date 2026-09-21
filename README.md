@@ -358,7 +358,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 
 ## Authentication and security
 
-- Passwords are hashed with Werkzeug. Legacy bcrypt and leftover plaintext are verified, then upgraded.
+- Passwords are hashed with Werkzeug. Legacy bcrypt hashes are still verified, then upgraded. Rows still stored in plaintext are rejected.
 - Login and register return a JWT (HS256) stored in `localStorage` and sent as `Authorization: Bearer`.
 - Claims: `sub`, `email`, `is_admin`, `exp`.
 - The admin page is hidden in the browser **and** every mutation is checked on the server. A customer token cannot create categories, upload photos, change the vitrine, or list all orders.
@@ -366,7 +366,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 - Example / placeholder `SECRET_KEY` values from the repository are rejected at startup; the process generates a random signing key instead.
 - User JSON never includes `password`. Creating or updating a user cannot mint an administrator.
 - Checkout totals come from the database. Unknown Luhn-valid cards are declined. A logged-in checkout uses the account email, not a spoofed body field.
-- Order detail is limited to the owner or an admin; `GET /payments/orders` is admin-only. A customer lists **their** orders with `GET /payments/my-orders` and opens one card via `GET /payments/orders/<id>`. Stripe payment-intent ids are omitted from customer JSON.
+- Order detail is limited to the owner or an admin; `GET /payments/orders` is admin-only. A customer lists **their** orders with `GET /payments/my-orders` and opens one card via `GET /payments/orders/<id>`. Stripe payment-intent ids are omitted from customer JSON (including `payment_reference`). `POST /payments/confirm-payment` requires the owner’s JWT.
 - Card numbers are not stored; at most `card_last4`.
 - Product photo uploads are admin-only. Allowed types: jpg, png, webp, gif. Maximum size: 4 MB.
 - Stripe keys live only in the environment. Empty keys use documented test cards. No live charge in the default demo.
@@ -398,7 +398,7 @@ Flask and Jinja keep pages and API in one process. RESTX provides Swagger. SQLit
 
 ## Testing
 
-Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **66 tests OK** in [`docs/test-evidence/`](docs/test-evidence/).
+Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **75 tests OK**.
 
 Covered: registration and login hashing, demo seed (accounts, seven-category flower catalog, product photos), admin versus customer permissions, public catalog, product image upload (admin only, rejected for clients and non-images), checkout (success, decline, insufficient funds, unknown Luhn card, invalid PAN, PayPal, saved card, 30 % deposit, admin prep PATCH, customer `my-orders` tracking, subscription line, server-side prices, decimal cents, admin order list with item prices, order IDOR, spoofed email), vitrine (admin-only `PUT /themes`, shop payload, season/theme combo `printemps,mariage`), privilege escalation (forged JWT, placeholder secret, POST/PUT/register cannot mint admin).
 
@@ -411,7 +411,7 @@ Not covered yet: live Stripe calls, email, browser end-to-end tests, reviews, lo
 | Challenge | Kind | Resolution |
 | --- | --- | --- |
 | Front-end and API disagreed on cart identity | Technical | One `FloraCart` helper, per-account keys, checkout snapshot |
-| Mixed password hashes in `users.password` | Technical | `check_password` accepts Werkzeug, bcrypt and plaintext; demo seed repairs Marie |
+| Mixed password hashes in `users.password` | Technical | `check_password` accepts Werkzeug and bcrypt; plaintext rows are refused; demo seed repairs Marie |
 | Stripe keys missing in the classroom | Technical | Documented test cards when environment keys are empty |
 | Money rounding | Technical | `Decimal` and `Numeric(10, 2)`; admin line totals in cents |
 | Logout menu stretched the navbar | Technical | Dropdown overlay under the account icon; leftover fixed-header padding removed |

@@ -53,7 +53,7 @@ class AccountsTestCase(unittest.TestCase):
         self.assertNotEqual(user.password, 'lea12345')
         self.assertTrue(user.check_password('lea12345'))
 
-    def test_login_accepts_legacy_plaintext_then_rehashes(self):
+    def test_login_rejects_legacy_plaintext(self):
         user = User(username='paul', email='paul@test.com', password='paul123', is_admin=False)
         db.session.add(user)
         db.session.commit()
@@ -61,9 +61,9 @@ class AccountsTestCase(unittest.TestCase):
             'email': 'paul@test.com',
             'password': 'paul123',
         })
-        self.assertEqual(response.status_code, 200, response.get_json())
+        self.assertEqual(response.status_code, 401)
         user = db.session.get(User, user.id)
-        self.assertTrue(user.has_modern_hash())
+        self.assertEqual(user.password, 'paul123')
 
     def test_login_accepts_legacy_bcrypt_hash(self):
         import bcrypt

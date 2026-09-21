@@ -436,6 +436,15 @@
     </footer>
 
     <script>
+        function escapeHtml(value) {
+            return String(value == null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         let selectedPlan = null;
 
         document.querySelectorAll('.plan-card').forEach(cardEl => {
@@ -451,9 +460,9 @@
                 };
 
                 document.getElementById('selected-plan-info').innerHTML = `
-                    <h4>Plan sélectionné: ${selectedPlan.name}</h4>
+                    <h4>Plan sélectionné: ${escapeHtml(selectedPlan.name)}</h4>
                     <p style="font-size: 1.2em; margin-top: 10px;">
-                        <strong>${selectedPlan.price.toFixed(2)} € ${selectedPlan.period}</strong>
+                        <strong>${selectedPlan.price.toFixed(2)} € ${escapeHtml(selectedPlan.period)}</strong>
                     </p>
                 `;
 
@@ -502,10 +511,10 @@
                     resultBox.innerHTML = `
                         <div class="success">
                             <h3>🎉 Abonnement activé !</h3>
-                            <p><strong>Félicitations ${name} !</strong></p>
-                            <p>Votre abonnement <strong>${selectedPlan.name}</strong> est maintenant actif</p>
-                            <p>Commande #${data.order.id} — ${Number(data.order.total_amount).toFixed(2)} €</p>
-                            <p>Référence: ${data.order.payment_reference}</p>
+                            <p><strong>Félicitations ${escapeHtml(name)} !</strong></p>
+                            <p>Votre abonnement <strong>${escapeHtml(selectedPlan.name)}</strong> est maintenant actif</p>
+                            <p>Commande #${Number(data.order.id)} — ${Number(data.order.total_amount).toFixed(2)} €</p>
+                            <p>Référence: ${escapeHtml(data.order.payment_reference)}</p>
                         </div>
                     `;
                     document.getElementById('subscription-form').style.display = 'none';
@@ -516,7 +525,7 @@
                 resultBox.innerHTML = `
                     <div class="error">
                         <h3>❌ Erreur d'abonnement</h3>
-                        <p>${error.message}</p>
+                        <p>${escapeHtml(error.message)}</p>
                     </div>
                 `;
             }
