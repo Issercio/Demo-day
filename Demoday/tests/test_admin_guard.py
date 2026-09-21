@@ -235,6 +235,7 @@ class AdminGuardTestCase(unittest.TestCase):
         self.assertIn('data-order-prep', html)
         self.assertIn('Carte bancaire', html)
         self.assertIn('orderProductImage', html)
+        self.assertNotIn('/static/img/products/${slug}.jpg', html)
         self.assertIn('order-lines-wrap', html)
 
     def test_admin_can_create_product_with_image(self):

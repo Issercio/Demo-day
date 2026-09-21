@@ -101,21 +101,9 @@
       return color.toLowerCase();
     }
 
-    function productSlug(name) {
-      return String(name || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-    }
-
     function productImage(product) {
-      if (product && product.image) {
-        return product.image;
-      }
-      const slug = productSlug(product && product.name);
-      return slug ? `/static/img/products/${slug}.jpg` : '';
+      // Photo catalogue seulement : un slug inventé ferait un 404 (abonnements, produit sans image).
+      return (product && product.image) ? product.image : '';
     }
 
     function categoryBlurb(categoryName) {

@@ -1263,17 +1263,9 @@
             return (cents / 100).toFixed(2) + ' €';
         }
 
-        function orderProductImage(product, name) {
-            if (product && product.image) {
-                return product.image;
-            }
-            const slug = String(name || '')
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, '-')
-                .replace(/^-+|-+$/g, '');
-            return slug ? `/static/img/products/${slug}.jpg` : '';
+        function orderProductImage(product) {
+            // Pas de slug inventé : un abonnement n'a souvent pas de photo, on affiche « — » sans 404.
+            return (product && product.image) ? product.image : '';
         }
 
         function formatOrderDate(iso) {
@@ -1358,7 +1350,7 @@
             const lines = items.map((item) => {
                 const name = (item.product && item.product.name) || `Produit #${item.product_id}`;
                 const category = item.product && item.product.category && item.product.category.name;
-                const photo = orderProductImage(item.product, name);
+                const photo = orderProductImage(item.product);
                 const qty = Number(item.quantity) || 1;
                 const unit = Number(item.price);
                 const unitCents = Math.round(unit * 100);
