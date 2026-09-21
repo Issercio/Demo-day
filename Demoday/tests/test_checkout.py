@@ -510,6 +510,7 @@ class CheckoutTestCase(unittest.TestCase):
         self.assertIn('/api/v1/payments/my-orders', html)
         self.assertIn('track-steps', html)
         self.assertIn('À préparer', html)
+        self.assertIn('not(:last-child)::after', html)
         from pathlib import Path
         root = Path(__file__).resolve().parents[1]
         js = root.joinpath('app/static/js/api.js').read_text()
@@ -517,6 +518,7 @@ class CheckoutTestCase(unittest.TestCase):
         checkout = self.client.get('/checkout.html').get_data(as_text=True)
         self.assertIn('Suivre ma commande', checkout)
         self.assertIn('commandes.html#order-', checkout)
+        self.assertIn('success-actions', checkout)
 
 
 if __name__ == '__main__':

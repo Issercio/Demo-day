@@ -4,12 +4,14 @@
   <meta charset="UTF-8">
   <title>Mes commandes — Pivoine &amp; Lilas</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="../static/css/style.css?v=20260921-orders">
+  <link rel="stylesheet" href="../static/css/style.css?v=20260921-visual">
   <style>
     .orders-page {
       max-width: 920px;
+      width: 100%;
       margin: 0 auto;
       padding: 24px 18px 80px;
+      flex: 1 0 auto;
     }
     .orders-page h1 {
       color: #ab597c;
@@ -60,7 +62,7 @@
     .track-badge.is-failed { background: #f8d7da; color: #721c24; }
     .track-badge.is-pending, .track-badge.is-a_preparer { background: #fff3cd; color: #856404; }
     .track-badge.is-cancelled, .track-badge.is-remise { background: #e2e3e5; color: #383d41; }
-    .track-body { padding: 16px; color: #5a3d48; }
+    .track-body { padding: 16px; color: #5a3d48; overflow-x: auto; }
     .track-steps {
       display: flex;
       gap: 0;
@@ -70,11 +72,25 @@
     }
     .track-steps li {
       flex: 1;
+      min-width: 0;
       text-align: center;
       font-size: 0.78rem;
       font-weight: 600;
       color: #9a7a86;
       position: relative;
+    }
+    .track-steps li:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 7px;
+      left: calc(50% + 12px);
+      right: calc(-50% + 12px);
+      height: 2px;
+      background: #e7d6d6;
+      z-index: 0;
+    }
+    .track-steps li.is-done:not(:last-child)::after {
+      background: #bc6288;
     }
     .track-steps li::before {
       content: '';
@@ -85,6 +101,8 @@
       border-radius: 50%;
       background: #e7d6d6;
       border: 2px solid #e7d6d6;
+      position: relative;
+      z-index: 1;
     }
     .track-steps li.is-done { color: #bc6288; }
     .track-steps li.is-done::before {
@@ -98,9 +116,25 @@
       box-shadow: 0 0 0 3px rgba(188,98,136,0.25);
     }
     .track-items { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
-    .track-items td { padding: 8px 4px; border-top: 1px solid #f0e4e8; }
+    .track-items td { padding: 8px 4px; border-top: 1px solid #f0e4e8; word-break: break-word; }
     .track-empty { text-align: center; color: #bc6288; padding: 40px 16px; }
     .track-empty a { color: #ab597c; font-weight: 700; }
+    @media (max-width: 640px) {
+      .track-head {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .track-steps {
+        flex-wrap: wrap;
+        row-gap: 12px;
+      }
+      .track-steps li {
+        flex: 1 1 40%;
+      }
+      .track-steps li::after {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>

@@ -26,6 +26,8 @@ body {
     font-family: 'EB Garamond', 'Inter', serif;
     font-size: 18px;
     letter-spacing: 0.01em;
+    display: flex;
+    flex-direction: column;
 }
 
 header {
