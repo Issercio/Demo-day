@@ -18,7 +18,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" href="../static/css/style.css?v=20260918-vitrine">
+    <link rel="stylesheet" href="../static/css/style.css?v=20260921-chips">
     <style>
         .admin-container {
             max-width: 1100px;
@@ -561,42 +561,60 @@
         .theme-chip-wrap {
             display: inline-flex;
             align-items: stretch;
+            vertical-align: middle;
+            border: 1.5px solid #e7d6d6;
+            border-radius: 999px;
+            overflow: hidden;
+            background: #fff;
         }
 
-        .theme-chip-wrap .theme-chip {
-            border-top-right-radius: 0;
-            border-bottom-right-radius: 0;
-            border-right: 0;
-            padding-right: 0.55rem;
+        .theme-chip-wrap .theme-chip,
+        .theme-chip-wrap .theme-chip.is-selected {
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            background: transparent;
+            padding-right: 0.35rem;
+        }
+
+        .theme-chip-wrap:hover {
+            border-color: #bc6288;
+        }
+
+        .theme-chip-wrap:has(.is-selected) {
+            background: #bc6288;
+            border-color: #bc6288;
+            box-shadow: 0 0 0 3px rgba(188, 98, 136, 0.22);
+        }
+
+        .theme-chip-wrap:has(.is-selected) .theme-chip,
+        .theme-chip-wrap:has(.is-selected) .theme-chip-x {
+            color: #fff;
+            background: transparent;
         }
 
         .theme-chip-x {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 28px;
-            border: 1.5px solid #e7d6d6;
-            border-left: 0;
-            border-radius: 0 999px 999px 0;
-            background: #fff;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
             color: #8a1f2b;
             font-size: 0.95rem;
             line-height: 1;
             cursor: pointer;
-            padding: 0 8px 0 4px;
+            padding: 0 0.7rem 0 0.15rem;
+            margin: 0;
         }
 
-        .theme-chip-wrap .theme-chip.is-selected + .theme-chip-x {
-            background: #bc6288;
-            color: #fff;
-            border-color: #bc6288;
+        .theme-chip-x:hover {
+            color: #8a1f2b;
         }
 
-        .theme-chip-x:hover,
-        .theme-chip-wrap .theme-chip.is-selected + .theme-chip-x:hover {
-            background: #8a1f2b;
-            border-color: #8a1f2b;
+        .theme-chip-wrap:has(.is-selected) .theme-chip-x:hover {
             color: #fff;
+            background: rgba(90, 31, 43, 0.18);
         }
 
         .theme-create-actions {

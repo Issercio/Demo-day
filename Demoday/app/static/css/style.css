@@ -678,6 +678,7 @@ body:has(.home-themes) .main-content {
 .theme-chips {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 0.45rem;
 }
 

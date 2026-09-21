@@ -269,6 +269,7 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('create-theme-btn', admin)
         self.assertIn('submitCustomTheme', admin)
         self.assertIn('theme-chip-x', admin)
+        self.assertIn('overflow: hidden', admin.split('.theme-chip-wrap', 1)[1][:500])
         self.assertIn('theme-product-search', admin)
         self.assertIn('theme-accent-hex', admin)
         self.assertIn('can_delete', admin)
