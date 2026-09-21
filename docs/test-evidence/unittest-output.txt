@@ -1,6 +1,5 @@
-/home/ubuntu/.local/lib/python3.12/site-packages/flask_restx/api.py:19: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.
-  from jsonschema import RefResolver
 test_admin_applies_theme_and_shop_payload_updates (test_accounts.AccountsTestCase.test_admin_applies_theme_and_shop_payload_updates) ... ok
+test_admin_can_create_and_delete_custom_theme (test_accounts.AccountsTestCase.test_admin_can_create_and_delete_custom_theme) ... ok
 test_admin_login_returns_is_admin_true (test_accounts.AccountsTestCase.test_admin_login_returns_is_admin_true) ... ok
 test_admin_session_hides_marketing_nav_and_compacts_profile (test_accounts.AccountsTestCase.test_admin_session_hides_marketing_nav_and_compacts_profile) ... ok
 test_demo_catalog_has_colors_and_category_prices (test_accounts.AccountsTestCase.test_demo_catalog_has_colors_and_category_prices) ... ok
@@ -39,15 +38,19 @@ test_secret_key_survives_app_restart (test_admin_guard.AdminGuardTestCase.test_s
 test_shop_catalog_stays_public (test_admin_guard.AdminGuardTestCase.test_shop_catalog_stays_public) ... ok
 test_user_detail_does_not_leak_password (test_admin_guard.AdminGuardTestCase.test_user_detail_does_not_leak_password) ... ok
 test_user_list_hides_from_client (test_admin_guard.AdminGuardTestCase.test_user_list_hides_from_client) ... ok
+test_admin_advances_prep_and_settles_deposit (test_checkout.CheckoutTestCase.test_admin_advances_prep_and_settles_deposit) ... ok
 test_admin_can_list_paid_orders (test_checkout.CheckoutTestCase.test_admin_can_list_paid_orders) ... ok
 test_admin_can_read_any_order (test_checkout.CheckoutTestCase.test_admin_can_read_any_order) ... ok
 test_anonymous_cannot_read_order (test_checkout.CheckoutTestCase.test_anonymous_cannot_read_order) ... ok
 test_buyer_can_read_own_order (test_checkout.CheckoutTestCase.test_buyer_can_read_own_order) ... ok
+test_cannot_prep_a_failed_order (test_checkout.CheckoutTestCase.test_cannot_prep_a_failed_order) ... ok
 test_card_success_creates_paid_order (test_checkout.CheckoutTestCase.test_card_success_creates_paid_order) ... ok
 test_checkout_total_uses_decimal_cents (test_checkout.CheckoutTestCase.test_checkout_total_uses_decimal_cents)
 10.10 x 3 must be 30.30, not a binary-float approximation. ... ok
 test_client_cannot_list_orders (test_checkout.CheckoutTestCase.test_client_cannot_list_orders) ... ok
+test_client_cannot_patch_order (test_checkout.CheckoutTestCase.test_client_cannot_patch_order) ... ok
 test_declined_card_records_failed_order (test_checkout.CheckoutTestCase.test_declined_card_records_failed_order) ... ok
+test_deposit_checkout_records_thirty_percent (test_checkout.CheckoutTestCase.test_deposit_checkout_records_thirty_percent) ... ok
 test_empty_cart_is_rejected (test_checkout.CheckoutTestCase.test_empty_cart_is_rejected) ... ok
 test_insufficient_funds_card (test_checkout.CheckoutTestCase.test_insufficient_funds_card) ... ok
 test_invalid_bearer_token_rejected_on_checkout (test_checkout.CheckoutTestCase.test_invalid_bearer_token_rejected_on_checkout) ... ok
@@ -64,7 +67,7 @@ test_unknown_luhn_card_is_declined (test_checkout.CheckoutTestCase.test_unknown_
 test_unknown_product_is_rejected (test_checkout.CheckoutTestCase.test_unknown_product_is_rejected) ... ok
 
 ----------------------------------------------------------------------
-Ran 61 tests in 19.705s
+Ran 66 tests in 30.629s
 
 OK
 === CREATION CATEGORIE ===

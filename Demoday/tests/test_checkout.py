@@ -63,6 +63,10 @@ class CheckoutTestCase(unittest.TestCase):
         payload = response.get_json()
         order = payload['order']
         self.assertEqual(order['status'], 'paid')
+        self.assertEqual(order['payment_label'], 'Payée')
+        self.assertEqual(order['prep_status'], 'a_preparer')
+        self.assertEqual(order['prep_label'], 'À préparer')
+        self.assertIsNone(order['deposit_amount'])
         self.assertEqual(order['total_amount'], 59.98)
         self.assertEqual(order['card_last4'], '4242')
         self.assertEqual(order['payment_method'], 'card')
@@ -97,6 +101,8 @@ class CheckoutTestCase(unittest.TestCase):
         payload = response.get_json()
         self.assertIn('refus', payload['error'].lower())
         self.assertEqual(payload['order']['status'], 'failed')
+        self.assertEqual(payload['order']['payment_label'], 'Paiement refusé')
+        self.assertIsNone(payload['order']['prep_status'])
         self.assertEqual(Order.query.filter_by(status='paid').count(), 0)
 
     def test_insufficient_funds_card(self):
@@ -349,6 +355,7 @@ class CheckoutTestCase(unittest.TestCase):
         self.assertEqual(order['status'], 'paid')
         self.assertEqual(order['payment_method'], 'saved')
         self.assertEqual(order['card_last4'], '4242')
+        self.assertEqual(order['prep_status'], 'a_preparer')
 
     def test_missing_order_is_not_found(self):
         token = self.login('marie@test.com', 'marie123')
@@ -357,6 +364,101 @@ class CheckoutTestCase(unittest.TestCase):
             headers={'Authorization': f'Bearer {token}'},
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_deposit_checkout_records_thirty_percent(self):
+        response = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'deposit': True,
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        self.assertEqual(response.status_code, 201, response.get_json())
+        order = response.get_json()['order']
+        self.assertEqual(order['status'], 'deposit')
+        self.assertEqual(order['payment_label'], 'Acompte versé')
+        self.assertEqual(order['prep_status'], 'a_preparer')
+        self.assertEqual(order['prep_label'], 'À préparer')
+        self.assertEqual(order['total_amount'], 29.99)
+        self.assertEqual(order['deposit_amount'], 9.00)
+        self.assertEqual(order['remaining_amount'], 20.99)
+
+    def test_client_cannot_patch_order(self):
+        order_id, token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')
+        response = self.client.patch(
+            f'/api/v1/payments/orders/{order_id}',
+            json={'prep_status': 'pret'},
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_advances_prep_and_settles_deposit(self):
+        created = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'deposit': True,
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        order_id = created.get_json()['order']['id']
+        admin = self.login('admin@florashop.com', 'admin123')
+        headers = {'Authorization': f'Bearer {admin}'}
+        prep = self.client.patch(
+            f'/api/v1/payments/orders/{order_id}',
+            json={'prep_status': 'en_preparation'},
+            headers=headers,
+        )
+        self.assertEqual(prep.status_code, 200, prep.get_json())
+        self.assertEqual(prep.get_json()['order']['prep_status'], 'en_preparation')
+        self.assertEqual(prep.get_json()['order']['prep_label'], 'En préparation')
+        invalid = self.client.patch(
+            f'/api/v1/payments/orders/{order_id}',
+            json={'prep_status': 'livree'},
+            headers=headers,
+        )
+        self.assertEqual(invalid.status_code, 400)
+        settled = self.client.patch(
+            f'/api/v1/payments/orders/{order_id}',
+            json={'settle_payment': True},
+            headers=headers,
+        )
+        self.assertEqual(settled.status_code, 200, settled.get_json())
+        payload = settled.get_json()['order']
+        self.assertEqual(payload['status'], 'paid')
+        self.assertEqual(payload['payment_label'], 'Payée')
+        self.assertEqual(payload['deposit_amount'], 9.00)
+        self.assertIsNone(payload['remaining_amount'])
+        already = self.client.patch(
+            f'/api/v1/payments/orders/{order_id}',
+            json={'settle_payment': True},
+            headers=headers,
+        )
+        self.assertEqual(already.status_code, 400)
+
+    def test_cannot_prep_a_failed_order(self):
+        failed = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4000000000000002',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        order_id = failed.get_json()['order']['id']
+        admin = self.login('admin@florashop.com', 'admin123')
+        response = self.client.patch(
+            f'/api/v1/payments/orders/{order_id}',
+            json={'prep_status': 'a_preparer'},
+            headers={'Authorization': f'Bearer {admin}'},
+        )
+        self.assertEqual(response.status_code, 400)
 
 
 if __name__ == '__main__':

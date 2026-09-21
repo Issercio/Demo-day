@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_cors import CORS
 from app.extensions import db
 from app.models import Order
+from app.models.order import PAID_LIKE, PREP_STATUSES
 from app.api.v1.auth_utils import admin_required_response, load_current_user, load_current_user_optional
 from app.services.checkout_service import (
     PaymentDeclined,
@@ -197,6 +198,54 @@ def get_order(order_id):
     )
     if not owns:
         return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+    return jsonify({'order': order.to_dict()}), 200
+
+
+@payments_bp.route('/orders/<int:order_id>', methods=['PATCH'])
+def patch_order(order_id):
+    """Fleuriste : avancer la préparation, ou marquer le solde d'un acompte comme payé."""
+    denied = admin_required_response()
+    if denied:
+        return denied
+    order = db.session.get(Order, order_id)
+    if not order:
+        return jsonify({'error': 'Commande non trouvée'}), 404
+
+    data = request.get_json() or {}
+    changed = False
+
+    if 'prep_status' in data:
+        if order.status not in PAID_LIKE:
+            return jsonify({
+                'error': 'La préparation ne s\'applique qu\'aux commandes payées ou avec acompte.',
+            }), 400
+        prep = data.get('prep_status')
+        if prep not in PREP_STATUSES:
+            return jsonify({'error': 'Statut de préparation invalide.'}), 400
+        order.prep_status = prep
+        changed = True
+
+    settle = bool(data.get('settle_payment')) or data.get('status') == 'paid'
+    if settle:
+        if order.status == 'deposit':
+            order.status = 'paid'
+            if not order.prep_status:
+                order.prep_status = 'a_preparer'
+            changed = True
+        elif order.status == 'pending':
+            order.status = 'paid'
+            if not order.prep_status:
+                order.prep_status = 'a_preparer'
+            changed = True
+        elif order.status == 'paid':
+            return jsonify({'error': 'Cette commande est déjà soldée.'}), 400
+        else:
+            return jsonify({'error': 'Impossible d\'encaisser une commande refusée ou annulée.'}), 400
+
+    if not changed:
+        return jsonify({'error': 'Aucun champ à mettre à jour.'}), 400
+
+    db.session.commit()
     return jsonify({'order': order.to_dict()}), 200
 
 

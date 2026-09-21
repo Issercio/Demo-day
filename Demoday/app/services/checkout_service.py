@@ -10,6 +10,7 @@ from sqlalchemy import inspect, text
 
 from app.extensions import db
 from app.models import Category, Order, OrderItem, Product
+from app.models.order import PAID_LIKE
 
 
 SUBSCRIPTION_PLANS = {
@@ -104,10 +105,17 @@ def ensure_runtime_schema():
         'payment_method': 'VARCHAR(50)',
         'card_last4': 'VARCHAR(4)',
         'payment_reference': 'VARCHAR(64)',
+        'deposit_amount': 'NUMERIC(10, 2)',
+        'prep_status': 'VARCHAR(32)',
     }
     for name, ddl in additions.items():
         if name not in existing:
             db.session.execute(text(f'ALTER TABLE orders ADD COLUMN {name} {ddl}'))
+    # Anciennes commandes payées : elles doivent apparaître « À préparer » à l'atelier.
+    db.session.execute(text(
+        "UPDATE orders SET prep_status = 'a_preparer' "
+        "WHERE prep_status IS NULL AND status IN ('paid', 'deposit')"
+    ))
     db.session.commit()
     from app.services.demo_accounts import ensure_product_color_column, ensure_product_image_column
     ensure_product_color_column()
@@ -218,11 +226,23 @@ def _subscription_slug(item):
 
 
 CENTS = Decimal('0.01')
+DEPOSIT_RATE = Decimal('0.30')  # acompte démo : 30 % du total catalogue
 
 
 def money(value):
     """Arrondit à 2 décimales. Évite 0.1 + 0.2 = 0.30000000000000004."""
     return Decimal(str(value)).quantize(CENTS, rounding=ROUND_HALF_UP)
+
+
+def deposit_of(total):
+    return money(Decimal(str(total)) * DEPOSIT_RATE)
+
+
+def _wants_deposit(data):
+    raw = data.get('deposit', data.get('acompte', False))
+    if isinstance(raw, str):
+        return raw.strip().lower() in ('1', 'true', 'yes', 'on')
+    return bool(raw)
 
 
 def build_order_lines(items):
@@ -268,14 +288,19 @@ def build_order_lines(items):
     return lines, money(total)
 
 
-def _persist_order(email, name, user_id, total, method, status, card_last4, reference, stripe_id, lines):
+def _persist_order(
+    email, name, user_id, total, method, status, card_last4, reference, stripe_id, lines,
+    prep_status=None, deposit_amount=None,
+):
     order = Order(
         user_id=user_id,
         email=email,
         customer_name=name,
         total_amount=total,
+        deposit_amount=deposit_amount,
         payment_method=method,
         status=status,
+        prep_status=prep_status,
         card_last4=card_last4,
         payment_reference=reference,
         stripe_payment_intent_id=stripe_id,
@@ -311,6 +336,10 @@ def checkout(data, user_id=None):
     reference = f'{method.upper()}-{uuid.uuid4().hex[:10].upper()}'
     stripe_id = None
     status = 'paid'
+    deposit_amount = None
+    # Payée ou acompte → l'atelier doit préparer ; refusée → pas de préparation.
+    prep_status = 'a_preparer'
+    want_deposit = _wants_deposit(data)
 
     try:
         if method == 'card':
@@ -327,6 +356,8 @@ def checkout(data, user_id=None):
                     existing.customer_name = name
                     existing.payment_method = 'card'
                     existing.payment_reference = data['payment_intent_id']
+                    if existing.status in PAID_LIKE and not existing.prep_status:
+                        existing.prep_status = 'a_preparer'
                     db.session.commit()
                     return existing
                 stripe_id = data['payment_intent_id']
@@ -347,10 +378,17 @@ def checkout(data, user_id=None):
         order = _persist_order(
             email, name, user_id, total, method, 'failed',
             None, f'FAIL-{uuid.uuid4().hex[:10].upper()}', None, lines,
+            prep_status=None, deposit_amount=None,
         )
         raise PaymentDeclined(str(error), order=order) from error
+
+    # Stripe encaisse le total : on n'enregistre un acompte que sur le processeur de test.
+    if want_deposit and not stripe_id:
+        status = 'deposit'
+        deposit_amount = deposit_of(total)
 
     return _persist_order(
         email, name, user_id, total, method, status,
         card_last4, reference, stripe_id, lines,
+        prep_status=prep_status, deposit_amount=deposit_amount,
     )

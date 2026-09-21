@@ -112,8 +112,11 @@ class StripeService:
             # Mettre à jour le statut selon le résultat
             if intent.status == 'succeeded':
                 order.status = 'paid'
+                if not order.prep_status:
+                    order.prep_status = 'a_preparer'
             elif intent.status == 'payment_failed':
                 order.status = 'failed'
+                order.prep_status = None
             else:
                 order.status = 'pending'
             

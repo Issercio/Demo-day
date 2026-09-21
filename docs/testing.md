@@ -38,8 +38,8 @@ Postman collection for live API clicks: [postman/FloraShop.postman_collection.js
 | File | Critical path |
 | --- | --- |
 | `tests/test_accounts.py` | Demo client seed (Marie Dupont, Léa Martin, Camille Pivoine), seven-category flower catalog with photos, register hashes + hides password, plaintext then rehash, legacy bcrypt login, unusable Marie hash reset, public `GET /themes`, admin-only vitrine `PUT`, event theme POST/DELETE with `theme_products` FKs, shop payload follows Automne, season/theme combo `printemps,mariage` |
-| `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET, Admin-Token rejected, forged JWT `is_admin` ignored, POST/PUT cannot mint admin, register cannot mint admin, client cannot read/delete another user, placeholder SECRET_KEY cannot impersonate admin, debug categories 403, admin product photo upload, client cannot upload, non-image rejected, admin order cards (`renderOrderCard`, unit price) |
-| `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds / unknown Luhn card, invalid PAN, subscription line, PayPal, saved card, empty cart, unknown product, invalid JWT, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30`, order IDOR (401/200/403/404), spoofed checkout email ignored, admin order item unit price |
+| `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET, Admin-Token rejected, forged JWT `is_admin` ignored, POST/PUT cannot mint admin, register cannot mint admin, client cannot read/delete another user, placeholder SECRET_KEY cannot impersonate admin, debug categories 403, admin product photo upload, client cannot upload, non-image rejected, admin order cards (`renderOrderCard`, unit price, acompte, à préparer) |
+| `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds / unknown Luhn card, invalid PAN, subscription line, PayPal, saved card, 30 % deposit, admin prep PATCH / settle deposit, empty cart, unknown product, invalid JWT, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30`, order IDOR (401/200/403/404), spoofed checkout email ignored, admin order item unit price |
 
 ## What is not covered yet
 
@@ -82,21 +82,21 @@ Use demo users from the README. Mark the result when you walk the jury scenario.
 | M6 | Decline | Card `4000000000000002` | 402, order `failed` | Automated |
 | M7 | Admin | `admin@florashop.com` lists `/api/v1/payments/orders` | 200 | Automated |
 | M8 | Vitrine | Admin applies Automne, then Printemps + Mariage; open `/shop.html` as a customer | Shop banner and catalog follow the applied vitrine; combo is a union | Automated `test_accounts` + Demo Day walkthrough |
-| M9 | Orders | Admin **Commandes et paiements** after Marie’s paid order | Order card with unit price, line total, last four digits, photo | Automated `test_admin_guard` / `test_checkout` + Demo Day walkthrough |
+| M9 | Orders | Admin **Commandes et paiements** after Marie’s paid or deposit order | Payment badge + prep select; settle remaining on a deposit | Automated `test_admin_guard` / `test_checkout` + Demo Day walkthrough |
 
 ## Coverage notes
 
-Latest captured run: **61 tests, OK** (`test-evidence/unittest-output.txt`).
+Latest captured run: **66 tests, OK** (`test-evidence/unittest-output.txt`).
 
 `coverage` is measured on the `app` package (templates and static JS are excluded):
 
 | Module | Cover | Why it matters |
 | --- | --- | --- |
-| `app/models/order.py` | 100% | Money columns + order JSON |
-| `app/services/demo_accounts.py` | 95% | Demo logins + flower catalog |
+| `app/models/order.py` | 100% | Money columns, payment/prep labels, order JSON |
+| `app/services/demo_accounts.py` | 89% | Demo logins + flower catalog |
 | `app/models/user.py` | 97% | Hash / bcrypt / plaintext |
-| `app/services/checkout_service.py` | 78% | Totals, Luhn, test cards |
+| `app/services/checkout_service.py` | 78% | Totals, Luhn, test cards, 30 % deposit |
 | `app/api/v1/auth.py` | 79% | Login / register |
-| Whole `app` package | 40% | Unused leftovers (`prices`, `reviews_restx`, Stripe live, old repositories) pull the average down |
+| Whole `app` package | 51% | Unused leftovers (`prices`, `reviews_restx`, Stripe live, old repositories) pull the average down |
 
 Those leftovers are listed under Known Issues in the README.

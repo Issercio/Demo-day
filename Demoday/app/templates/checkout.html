@@ -167,6 +167,35 @@
             font-size: 0.9rem;
             line-height: 1.45;
         }
+
+        .deposit-option {
+            margin: 0 0 8px;
+            padding: 14px;
+            background: #fff8e7;
+            border: 1px solid #f1d48a;
+            border-radius: 10px;
+        }
+
+        .deposit-option label {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-weight: 600;
+            color: #495057;
+            cursor: pointer;
+        }
+
+        .deposit-option input[type="checkbox"] {
+            width: auto;
+            margin-top: 3px;
+        }
+
+        .deposit-option p {
+            display: none;
+            margin: 8px 0 0 26px;
+            color: #6a5200;
+            font-size: 0.9rem;
+        }
         
         .pay-button {
             background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
@@ -364,6 +393,14 @@
                             <button type="button" id="fill-test-card" class="back-to-shop" style="display:block;margin-top:10px;background:#bc6288;">Remplir la carte de test 4242</button>
                         </div>
                     </div>
+
+                    <div class="form-group deposit-option" id="deposit-option">
+                        <label for="pay-deposit">
+                            <input type="checkbox" id="pay-deposit" name="deposit">
+                            <span>Verser un acompte de 30 % maintenant (le solde sera réglé en boutique)</span>
+                        </label>
+                        <p id="deposit-hint"></p>
+                    </div>
                     
                     <button type="submit" id="pay-button" class="pay-button">
                         🔒 Payer <span id="pay-amount">0.00 €</span>
@@ -391,6 +428,39 @@
         let cartItems = [];
         let selectedPaymentMethod = 'card';
         let paymentMode = 'test';
+        let lastCartTotal = 0;
+
+        function depositWanted() {
+            const box = document.getElementById('pay-deposit');
+            return !!(box && box.checked);
+        }
+
+        function payableCents(total) {
+            const cents = Math.round(Number(total) * 100);
+            if (!depositWanted()) {
+                return cents;
+            }
+            return Math.round(cents * 30 / 100);
+        }
+
+        function refreshDepositUi() {
+            const hint = document.getElementById('deposit-hint');
+            const payAmount = document.getElementById('pay-amount');
+            const due = payableCents(lastCartTotal);
+            const rest = Math.round(lastCartTotal * 100) - due;
+            if (payAmount) {
+                payAmount.textContent = `${(due / 100).toFixed(2)} €`;
+            }
+            if (!hint) {
+                return;
+            }
+            if (depositWanted() && lastCartTotal > 0) {
+                hint.style.display = 'block';
+                hint.textContent = `Acompte aujourd'hui : ${(due / 100).toFixed(2)} € · Solde en boutique : ${(rest / 100).toFixed(2)} €`;
+            } else {
+                hint.style.display = 'none';
+            }
+        }
 
         function escapeHtml(value) {
             return String(value || '')
@@ -461,14 +531,23 @@
         function renderSuccessPayment(order) {
             const methodLabel = getMethodLabel(order.payment_method || selectedPaymentMethod);
             const last4 = order.card_last4 ? ` •••• ${order.card_last4}` : '';
+            const paymentLabel = order.payment_label || order.status || 'Payée';
+            const depositLine = order.status === 'deposit'
+                ? `<p>Acompte versé : <strong>${Number(order.deposit_amount).toFixed(2)} €</strong> · Reste <strong>${Number(order.remaining_amount).toFixed(2)} €</strong></p>`
+                : '';
+            const prepLine = order.prep_label
+                ? `<p>Atelier : <strong>${escapeHtml(order.prep_label)}</strong></p>`
+                : '';
             document.getElementById('payment-result').innerHTML = `
                 <div class="success">
-                    <h3>✅ Paiement validé</h3>
+                    <h3>✅ ${escapeHtml(paymentLabel)}</h3>
                     <p><strong>Commande #${order.id}</strong></p>
                     <p><strong>Méthode :</strong> ${escapeHtml(methodLabel)}${last4}</p>
                     <p>Merci ${escapeHtml(order.customer_name || 'client')} pour votre achat !</p>
                     <p>Confirmation : <strong>${escapeHtml(order.email)}</strong></p>
                     <p>Montant : <strong>${Number(order.total_amount).toFixed(2)} €</strong></p>
+                    ${depositLine}
+                    ${prepLine}
                     <p>Référence : ${escapeHtml(order.payment_reference || '')}</p>
                     <p style="margin-top:16px;"><a class="back-to-shop" href="shop.html">Retour boutique</a></p>
                 </div>
@@ -619,7 +698,6 @@
             const cartContainer = document.getElementById('cart-items');
             const subtotalElement = document.getElementById('subtotal');
             const totalElement = document.getElementById('total');
-            const payAmountElement = document.getElementById('pay-amount');
 
             if (cartItems.length === 0) {
                 showEmptyCart();
@@ -661,9 +739,8 @@
 
             subtotalElement.textContent = `${total.toFixed(2)} €`;
             totalElement.textContent = `${total.toFixed(2)} €`;
-            if (payAmountElement) {
-                payAmountElement.textContent = `${total.toFixed(2)} €`;
-            }
+            lastCartTotal = total;
+            refreshDepositUi();
         }
 
         function formatCardNumber(value) {
@@ -704,6 +781,7 @@
                 email,
                 name,
                 payment_method: selectedPaymentMethod,
+                deposit: depositWanted(),
                 items: checkoutItemsPayload()
             };
 
@@ -742,7 +820,7 @@
                     <div class="error">
                         <h3>❌ Paiement refusé</h3>
                         <p>${escapeHtml(message)}</p>
-                        ${data.order ? `<p>Commande #${data.order.id} enregistrée comme ${escapeHtml(data.order.status)}.</p>` : ''}
+                        ${data.order ? `<p>Commande #${data.order.id} enregistrée comme ${escapeHtml(data.order.payment_label || data.order.status)}.</p>` : ''}
                     </div>
                 `;
             } catch (error) {
@@ -788,6 +866,10 @@
                     cardExpiry.value = '12/34';
                     cardCvc.value = '123';
                 });
+            }
+            const depositBox = document.getElementById('pay-deposit');
+            if (depositBox) {
+                depositBox.addEventListener('change', refreshDepositUi);
             }
 
             try {

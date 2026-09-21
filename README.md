@@ -135,7 +135,7 @@ Resolved:
 - Profile / logout menu stretching the navbar — compact overlay under the account icon
 - Empty shop on a fresh database — demo bouquets, compositions and photos are seeded on startup
 - Season picker on the public homepage — moved to admin **Vitrine du shop**; the shop reads `GET /api/v1/themes`
-- Admin orders shown as a one-line table — each order is a card with items, unit price, line total, status, and payment metadata
+- Admin orders shown as a one-line table — each order is a card with items, unit price, line total, payment status, prep status, and payment metadata
 - Virtualenv and a Stripe publishable key in Git — removed
 
 Open, none of them block a purchase:
@@ -248,7 +248,9 @@ erDiagram
     string email
     string customer_name
     numeric total_amount
+    numeric deposit_amount
     string status
+    string prep_status
     string payment_method
     string card_last4
     string payment_reference
@@ -297,7 +299,9 @@ classDiagram
     +str email
     +str customer_name
     +Decimal total_amount
+    +Decimal deposit_amount
     +str status
+    +str prep_status
     +str payment_method
     +str card_last4
     +str payment_reference
@@ -341,7 +345,8 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | POST / PUT / DELETE | `/api/v1/categories`… | admin JWT | Mutate categories |
 | GET | `/api/v1/users` | admin JWT | List users (no password field) |
 | GET | `/api/v1/payments/config` | public | `test` or `stripe` mode |
-| POST | `/api/v1/payments/checkout` | optional JWT | Create a paid or failed order |
+| POST | `/api/v1/payments/checkout` | optional JWT | Create a paid, deposit, or failed order (`deposit: true` = 30 %) |
+| PATCH | `/api/v1/payments/orders/<id>` | admin JWT | Advance prep (`a_preparer` → `remise`) or settle a deposit |
 | GET | `/api/v1/payments/orders/<id>` | owner or admin JWT | Order detail |
 | GET | `/api/v1/payments/orders` | admin JWT | List orders |
 
@@ -385,15 +390,15 @@ Remaining risks: JWT in `localStorage` (XSS), no CSRF on cookie-less Bearer, no 
 
 Flask and Jinja keep pages and API in one process. RESTX provides Swagger. SQLite keeps a classroom machine free of PostgreSQL. Decimal types are the correct way to store euros. Test cards make the demonstration work without secrets.
 
-**Decisions.** Server-side checkout. Per-user carts after a shared-cart bug. Sticky navigation instead of a floating bar. Profile menu as an overlay under the account icon. Demo users, bouquets and photos re-seeded so `marie@test.com` / `marie123` and `/shop.html` always work. Vitrine controls live in admin, not on the homepage, so every visitor sees the same shop. Season and event can be combined; the shop shows the union of both product lists. Admin orders are cards, not a one-line table, so the florist can read unit price, quantity and payment metadata.
+**Decisions.** Server-side checkout. Per-user carts after a shared-cart bug. Sticky navigation instead of a floating bar. Profile menu as an overlay under the account icon. Demo users, bouquets and photos re-seeded so `marie@test.com` / `marie123` and `/shop.html` always work. Vitrine controls live in admin, not on the homepage, so every visitor sees the same shop. Season and event can be combined; the shop shows the union of both product lists. Admin orders are cards, not a one-line table, so the florist can read payment (unpaid, deposit, paid, refused) and workshop prep (`À préparer` → `Remise`).
 
 ---
 
 ## Testing
 
-Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **61 tests OK** in [`docs/test-evidence/`](docs/test-evidence/).
+Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **66 tests OK** in [`docs/test-evidence/`](docs/test-evidence/).
 
-Covered: registration and login hashing, demo seed (accounts, seven-category flower catalog, product photos), admin versus customer permissions, public catalog, product image upload (admin only, rejected for clients and non-images), checkout (success, decline, insufficient funds, unknown Luhn card, invalid PAN, PayPal, saved card, subscription line, server-side prices, decimal cents, admin order list with item prices, order IDOR, spoofed email), vitrine (admin-only `PUT /themes`, shop payload, season/theme combo `printemps,mariage`), privilege escalation (forged JWT, placeholder secret, POST/PUT/register cannot mint admin).
+Covered: registration and login hashing, demo seed (accounts, seven-category flower catalog, product photos), admin versus customer permissions, public catalog, product image upload (admin only, rejected for clients and non-images), checkout (success, decline, insufficient funds, unknown Luhn card, invalid PAN, PayPal, saved card, 30 % deposit, admin prep PATCH, subscription line, server-side prices, decimal cents, admin order list with item prices, order IDOR, spoofed email), vitrine (admin-only `PUT /themes`, shop payload, season/theme combo `printemps,mariage`), privilege escalation (forged JWT, placeholder secret, POST/PUT/register cannot mint admin).
 
 Not covered yet: live Stripe calls, email, browser end-to-end tests, reviews, load tests.
 
@@ -411,7 +416,7 @@ Not covered yet: live Stripe calls, email, browser end-to-end tests, reviews, lo
 | Empty shop after a clean SQLite start | Technical | Seed seven florist categories with photos and hex colors that match the shop filter swatches |
 | Season picker on the homepage confused visitors | Product | Move **Vitrine du shop** to admin; public `GET /themes` updates `/shop.html` for everyone |
 | Season *and* event at the same time | Product | Persist `{season, theme}`; combo ids are comma-separated; shop shows the union |
-| Admin orders too sparse to demo a payment | Product | Order cards with French status, client or guest, last four digits, reference, photo, quantity, unit price, line total |
+| Admin orders too sparse to demo a payment | Product | Order cards with French payment + prep status, optional 30 % deposit, last four digits, reference, photo, quantity, unit price, line total |
 | Rebuilding every Wix page versus a working shop | Product | Cut CMS, geo and email; keep the purchase path |
 | Presentation time including the live demo | Organisation | Timed story; skip the declined card if the clock runs out |
 
@@ -463,10 +468,10 @@ Marie forgot her mother’s birthday. The boutique in Sciez is closed. She opens
 2. Sign in as `admin@florashop.com` / `admin123`. Open **Vitrine du shop**. Apply **Automne**, or a combo such as **Printemps + Mariage**. Open `/shop.html` (or **SHOP** in another tab): the catalog follows that vitrine for every visitor. Reset filters does not clear the vitrine. **Catalogue complet** in admin restores the full shop.
 3. Shop as a customer — filter a category or a colour swatch, add one bouquet with its photo (Fleurs Fraîches, Compositions, Fleurs Séchées, Plantes, Mariage, Deuil, Cadeaux; product hex colors match the filter bar).
 4. Sign in as `marie@test.com` / `marie123`. The cart is hers. Open the account icon: email and **Déconnexion** sit under the icon, the navbar does not grow.
-5. Pay with `4242 4242 4242 4242`. The server recalculates the total. Status `paid`.
+5. Pay with `4242 4242 4242 4242`. The server recalculates the total. Status `Payée` and workshop `À préparer`. Optionally tick **Verser un acompte de 30 %** for `Acompte versé` plus the remaining balance.
 6. Optionally add *Éclat Mensuel* (€19.99).
-7. Optionally show a declined card (`4000 0000 0000 0002`).
-8. Back as the florist. Create a product with a photo. Open **Commandes et paiements**: Marie’s order is a card with French status, client account, card last four digits, payment reference, each line’s photo, category, quantity, unit price and line total.
+7. Optionally show a declined card (`4000 0000 0000 0002`) — the order is `Paiement refusé` with no prep step.
+8. Back as the florist. Create a product with a photo. Open **Commandes et paiements**: Marie’s order is a card with payment badge, prep badge, client account, card last four digits, payment reference, each line’s photo, category, quantity, unit price and line total. Advance the atelier select (`En préparation` → `Prête` → `Remise`). On a deposit, **Marquer le solde payé** turns it into `Payée`.
 
 If the interface fails: Swagger at `/api/v1` and `./run-tests.sh` still show checkout, authentication, vitrine and admin guards.
 
@@ -476,7 +481,7 @@ The spoken presentation, including this walkthrough, stays inside **20 minutes**
 
 ## Conclusion
 
-Pivoine & Lilas is a florist shop that takes a real order: a customer can sign in, buy a photographed bouquet, pay, subscribe, and the florist can manage the catalog, set the live vitrine, and read the payment on an order card. The server owns the price. What is not built (click-and-collect, homepage CMS, delivery zones, email) is listed here. The next work is operations, not another visual pass.
+Pivoine & Lilas is a florist shop that takes a real order: a customer can sign in, buy a photographed bouquet, pay in full or leave a 30 % deposit, subscribe, and the florist can manage the catalog, set the live vitrine, and follow payment plus workshop prep on an order card. The server owns the price. What is not built (click-and-collect, homepage CMS, delivery zones, email) is listed here. The next work is operations, not another visual pass.
 
 Screenshots:
 

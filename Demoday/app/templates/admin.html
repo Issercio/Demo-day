@@ -315,8 +315,53 @@
         }
 
         .order-status.is-paid { background: #d4edda; color: #155724; }
+        .order-status.is-deposit { background: #cce5ff; color: #004085; }
         .order-status.is-failed { background: #f8d7da; color: #721c24; }
         .order-status.is-pending { background: #fff3cd; color: #856404; }
+        .order-status.is-cancelled { background: #e2e3e5; color: #383d41; }
+        .order-status.is-a_preparer { background: #fff3cd; color: #856404; }
+        .order-status.is-en_preparation { background: #cce5ff; color: #004085; }
+        .order-status.is-pret { background: #d4edda; color: #155724; }
+        .order-status.is-remise { background: #e2e3e5; color: #383d41; }
+
+        .order-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .order-prep-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 12px;
+            padding: 0 16px 14px;
+        }
+
+        .order-prep-controls label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #5a3d48;
+            font-size: 0.9rem;
+        }
+
+        .order-prep-controls select,
+        .order-prep-controls button {
+            border: 1px solid #bc6288;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.85rem;
+            background: #fff;
+            color: #5a3d48;
+        }
+
+        .order-prep-controls button {
+            background: #bc6288;
+            color: #fff;
+            cursor: pointer;
+        }
 
         .order-card-meta {
             display: grid;
@@ -809,7 +854,7 @@
 
         <div class="admin-section">
             <h2>Commandes et paiements</h2>
-            <p style="margin-bottom: 16px; color: #6c4a58;">Chaque commande montre le client, le paiement et le détail des articles (quantité, prix unitaire, total ligne).</p>
+            <p style="margin-bottom: 16px; color: #6c4a58;">Paiement (non payée, acompte, payée, refusée) et atelier (à préparer → remise). Un acompte de 30 % laisse le solde à encaisser en boutique.</p>
             <div id="orders-list" class="orders-list">
                 <p class="order-empty">Chargement...</p>
             </div>
@@ -1251,11 +1296,41 @@
         function orderStatusLabel(status) {
             const labels = {
                 paid: 'Payée',
-                failed: 'Échouée',
-                pending: 'En attente',
+                deposit: 'Acompte versé',
+                failed: 'Paiement refusé',
+                pending: 'Non payée',
                 cancelled: 'Annulée'
             };
             return labels[status] || status || 'Inconnu';
+        }
+
+        const PREP_OPTIONS = [
+            ['a_preparer', 'À préparer'],
+            ['en_preparation', 'En préparation'],
+            ['pret', 'Prête'],
+            ['remise', 'Remise']
+        ];
+
+        function orderPrepLabel(status) {
+            const found = PREP_OPTIONS.find((option) => option[0] === status);
+            return found ? found[1] : '';
+        }
+
+        async function patchOrder(orderId, body) {
+            const response = await fetch(`/api/v1/payments/orders/${orderId}`, {
+                method: 'PATCH',
+                headers: getAdminHeaders(),
+                body: JSON.stringify(body)
+            });
+            if (sessionBlocked(response)) {
+                return null;
+            }
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                showNotice(apiErrorMessage(payload, 'Impossible de mettre à jour la commande'), 'error');
+                return null;
+            }
+            return payload.order;
         }
 
         function orderMethodLabel(order) {
@@ -1307,11 +1382,33 @@
             const stripe = order.stripe_payment_intent_id
                 ? `<div><dt>Stripe</dt><dd>${escapeHtml(order.stripe_payment_intent_id)}</dd></div>`
                 : '';
+            const paymentLabel = order.payment_label || orderStatusLabel(status);
+            const prepStatus = order.prep_status || '';
+            const prepBadge = prepStatus
+                ? `<span class="order-status is-${escapeHtml(prepStatus)}">${escapeHtml(order.prep_label || orderPrepLabel(prepStatus))}</span>`
+                : '';
+            const depositBlock = status === 'deposit' && order.deposit_amount != null
+                ? `<div><dt>Acompte</dt><dd>${formatOrderMoney(order.deposit_amount)} versé<br><small>Reste ${formatOrderMoney(order.remaining_amount)}</small></dd></div>`
+                : '';
+            const prepOptions = PREP_OPTIONS.map(([value, label]) => (
+                `<option value="${value}"${value === prepStatus ? ' selected' : ''}>${label}</option>`
+            )).join('');
+            const prepControls = prepStatus
+                ? `<div class="order-prep-controls">
+                        <label>Atelier
+                            <select data-order-prep="${Number(order.id)}">${prepOptions}</select>
+                        </label>
+                        ${status === 'deposit' ? `<button type="button" data-order-settle="${Number(order.id)}">Marquer le solde payé</button>` : ''}
+                   </div>`
+                : '';
             return `
                 <article class="order-card" data-order-id="${Number(order.id)}">
                     <div class="order-card-head">
                         <span>Commande #${Number(order.id)} · ${formatOrderDate(order.created_at)}</span>
-                        <span class="order-status is-${escapeHtml(status)}">${escapeHtml(orderStatusLabel(status))}</span>
+                        <span class="order-badges">
+                            <span class="order-status is-${escapeHtml(status)}">${escapeHtml(paymentLabel)}</span>
+                            ${prepBadge}
+                        </span>
                         <strong>${formatOrderMoney(order.total_amount)}</strong>
                     </div>
                     <dl class="order-card-meta">
@@ -1323,8 +1420,10 @@
                             <dt>Paiement</dt>
                             <dd>${escapeHtml(orderMethodLabel(order))}${last4}<br><small>Réf. ${escapeHtml(order.payment_reference || '—')}</small></dd>
                         </div>
+                        ${depositBlock}
                         ${stripe}
                     </dl>
+                    ${prepControls}
                     <div class="order-lines-wrap">
                     <table class="order-lines">
                         <thead>
@@ -1785,6 +1884,34 @@
             document.getElementById('create-product-btn').addEventListener('click', function(e) {
                 e.preventDefault();
                 createProduct();
+            });
+
+            const ordersList = document.getElementById('orders-list');
+            ordersList.addEventListener('change', async function(event) {
+                const select = event.target.closest('[data-order-prep]');
+                if (!select) {
+                    return;
+                }
+                const updated = await patchOrder(select.getAttribute('data-order-prep'), {
+                    prep_status: select.value
+                });
+                if (updated) {
+                    showNotice('Préparation mise à jour.', 'success');
+                    await loadOrders();
+                }
+            });
+            ordersList.addEventListener('click', async function(event) {
+                const button = event.target.closest('[data-order-settle]');
+                if (!button) {
+                    return;
+                }
+                const updated = await patchOrder(button.getAttribute('data-order-settle'), {
+                    settle_payment: true
+                });
+                if (updated) {
+                    showNotice('Solde marqué comme payé.', 'success');
+                    await loadOrders();
+                }
             });
         });
     </script>
