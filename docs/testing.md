@@ -82,7 +82,7 @@ Use demo users from the README. Mark the result when you walk the jury scenario.
 | M6 | Decline | Card `4000000000000002` | 402, order `failed` | Automated |
 | M7 | Admin | `admin@florashop.com` lists `/api/v1/payments/orders` | 200 | Automated |
 | M8 | Vitrine | Admin applies Automne, then Printemps + Mariage; open `/shop.html` as a customer | Shop banner and catalog follow the applied vitrine; combo is a union | Automated `test_accounts` + Demo Day walkthrough |
-| M9 | Orders | Admin **Commandes et paiements** after Marie’s paid or deposit order | Payment badge + prep select; settle remaining on a deposit | Automated `test_admin_guard` / `test_checkout` + Demo Day walkthrough |
+| M9 | Orders | Admin **Commandes et factures** after Marie’s paid or deposit order | Invoice layout (FAC, TTC) + prep select; print invoice; settle remaining on a deposit | Automated `test_admin_guard` / `test_checkout` + Demo Day walkthrough |
 | M10 | Tracking | Marie opens **Mes commandes** (`/commandes.html`) and clicks **Voir le détail** | Own order with photos, last four digits, line totals; Léa 403 on Marie’s id | Automated `test_checkout` + Demo Day walkthrough |
 
 ## Coverage notes

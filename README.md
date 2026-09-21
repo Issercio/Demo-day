@@ -99,10 +99,10 @@ Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
 | Florist | Upload a product photo from the catalog form | Must have |
 | Florist | Apply a season, a theme, or both as a combo to the live shop | Must have |
 | Florist | Create or delete shop event themes from the admin catalog | Must have |
-| Florist | Review paid orders with line prices, card last four digits, and payment reference | Must have |
+| Florist | Review paid orders as printable invoices (FAC number, TTC lines, workshop toolbar) | Must have |
 | Florist | Keep the back-office for administrators only | Must have |
 
-Evidence: `/account.html`, `/shop.html`, `/checkout.html`, `/subscription.html`, `/admin.html` (Vitrine du shop, catalogue photos, Commandes et paiements), and the REST routes under `/api/v1`.
+Evidence: `/account.html`, `/shop.html`, `/checkout.html`, `/subscription.html`, `/admin.html` (Vitrine du shop, catalogue photos, Commandes et factures), and the REST routes under `/api/v1`.
 
 ---
 
@@ -472,10 +472,10 @@ Marie forgot her mother’s birthday. The boutique in Sciez is closed. She opens
 3. Shop as a customer — filter a category or a colour swatch, add one bouquet with its photo (Fleurs Fraîches, Compositions, Fleurs Séchées, Plantes, Mariage, Deuil, Cadeaux; product hex colors match the filter bar).
 4. Sign in as `marie@test.com` / `marie123`. The cart is hers. Open the account icon: email and **Déconnexion** sit under the icon, the navbar does not grow.
 5. Pay with `4242 4242 4242 4242`. The server recalculates the total. Status `Payée` and workshop `À préparer`. Optionally tick **Verser un acompte de 30 %** for `Acompte versé` plus the remaining balance.
-6. Open the account icon → **Mes commandes**. Click **Voir le détail** on Marie’s order: photos, card last four digits, payment reference, line prices. The atelier stepper stays read-only. As the florist, change prep on **Commandes et paiements**; refresh Marie’s page to show the new step.
+6. Open the account icon → **Mes commandes**. Click **Voir le détail** on Marie’s order: photos, card last four digits, payment reference, line prices. The atelier stepper stays read-only. As the florist, change prep on **Commandes et factures**; refresh Marie’s page to show the new step.
 7. Optionally add *Éclat Mensuel* (€19.99).
 8. Optionally show a declined card (`4000 0000 0000 0002`) — the order is `Paiement refusé` with no prep step.
-9. Back as the florist. Create a product with a photo. Open **Commandes et paiements**: Marie’s order is a card with payment badge, prep badge, client account, card last four digits, payment reference, each line’s photo, category, quantity, unit price and line total. Advance the atelier select (`En préparation` → `Prête` → `Remise`). On a deposit, **Marquer le solde payé** turns it into `Payée`.
+9. Back as the florist. Create a product with a photo. Open **Commandes et factures**: Marie’s order is a printable invoice (`FAC-YYYY-NNNN`, shop address, SIREN, client, TTC lines). The atelier toolbar stays above it (`En préparation` → `Prête` → `Remise`, **Imprimer la facture**). On a deposit, **Marquer le solde payé** turns it into `Payée`.
 
 If the interface fails: Swagger at `/api/v1` and `./run-tests.sh` still show checkout, authentication, vitrine and admin guards.
 
@@ -485,7 +485,7 @@ The spoken presentation, including this walkthrough, stays inside **20 minutes**
 
 ## Conclusion
 
-Pivoine & Lilas is a florist shop that takes a real order: a customer can sign in, buy a photographed bouquet, pay in full or leave a 30 % deposit, subscribe, and follow that order on **Mes commandes**; the florist can manage the catalog, set the live vitrine, and follow payment plus workshop prep on an order card. The server owns the price. What is not built (click-and-collect, homepage CMS, delivery zones, email) is listed here. The next work is operations, not another visual pass.
+Pivoine & Lilas is a florist shop that takes a real order: a customer can sign in, buy a photographed bouquet, pay in full or leave a 30 % deposit, subscribe, and follow that order on **Mes commandes**; the florist can manage the catalog, set the live vitrine, and follow payment plus workshop prep on a printable invoice. The server owns the price. What is not built (click-and-collect, homepage CMS, delivery zones, email) is listed here. The next work is operations, not another visual pass.
 
 Screenshots:
 

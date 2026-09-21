@@ -276,59 +276,14 @@
         .orders-list {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 22px;
         }
 
         .order-card {
             background: #fff;
             border: 1.5px solid #e7d6d6;
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
-        }
-
-        .order-lines-wrap {
-            overflow-x: auto;
-        }
-
-        .order-card-head {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px 16px;
-            padding: 12px 16px;
-            background: #bc6288;
-            color: #fff;
-        }
-
-        .order-card-head strong {
-            font-size: 1.05rem;
-        }
-
-        .order-status {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 999px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            background: rgba(255, 255, 255, 0.18);
-        }
-
-        .order-status.is-paid { background: #d4edda; color: #155724; }
-        .order-status.is-deposit { background: #cce5ff; color: #004085; }
-        .order-status.is-failed { background: #f8d7da; color: #721c24; }
-        .order-status.is-pending { background: #fff3cd; color: #856404; }
-        .order-status.is-cancelled { background: #e2e3e5; color: #383d41; }
-        .order-status.is-a_preparer { background: #fff3cd; color: #856404; }
-        .order-status.is-en_preparation { background: #cce5ff; color: #004085; }
-        .order-status.is-pret { background: #d4edda; color: #155724; }
-        .order-status.is-remise { background: #e2e3e5; color: #383d41; }
-
-        .order-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-left: auto;
         }
 
         .order-prep-controls {
@@ -336,7 +291,9 @@
             flex-wrap: wrap;
             align-items: center;
             gap: 8px 12px;
-            padding: 0 16px 14px;
+            padding: 10px 16px;
+            background: #f8f0f4;
+            border-bottom: 1px solid #eadfe2;
         }
 
         .order-prep-controls label {
@@ -363,6 +320,11 @@
             cursor: pointer;
         }
 
+        .order-prep-controls .order-print-btn {
+            background: #fff;
+            color: #bc6288;
+        }
+
         .order-prep-controls .order-delete-btn {
             background: #fff;
             color: #721c24;
@@ -370,25 +332,106 @@
             margin-left: auto;
         }
 
-        .order-card-meta {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px 20px;
-            padding: 14px 16px 8px 16px;
-            color: #5a3d48;
-            font-size: 0.95rem;
+        .order-invoice {
+            padding: 22px 22px 16px;
+            color: #3a2a30;
         }
 
-        .order-card-meta dt {
+        .invoice-head {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 16px 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #bc6288;
+        }
+
+        .invoice-shop strong {
+            display: block;
+            color: #bc6288;
+            font-size: 1.25rem;
+            letter-spacing: 0.02em;
+        }
+
+        .invoice-shop small {
+            display: block;
+            color: #7a5a66;
+            line-height: 1.45;
+            margin-top: 4px;
+        }
+
+        .invoice-title {
+            text-align: right;
+        }
+
+        .invoice-title em {
+            display: block;
+            font-style: normal;
+            font-size: 0.72rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: #bc6288;
+        }
+
+        .invoice-title strong {
+            display: block;
+            font-size: 1.35rem;
+            margin-top: 2px;
+        }
+
+        .invoice-title small {
+            color: #7a5a66;
+        }
+
+        .invoice-parties {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px 28px;
+            margin: 16px 0 8px;
+        }
+
+        .invoice-parties dt {
             color: #bc6288;
             font-size: 0.72rem;
             letter-spacing: 0.05em;
             text-transform: uppercase;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
 
-        .order-card-meta dd {
+        .invoice-parties dd {
             margin: 0;
+            line-height: 1.45;
+        }
+
+        .order-status {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            background: #eee;
+        }
+
+        .order-status.is-paid { background: #d4edda; color: #155724; }
+        .order-status.is-deposit { background: #cce5ff; color: #004085; }
+        .order-status.is-failed { background: #f8d7da; color: #721c24; }
+        .order-status.is-pending { background: #fff3cd; color: #856404; }
+        .order-status.is-cancelled { background: #e2e3e5; color: #383d41; }
+        .order-status.is-a_preparer { background: #fff3cd; color: #856404; }
+        .order-status.is-en_preparation { background: #cce5ff; color: #004085; }
+        .order-status.is-pret { background: #d4edda; color: #155724; }
+        .order-status.is-remise { background: #e2e3e5; color: #383d41; }
+
+        .order-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .order-lines-wrap {
+            overflow-x: auto;
+            margin-top: 8px;
         }
 
         .order-lines {
@@ -414,6 +457,15 @@
             letter-spacing: 0.04em;
         }
 
+        .order-lines td:nth-child(3),
+        .order-lines td:nth-child(4),
+        .order-lines td:nth-child(5),
+        .order-lines th:nth-child(3),
+        .order-lines th:nth-child(4),
+        .order-lines th:nth-child(5) {
+            text-align: right;
+        }
+
         .order-line-thumb {
             width: 44px;
             height: 44px;
@@ -436,6 +488,52 @@
             font-weight: 400;
         }
 
+        .invoice-totals {
+            width: min(320px, 100%);
+            margin: 12px 0 0 auto;
+            border-collapse: collapse;
+        }
+
+        .invoice-totals th,
+        .invoice-totals td {
+            padding: 6px 0 6px 12px;
+            font-size: 0.92rem;
+        }
+
+        .invoice-totals th {
+            text-align: left;
+            color: #7a5a66;
+            font-weight: 500;
+        }
+
+        .invoice-totals td {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .invoice-totals .is-grand th,
+        .invoice-totals .is-grand td {
+            border-top: 2px solid #bc6288;
+            color: #bc6288;
+            font-size: 1.05rem;
+            padding-top: 10px;
+        }
+
+        .invoice-pay {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px dashed #eadfe2;
+            color: #7a5a66;
+            font-size: 0.88rem;
+        }
+
+        .invoice-legal {
+            margin-top: 14px;
+            color: #9a7a86;
+            font-size: 0.78rem;
+            line-height: 1.45;
+        }
+
         .order-empty {
             text-align: center;
             color: #bc6288;
@@ -443,8 +541,11 @@
         }
 
         @media (max-width: 720px) {
-            .order-card-meta {
+            .invoice-parties {
                 grid-template-columns: 1fr;
+            }
+            .invoice-title {
+                text-align: left;
             }
         }
 
@@ -860,8 +961,8 @@
         </div>
 
         <div class="admin-section">
-            <h2>Commandes et paiements</h2>
-            <p style="margin-bottom: 16px; color: #6c4a58;">Paiement (non payée, acompte, payée, refusée) et atelier (à préparer → remise). Un acompte de 30 % laisse le solde à encaisser en boutique.</p>
+            <h2>Commandes et factures</h2>
+            <p style="margin-bottom: 16px; color: #6c4a58;">Chaque commande s’affiche comme une facture (n° FAC, client, lignes, total TTC). L’atelier (à préparer → remise) et l’encaissement restent au-dessus. Un acompte de 30 % laisse le solde à encaisser en boutique.</p>
             <div id="orders-list" class="orders-list">
                 <p class="order-empty">Chargement...</p>
             </div>
@@ -1366,8 +1467,16 @@
             return order.payment_method || 'Paiement';
         }
 
-        function renderOrderCard(order) {
-            // Fiche fleuriste : statut, last4, référence, photo, qty, prix unit., total ligne.
+        function invoiceNumber(order) {
+            // Numéro de facture visible : FAC-année-id, distinct de l'id interne commande.
+            const parsed = order.created_at ? new Date(order.created_at) : null;
+            const year = parsed && !Number.isNaN(parsed.getTime())
+                ? parsed.getFullYear()
+                : new Date().getFullYear();
+            return 'FAC-' + year + '-' + String(order.id).padStart(4, '0');
+        }
+
+        function renderInvoiceBody(order) {
             const items = order.items || [];
             const status = order.status || 'pending';
             const last4 = order.card_last4 ? ` •••• ${escapeHtml(order.card_last4)}` : '';
@@ -1392,23 +1501,136 @@
                             <span class="order-line-name">${escapeHtml(name)}</span>
                             ${category ? `<span class="order-line-cat">${escapeHtml(category)}</span>` : ''}
                         </td>
-                        <td>× ${qty}</td>
+                        <td>${qty}</td>
                         <td>${formatOrderMoney(unit)}</td>
                         <td><strong>${lineTotal === null ? '—' : formatOrderMoney(lineTotal)}</strong></td>
                     </tr>
                 `;
             }).join('') || '<tr><td colspan="5" class="order-empty">Aucun article</td></tr>';
-            const stripe = order.stripe_payment_intent_id
-                ? `<div><dt>Stripe</dt><dd>${escapeHtml(order.stripe_payment_intent_id)}</dd></div>`  // id Stripe : API admin seulement
-                : '';
             const paymentLabel = order.payment_label || orderStatusLabel(status);
             const prepStatus = order.prep_status || '';
             const prepBadge = prepStatus
                 ? `<span class="order-status is-${escapeHtml(prepStatus)}">${escapeHtml(order.prep_label || orderPrepLabel(prepStatus))}</span>`
                 : '';
-            const depositBlock = status === 'deposit' && order.deposit_amount != null
-                ? `<div><dt>Acompte</dt><dd>${formatOrderMoney(order.deposit_amount)} versé<br><small>Reste ${formatOrderMoney(order.remaining_amount)}</small></dd></div>`
+            const depositRows = status === 'deposit' && order.deposit_amount != null
+                ? `<tr><th>Acompte versé</th><td>${formatOrderMoney(order.deposit_amount)}</td></tr>
+                   <tr><th>Reste dû</th><td>${formatOrderMoney(order.remaining_amount)}</td></tr>`
                 : '';
+            // Ne jamais imprimer un id Stripe pi_… : la facture n'est pas le back-office.
+            const rawRef = String(order.payment_reference || '');
+            const printRef = !rawRef || rawRef.indexOf('pi_') === 0 ? '—' : rawRef;
+            return `
+                <div class="order-invoice">
+                    <div class="invoice-head">
+                        <div class="invoice-shop">
+                            <strong>Pivoine &amp; Lilas</strong>
+                            <small>Artisan fleuriste<br>Chemin de la Rouette, 74140 Sciez<br>contact@pivoine-et-lilas.com · 06 12 34 56 78<br>SIREN 522 234 871</small>
+                        </div>
+                        <div class="invoice-title">
+                            <em>Facture</em>
+                            <strong>${escapeHtml(invoiceNumber(order))}</strong>
+                            <small>Commande #${Number(order.id)} · ${formatOrderDate(order.created_at)}</small>
+                            <div class="order-badges">
+                                <span class="order-status is-${escapeHtml(status)}">${escapeHtml(paymentLabel)}</span>
+                                ${prepBadge}
+                            </div>
+                        </div>
+                    </div>
+                    <dl class="invoice-parties">
+                        <div>
+                            <dt>Émetteur</dt>
+                            <dd>Pivoine &amp; Lilas<br>Chemin de la Rouette<br>74140 Sciez</dd>
+                        </div>
+                        <div>
+                            <dt>Client</dt>
+                            <dd>${escapeHtml(order.customer_name || '—')}<br>${escapeHtml(order.email || '')}<br><small>${escapeHtml(account)}</small></dd>
+                        </div>
+                    </dl>
+                    <div class="order-lines-wrap">
+                    <table class="order-lines">
+                        <thead>
+                            <tr>
+                                <th>Photo</th>
+                                <th>Désignation</th>
+                                <th>Qté</th>
+                                <th>Prix unit. TTC</th>
+                                <th>Total TTC</th>
+                            </tr>
+                        </thead>
+                        <tbody>${lines}</tbody>
+                    </table>
+                    </div>
+                    <table class="invoice-totals">
+                        ${depositRows}
+                        <tr class="is-grand"><th>Total TTC</th><td>${formatOrderMoney(order.total_amount)}</td></tr>
+                    </table>
+                    <p class="invoice-pay">
+                        Paiement : ${escapeHtml(orderMethodLabel(order))}${last4}
+                        · Réf. ${escapeHtml(printRef)}
+                    </p>
+                    <p class="invoice-legal">
+                        Facture émise pour la démonstration Pivoine &amp; Lilas. Prix TTC.
+                        SIREN 522 234 871 — Chemin de la Rouette, 74140 Sciez.
+                    </p>
+                </div>
+            `;
+        }
+
+        function printOrderInvoice(orderId) {
+            const invoice = document.querySelector('[data-order-id="' + orderId + '"] .order-invoice');
+            if (!invoice) {
+                return;
+            }
+            // Sans noopener : il faut écrire dans la fenêtre avant d'appeler print().
+            const win = window.open('', '_blank', 'width=780,height=900');
+            if (!win) {
+                showNotice('Autorisez les fenêtres pour imprimer la facture.', 'error');
+                return;
+            }
+            win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Facture</title>
+                <style>
+                    body { font-family: Georgia, "EB Garamond", serif; color: #3a2a30; margin: 24px; }
+                    .order-invoice { max-width: 720px; margin: 0 auto; }
+                    .invoice-head { display:flex; justify-content:space-between; gap:24px; padding-bottom:16px; border-bottom:2px solid #bc6288; }
+                    .invoice-shop strong { display:block; color:#bc6288; font-size:1.3rem; }
+                    .invoice-shop small, .invoice-title small, .invoice-legal, .invoice-pay { color:#7a5a66; }
+                    .invoice-title { text-align:right; }
+                    .invoice-title em { display:block; font-style:normal; letter-spacing:.16em; text-transform:uppercase; color:#bc6288; font-size:.75rem; }
+                    .invoice-parties { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+                    .invoice-parties dt { color:#bc6288; font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+                    .invoice-parties dd { margin:0; }
+                    table { width:100%; border-collapse:collapse; }
+                    th, td { padding:8px 10px; border-top:1px solid #f0e4e8; text-align:left; }
+                    th { background:#f8f0f4; color:#bc6288; font-size:.75rem; text-transform:uppercase; }
+                    .order-lines td:nth-child(3), .order-lines td:nth-child(4), .order-lines td:nth-child(5),
+                    .order-lines th:nth-child(3), .order-lines th:nth-child(4), .order-lines th:nth-child(5) { text-align:right; }
+                    .invoice-totals { width:280px; margin:12px 0 0 auto; }
+                    .invoice-totals td { text-align:right; }
+                    .invoice-totals .is-grand th, .invoice-totals .is-grand td { border-top:2px solid #bc6288; color:#bc6288; }
+                    .order-line-thumb { width:40px; height:40px; object-fit:cover; border-radius:6px; }
+                    .order-status { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.75rem; font-weight:700; background:#eee; }
+                    .order-status.is-paid, .order-status.is-pret { background:#d4edda; color:#155724; }
+                    .order-status.is-deposit, .order-status.is-en_preparation { background:#cce5ff; color:#004085; }
+                    .order-status.is-failed { background:#f8d7da; color:#721c24; }
+                    .order-status.is-pending, .order-status.is-a_preparer { background:#fff3cd; color:#856404; }
+                    .order-status.is-cancelled, .order-status.is-remise { background:#e2e3e5; color:#383d41; }
+                    .order-badges { display:flex; gap:6px; justify-content:flex-end; margin-top:8px; }
+                    @media print { body { margin: 0; } }
+                </style></head><body>${invoice.outerHTML}</body></html>`);
+            win.document.close();
+            setTimeout(function() {
+                try {
+                    win.focus();
+                    win.print();
+                } catch (err) {
+                    showNotice('Impossible d\'ouvrir l\'impression.', 'error');
+                }
+            }, 200);
+        }
+
+        function renderOrderCard(order) {
+            const status = order.status || 'pending';
+            const prepStatus = order.prep_status || '';
             const prepOptions = PREP_OPTIONS.map(([value, label]) => (
                 `<option value="${value}"${value === prepStatus ? ' selected' : ''}>${label}</option>`
             )).join('');
@@ -1417,45 +1639,13 @@
                             <select data-order-prep="${Number(order.id)}">${prepOptions}</select>
                         </label>` : ''}
                         ${status === 'deposit' ? `<button type="button" data-order-settle="${Number(order.id)}">Marquer le solde payé</button>` : ''}
+                        <button type="button" class="order-print-btn" data-order-print="${Number(order.id)}">Imprimer la facture</button>
                         <button type="button" class="order-delete-btn" data-order-delete="${Number(order.id)}">Enlever</button>
                    </div>`;
             return `
                 <article class="order-card" data-order-id="${Number(order.id)}">
-                    <div class="order-card-head">
-                        <span>Commande #${Number(order.id)} · ${formatOrderDate(order.created_at)}</span>
-                        <span class="order-badges">
-                            <span class="order-status is-${escapeHtml(status)}">${escapeHtml(paymentLabel)}</span>
-                            ${prepBadge}
-                        </span>
-                        <strong>${formatOrderMoney(order.total_amount)}</strong>
-                    </div>
-                    <dl class="order-card-meta">
-                        <div>
-                            <dt>Client</dt>
-                            <dd>${escapeHtml(order.customer_name || '—')}<br><small>${escapeHtml(order.email || '')}</small><br><small>${escapeHtml(account)}</small></dd>
-                        </div>
-                        <div>
-                            <dt>Paiement</dt>
-                            <dd>${escapeHtml(orderMethodLabel(order))}${last4}<br><small>Réf. ${escapeHtml(order.payment_reference || '—')}</small></dd>
-                        </div>
-                        ${depositBlock}
-                        ${stripe}
-                    </dl>
                     ${prepControls}
-                    <div class="order-lines-wrap">
-                    <table class="order-lines">
-                        <thead>
-                            <tr>
-                                <th>Photo</th>
-                                <th>Article</th>
-                                <th>Qté</th>
-                                <th>Prix unit.</th>
-                                <th>Total ligne</th>
-                            </tr>
-                        </thead>
-                        <tbody>${lines}</tbody>
-                    </table>
-                    </div>
+                    ${renderInvoiceBody(order)}
                 </article>
             `;
         }
@@ -1919,6 +2109,11 @@
                 }
             });
             ordersList.addEventListener('click', async function(event) {
+                const printBtn = event.target.closest('[data-order-print]');
+                if (printBtn) {
+                    printOrderInvoice(printBtn.getAttribute('data-order-print'));
+                    return;
+                }
                 const deleteBtn = event.target.closest('[data-order-delete]');
                 if (deleteBtn) {
                     const orderId = deleteBtn.getAttribute('data-order-delete');
