@@ -360,35 +360,15 @@ def checkout(data, user_id=None):
 
     try:
         if method == 'card':
-            if stripe_configured() and data.get('payment_intent_id'):
-                from app.services.stripe_service import StripeService
-                stripe_service = StripeService()
-                confirmed = stripe_service.confirm_payment(data['payment_intent_id'])
-                if confirmed['status'] != 'paid':
-                    raise PaymentDeclined('Le paiement Stripe n\'a pas abouti.')
-                existing = Order.query.filter_by(
-                    stripe_payment_intent_id=data['payment_intent_id']
-                ).first()
-                if existing:
-                    # Même payment_intent : on réutilise la commande déjà créée.
-                    existing.customer_name = name
-                    existing.payment_method = 'card'
-                    # Ne jamais recopier pi_… dans payment_reference (visible client).
-                    if not existing.payment_reference or str(existing.payment_reference).startswith('pi_'):
-                        existing.payment_reference = f'STRIPE-{uuid.uuid4().hex[:10].upper()}'
-                    if existing.status in PAID_LIKE and not existing.prep_status:
-                        existing.prep_status = 'a_preparer'
-                    db.session.commit()
-                    return existing
-                stripe_id = data['payment_intent_id']
-                reference = f'STRIPE-{uuid.uuid4().hex[:10].upper()}'
-            else:
-                card_last4 = process_test_card(
-                    data.get('card_number'),
-                    data.get('card_expiry') or data.get('expiry'),
-                    data.get('card_cvc') or data.get('cvc'),
-                )
-                reference = f'TEST-{uuid.uuid4().hex[:10].upper()}'
+            if data.get('payment_intent_id'):
+                # Pas de PI ici : n'importe qui réécrirait la commande. JWT + owner = /confirm-payment.
+                raise ValueError('Paiement Stripe : confirmez via /api/v1/payments/confirm-payment.')
+            card_last4 = process_test_card(
+                data.get('card_number'),
+                data.get('card_expiry') or data.get('expiry'),
+                data.get('card_cvc') or data.get('cvc'),
+            )
+            reference = f'TEST-{uuid.uuid4().hex[:10].upper()}'
         elif method == 'saved':
             card_last4 = '4242'  # sandbox : carte enregistrée = •••• 4242
             reference = f'SAVED-{uuid.uuid4().hex[:10].upper()}'

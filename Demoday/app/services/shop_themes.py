@@ -300,6 +300,7 @@ def _legacy_vitrine_path():
 def _import_legacy_json(by_name):
     """Une fois : anciens fichiers instance/ → lignes SQL, puis on n’y écrit plus."""
     from app.models.shop_theme import ShopTheme
+    from app.services.demo_accounts import normalize_hex_color
 
     path = _legacy_custom_path()
     try:
@@ -323,9 +324,7 @@ def _import_legacy_json(by_name):
         label = str(raw.get('label') or '').strip()
         if not theme_id or not label or db.session.get(ShopTheme, theme_id):
             continue
-        accent = str(raw.get('accent') or '#bc6288').strip().lower()
-        if len(accent) != 7 or not accent.startswith('#'):
-            accent = '#bc6288'
+        accent = normalize_hex_color(raw.get('accent'), default='#bc6288')
         row = ShopTheme(
             id=theme_id,
             label=label[:80],
@@ -441,6 +440,7 @@ def all_themes():
 def create_custom_theme(data):
     from app.models import Product
     from app.models.shop_theme import ShopTheme
+    from app.services.demo_accounts import normalize_hex_color
 
     label = str((data or {}).get('label') or '').strip()
     if len(label) < 2:
@@ -455,9 +455,7 @@ def create_custom_theme(data):
     names = [name for name in wanted if name in by_name]
     if not names:
         raise ValueError('Aucun produit du catalogue ne correspond à ce thème.')
-    accent = str((data or {}).get('accent') or '#bc6288').strip().lower()
-    if len(accent) != 7 or not accent.startswith('#'):
-        accent = '#bc6288'
+    accent = normalize_hex_color((data or {}).get('accent'), default='#bc6288')
     row = ShopTheme(
         id=_theme_slug(label),
         label=label[:80],

@@ -250,6 +250,25 @@ class AdminGuardTestCase(unittest.TestCase):
         self.assertIn('orderProductImage', html)
         self.assertNotIn('/static/img/products/${slug}.jpg', html)
         self.assertIn('order-lines-wrap', html)
+        self.assertEqual(self.client.get('/index.html').status_code, 404)
+
+    def test_invalid_product_color_is_rejected(self):
+        from app.models import Category, Product
+        token = self.login('admin@florashop.com', 'admin123')
+        category = Category.query.filter_by(name='Fleurs Fraîches').first()
+        response = self.client.post(
+            '/api/v1/products',
+            json={
+                'name': 'Bouquet injecté',
+                'price': 12,
+                'category_id': category.id,
+                'color': 'url(x)',
+            },
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 201, response.get_data(as_text=True))
+        stored = Product.query.filter_by(name='Bouquet injecté').first()
+        self.assertIsNone(stored.color)
 
     def test_admin_can_create_product_with_image(self):
         from io import BytesIO

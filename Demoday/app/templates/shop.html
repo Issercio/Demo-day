@@ -95,10 +95,8 @@
     const colorPalette = ['#e8a0bf', '#c8a2c8', '#d94f70', '#9bb7e8', '#e85d4c', '#f0c419', '#7d9b76', '#f7f1e8', '#9b7bb8', '#ffc75f', '#6b4c9a', '#bc6288'];
 
     function normalizeHexColor(color) {
-      if (!color) {
-        return '';
-      }
-      return color.toLowerCase();
+      const raw = String(color || '').trim().toLowerCase();
+      return /^#[0-9a-f]{6}$/.test(raw) ? raw : '';
     }
 
     function productImage(product) {

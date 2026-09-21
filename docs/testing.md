@@ -87,7 +87,7 @@ Use demo users from the README. Mark the result when you walk the jury scenario.
 
 ## Coverage notes
 
-Latest captured run: **78 tests, OK**.
+Latest captured run: **80 tests, OK**.
 
 `coverage` is measured on the `app` package (templates and static JS are excluded):
 

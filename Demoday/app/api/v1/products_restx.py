@@ -5,6 +5,7 @@ from app.models import Product, Category
 from app import db
 from app.api.v1.auth_utils import require_admin_token
 from app.services.checkout_service import parse_money
+from app.services.demo_accounts import normalize_hex_color
 
 api = Namespace('products', description='Gestion des produits')
 
@@ -74,7 +75,7 @@ class ProductList(Resource):
                 name=data['name'],
                 price=price,
                 category_id=int(data['category_id']),
-                color=(data.get('color') or data.get('hex_color') or None),
+                color=normalize_hex_color(data.get('color') or data.get('hex_color')),
             )
             db.session.add(product)
             db.session.flush()
@@ -144,7 +145,7 @@ class ProductResource(Resource):
                     api.abort(400, 'Catégorie non trouvée')
                 product.category_id = int(data['category_id'])
             if 'color' in data or 'hex_color' in data:
-                product.color = data.get('color') or data.get('hex_color') or None
+                product.color = normalize_hex_color(data.get('color') or data.get('hex_color'))
             
             # PLUS de stock dans les modifications
             

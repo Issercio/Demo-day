@@ -32,6 +32,17 @@ def _price(value):
     return Decimal(value)  # prix catalogue en Decimal, jamais float
 
 
+HEX_COLOR_RE = re.compile(r'^#[0-9a-fA-F]{6}$')
+
+
+def normalize_hex_color(value, default=None):
+    """Accepte seulement #rrggbb : sinon une teinte finirait dans style=background."""
+    raw = str(value or '').strip()
+    if HEX_COLOR_RE.fullmatch(raw):
+        return raw.lower()
+    return default
+
+
 # Same 12 swatches as shop.html colorPalette. Every product color must be one of these.
 PINK = '#e8a0bf'
 LILAC = '#c8a2c8'

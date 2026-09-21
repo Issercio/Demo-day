@@ -597,6 +597,21 @@ class CheckoutTestCase(unittest.TestCase):
         self.assertIn('commandes.html#order-', checkout)
         self.assertIn('success-actions', checkout)
 
+    def test_checkout_rejects_payment_intent_id(self):
+        response = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'payment_intent_id': 'pi_stolen_from_someone_else',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('confirm-payment', (response.get_json() or {}).get('error', ''))
+        self.assertEqual(Order.query.count(), 0)
+
     def test_confirm_payment_requires_auth(self):
         response = self.client.post(
             '/api/v1/payments/confirm-payment',

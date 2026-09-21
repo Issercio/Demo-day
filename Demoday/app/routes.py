@@ -4,6 +4,7 @@ from .models import Product, Category, User
 from . import db
 from app.api.v1.auth_utils import admin_required_response, self_or_admin_required_response
 from app.services.checkout_service import parse_money
+from app.services.demo_accounts import normalize_hex_color
 from app.services.product_images import payload_from_request, save_product_image
 from app.services.shop_themes import (
     create_custom_theme,
@@ -446,7 +447,7 @@ def products():
                 name=data['name'],
                 price=price,
                 category_id=int(data['category_id']),
-                color=(data.get('color') or data.get('hex_color') or None),
+                color=normalize_hex_color(data.get('color') or data.get('hex_color')),
                 image=image_url,
             )
             db.session.add(product)
@@ -518,7 +519,7 @@ def update_product(product_id):
                 return jsonify({'error': 'Catégorie non trouvée'}), 404
             product.category_id = int(data['category_id'])
         if 'color' in data or 'hex_color' in data:
-            product.color = data.get('color') or data.get('hex_color') or None
+            product.color = normalize_hex_color(data.get('color') or data.get('hex_color'))
         if image_file and image_file.filename:
             try:
                 product.image = save_product_image(image_file, product.name)
