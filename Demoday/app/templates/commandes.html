@@ -30,7 +30,8 @@
       overflow: hidden;
       box-shadow: 0 2px 12px rgba(188,98,136,0.07);
     }
-    .track-card.is-focus {
+    .track-card.is-focus,
+    .track-card.is-open {
       border-color: #bc6288;
       box-shadow: 0 0 0 3px rgba(188,98,136,0.18);
     }
@@ -43,6 +44,23 @@
       padding: 12px 16px;
       background: #bc6288;
       color: #fff;
+    }
+    button.track-head {
+      width: 100%;
+      border: 0;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    button.track-head:hover,
+    button.track-head:focus-visible {
+      background: #ab597c;
+    }
+    .track-open-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
     .track-badges {
       display: flex;
@@ -116,7 +134,30 @@
       box-shadow: 0 0 0 3px rgba(188,98,136,0.25);
     }
     .track-items { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
-    .track-items td { padding: 8px 4px; border-top: 1px solid #f0e4e8; word-break: break-word; }
+    .track-items th { text-align: left; padding: 6px 4px; color: #9a7a86; font-size: 0.78rem; }
+    .track-items td { padding: 8px 4px; border-top: 1px solid #f0e4e8; word-break: break-word; vertical-align: middle; }
+    .track-thumb {
+      width: 52px;
+      height: 52px;
+      object-fit: cover;
+      border-radius: 8px;
+      display: block;
+    }
+    .track-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px 18px;
+      margin: 0 0 16px;
+      font-size: 0.92rem;
+    }
+    .track-meta dt { color: #9a7a86; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .track-meta dd { margin: 2px 0 0; }
+    .track-detail {
+      display: none;
+      padding: 0 16px 16px;
+      color: #5a3d48;
+    }
+    .track-card.is-open .track-detail { display: block; }
     .track-empty { text-align: center; color: #bc6288; padding: 40px 16px; }
     .track-empty a { color: #ab597c; font-weight: 700; }
     @media (max-width: 640px) {
@@ -172,14 +213,14 @@
   </header>
   <main class="orders-page">
     <h1>Suivi de mes commandes</h1>
-    <p class="orders-intro">Paiement et atelier (à préparer → remise), mis à jour par la fleuriste.</p>
+    <p class="orders-intro">Cliquez une commande pour voir photos, paiement et le détail des lignes. L’atelier est mis à jour par la fleuriste.</p>
     <div id="orders-list"><p class="track-empty">Chargement…</p></div>
   </main>
   <footer class="site-footer">
     &copy; 2024 by Pivoine &amp; Lilas - Siren 522 234 871 -
     <a href="cgv.html">Conditions générales de vente</a>
   </footer>
-  <script src="../static/js/api.js?v=20260921-orders"></script>
+  <script src="../static/js/api.js?v=20260921-orderdetail"></script>
   <script>
     const PREP_STEPS = [
       ['a_preparer', 'À préparer'],
@@ -235,38 +276,171 @@
       return `<ol class="track-steps" aria-label="Suivi atelier">${items}</ol>`;
     }
 
+    function methodLabel(order) {
+      const method = String(order.payment_method || '').toLowerCase();
+      if (method === 'card') {
+        return 'Carte bancaire';
+      }
+      if (method === 'paypal') {
+        return 'PayPal';
+      }
+      if (method === 'saved') {
+        return 'Carte enregistrée';
+      }
+      return order.payment_method || 'Paiement';
+    }
+
+    function safeImage(product) {
+      // Pas de slug.jpg inventé : sans image en base, pas de 404.
+      const src = product && product.image;
+      if (typeof src !== 'string' || !src) {
+        return '';
+      }
+      if (src.startsWith('/static/') || src.startsWith('https://') || src.startsWith('http://')) {
+        return src;
+      }
+      return '';
+    }
+
+    function lineRows(order) {
+      const rows = (order.items || []).map((item) => {
+        const name = (item.product && item.product.name) || `Produit #${item.product_id}`;
+        const category = item.product && item.product.category && item.product.category.name;
+        const qty = Number(item.quantity) || 1;
+        const unitCents = Math.round(Number(item.price) * 100);
+        const lineTotal = Number.isFinite(unitCents) ? (unitCents * qty) / 100 : null;
+        const photo = safeImage(item.product);
+        const thumb = photo
+          ? `<img class="track-thumb" src="${escapeHtml(photo)}" alt="">`
+          : '—';
+        return `<tr>
+          <td>${thumb}</td>
+          <td>${escapeHtml(name)}${category ? `<br><small>${escapeHtml(category)}</small>` : ''}</td>
+          <td>× ${qty}</td>
+          <td>${money(item.price)}</td>
+          <td>${lineTotal == null ? '—' : money(lineTotal)}</td>
+        </tr>`;
+      }).join('');
+      return rows || '<tr><td colspan="5">Aucun article</td></tr>';
+    }
+
+    function renderDetail(order) {
+      const last4 = order.card_last4 ? ` •••• ${escapeHtml(order.card_last4)}` : '';
+      const deposit = order.status === 'deposit' && order.deposit_amount != null
+        ? `<div><dt>Acompte</dt><dd>${money(order.deposit_amount)} versé<br><small>Reste ${money(order.remaining_amount)}</small></dd></div>`
+        : '';
+      return `
+        <dl class="track-meta">
+          <div>
+            <dt>Paiement</dt>
+            <dd>${escapeHtml(methodLabel(order))}${last4}<br><small>Réf. ${escapeHtml(order.payment_reference || '—')}</small></dd>
+          </div>
+          <div>
+            <dt>Destinataire</dt>
+            <dd>${escapeHtml(order.customer_name || '—')}<br><small>${escapeHtml(order.email || '')}</small></dd>
+          </div>
+          ${deposit}
+        </dl>
+        <table class="track-items">
+          <thead>
+            <tr><th>Photo</th><th>Article</th><th>Qté</th><th>Prix unit.</th><th>Total ligne</th></tr>
+          </thead>
+          <tbody>${lineRows(order)}</tbody>
+        </table>
+      `;
+    }
+
     function renderOrder(order) {
       const status = order.status || 'pending';
       const payment = order.payment_label || status;
       const prep = order.prep_label
         ? `<span class="track-badge is-${escapeHtml(order.prep_status)}">${escapeHtml(order.prep_label)}</span>`
         : '';
-      const deposit = order.status === 'deposit' && order.deposit_amount != null
-        ? `<p>Acompte ${money(order.deposit_amount)} versé · reste ${money(order.remaining_amount)}</p>`
-        : '';
-      const lines = (order.items || []).map((item) => {
-        const name = (item.product && item.product.name) || `Produit #${item.product_id}`;
-        return `<tr><td>${escapeHtml(name)}</td><td>× ${Number(item.quantity) || 1}</td><td>${money(item.price)}</td></tr>`;
-      }).join('') || '<tr><td colspan="3">Aucun article</td></tr>';
-      const focus = location.hash === `#order-${order.id}` ? ' is-focus' : '';
+      const id = Number(order.id);
+      const open = location.hash === `#order-${id}`;
       return `
-        <article class="track-card${focus}" id="order-${Number(order.id)}">
-          <div class="track-head">
-            <span>Commande #${Number(order.id)} · ${formatDate(order.created_at)}</span>
+        <article class="track-card${open ? ' is-open is-focus' : ''}" id="order-${id}" data-order-id="${id}">
+          <button type="button" class="track-head" data-open-order="${id}"
+            aria-expanded="${open ? 'true' : 'false'}" aria-controls="order-detail-${id}">
+            <span>Commande #${id} · ${formatDate(order.created_at)}</span>
             <span class="track-badges">
               <span class="track-badge is-${escapeHtml(status)}">${escapeHtml(payment)}</span>
               ${prep}
             </span>
             <strong>${money(order.total_amount)}</strong>
-          </div>
-          <div class="track-body">
-            ${prepStepper(order)}
-            ${deposit}
-            <table class="track-items">${lines}</table>
-            <p style="margin-top:10px;font-size:0.85rem;">Réf. ${escapeHtml(order.payment_reference || '—')}</p>
-          </div>
+            <span class="track-open-label">${open ? 'Masquer le détail' : 'Voir le détail'}</span>
+          </button>
+          <div class="track-body">${prepStepper(order)}</div>
+          <div class="track-detail" id="order-detail-${id}">${open ? '<p>Chargement du détail…</p>' : ''}</div>
         </article>
       `;
+    }
+
+    const detailCache = new Map();
+
+    async function fetchOrderDetail(orderId) {
+      if (detailCache.has(orderId)) {
+        return detailCache.get(orderId);
+      }
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/v1/payments/orders/' + orderId, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      if (response.status === 401) {
+        window.location.replace('account.html');
+        return null;
+      }
+      if (response.status === 403 || response.status === 404) {
+        throw new Error('Cette commande n’est pas accessible.');
+      }
+      if (!response.ok) {
+        throw new Error('Impossible de charger le détail.');
+      }
+      const payload = await response.json();
+      const order = payload.order;
+      detailCache.set(orderId, order);
+      return order;
+    }
+
+    async function openOrder(card, orderId, persistHash) {
+      const detail = card.querySelector('.track-detail');
+      const button = card.querySelector('[data-open-order]');
+      const label = card.querySelector('.track-open-label');
+      card.classList.add('is-open', 'is-focus');
+      if (button) {
+        button.setAttribute('aria-expanded', 'true');
+      }
+      if (label) {
+        label.textContent = 'Masquer le détail';
+      }
+      if (persistHash) {
+        history.replaceState(null, '', '#order-' + orderId);
+      }
+      if (detail && !detail.dataset.loaded) {
+        detail.innerHTML = '<p>Chargement du détail…</p>';
+        try {
+          const order = await fetchOrderDetail(orderId);
+          if (!order) {
+            return;
+          }
+          detail.innerHTML = renderDetail(order);
+          detail.dataset.loaded = '1';
+        } catch (err) {
+          detail.innerHTML = `<p class="track-empty">${escapeHtml(err.message || 'Erreur')}</p>`;
+        }
+      }
+    }
+
+    function closeOrder(card) {
+      const button = card.querySelector('[data-open-order]');
+      const label = card.querySelector('.track-open-label');
+      card.classList.remove('is-open', 'is-focus');
+      if (button) {
+        button.setAttribute('aria-expanded', 'false');
+      }
+      if (label) {
+        label.textContent = 'Voir le détail';
+      }
     }
 
     async function loadMyOrders() {
@@ -294,11 +468,33 @@
         return;
       }
       body.innerHTML = orders.map(renderOrder).join('');
-      const hash = location.hash;
-      if (hash) {
-        const target = document.querySelector(hash);
-        if (target) {
-          target.scrollIntoView({ block: 'start' });
+      body.addEventListener('click', async (event) => {
+        const button = event.target.closest('[data-open-order]');
+        if (!button || !body.contains(button)) {
+          return;
+        }
+        const orderId = Number(button.getAttribute('data-open-order'));
+        const card = button.closest('.track-card');
+        if (!card || !orderId) {
+          return;
+        }
+        if (card.classList.contains('is-open')) {
+          closeOrder(card);
+          if (location.hash === '#order-' + orderId) {
+            history.replaceState(null, '', location.pathname);
+          }
+          return;
+        }
+        body.querySelectorAll('.track-card.is-open').forEach(closeOrder);
+        await openOrder(card, orderId, true);
+        card.scrollIntoView({ block: 'start' });
+      });
+      const match = /^#order-(\d+)$/.exec(location.hash || '');
+      if (match) {
+        const card = document.getElementById('order-' + match[1]);
+        if (card) {
+          await openOrder(card, Number(match[1]), false);
+          card.scrollIntoView({ block: 'start' });
         }
       }
     }

@@ -63,12 +63,12 @@ def create_checkout():
         order = checkout(data, user_id=user.id if user else None)
         return jsonify({
             'message': 'Paiement confirmé',
-            'order': order.to_dict(),
+            'order': _serialize_order(user, order),
         }), 201
     except PaymentDeclined as exc:
         payload = {'error': str(exc)}
         if exc.order is not None:
-            payload['order'] = exc.order.to_dict()
+            payload['order'] = _serialize_order(user, exc.order)
         return jsonify(payload), 402  # paiement refusé, commande failed enregistrée
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
@@ -192,6 +192,12 @@ def _user_owns_order(user, order):
     return bool(order_email and user_email and order_email == user_email)
 
 
+def _serialize_order(user, order):
+    """Le client n'obtient pas l'id Stripe ; l'admin le voit pour le suivi processeur."""
+    admin = bool(user and getattr(user, 'is_admin', False))
+    return order.to_dict(include_stripe=admin)
+
+
 @payments_bp.route('/orders/<int:order_id>', methods=['GET'])
 def get_order(order_id):
     """Détail d'une commande : admin, propriétaire, ou email du JWT."""
@@ -205,7 +211,7 @@ def get_order(order_id):
     # IDOR : un client ne lit que sa commande ; la liste complète est admin-only.
     if not _user_owns_order(user, order):
         return jsonify({'success': False, 'message': 'Accès refusé'}), 403
-    return jsonify({'order': order.to_dict()}), 200
+    return jsonify({'order': _serialize_order(user, order)}), 200
 
 
 @payments_bp.route('/orders/<int:order_id>', methods=['PATCH'])
@@ -253,7 +259,7 @@ def patch_order(order_id):
         return jsonify({'error': 'Aucun champ à mettre à jour.'}), 400
 
     db.session.commit()
-    return jsonify({'order': order.to_dict()}), 200
+    return jsonify({'order': order.to_dict(include_stripe=True)}), 200
 
 
 @payments_bp.route('/my-orders', methods=['GET'])
@@ -272,7 +278,7 @@ def get_my_orders():
         .order_by(Order.created_at.desc())
         .all()
     )
-    return jsonify({'orders': [order.to_dict() for order in orders]}), 200
+    return jsonify({'orders': [_serialize_order(user, order) for order in orders]}), 200
 
 
 @payments_bp.route('/orders', methods=['GET'])
@@ -287,7 +293,7 @@ def get_orders():
         orders = Order.query.order_by(Order.created_at.desc()).all()
         
         return jsonify({
-            'orders': [order.to_dict() for order in orders]
+            'orders': [order.to_dict(include_stripe=True) for order in orders]
         }), 200
         
     except Exception as e:

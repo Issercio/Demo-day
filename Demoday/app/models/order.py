@@ -57,10 +57,10 @@ class Order(db.Model):
         deposit = Decimal(str(self.deposit_amount or 0))
         return (total - deposit).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
-    def to_dict(self):
+    def to_dict(self, include_stripe=False):
         deposit = float(self.deposit_amount) if self.deposit_amount is not None else None
         remaining = self.remaining_amount()
-        return {
+        payload = {
             'id': self.id,
             'user_id': self.user_id,
             'email': self.email,
@@ -68,9 +68,8 @@ class Order(db.Model):
             'total_amount': float(self.total_amount),  # affichage JSON ; colonne Numeric(10, 2)
             'deposit_amount': deposit,
             'remaining_amount': float(remaining) if remaining is not None else None,
-            'stripe_payment_intent_id': self.stripe_payment_intent_id,
             'payment_method': self.payment_method,
-            'card_last4': self.card_last4,
+            'card_last4': self.card_last4,  # jamais le PAN complet
             'payment_reference': self.payment_reference,
             'status': self.status,
             'payment_label': self.payment_label(),
@@ -79,6 +78,10 @@ class Order(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'items': [item.to_dict() for item in self.order_items]
         }
+        # L'id Stripe reste côté fleuriste ; un client n'a pas à le voir.
+        if include_stripe:
+            payload['stripe_payment_intent_id'] = self.stripe_payment_intent_id
+        return payload
 
 class OrderItem(db.Model):
     __tablename__ = 'order_items'

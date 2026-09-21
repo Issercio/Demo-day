@@ -502,6 +502,31 @@ class CheckoutTestCase(unittest.TestCase):
         ids = [order['id'] for order in mine.get_json()['orders']]
         self.assertIn(order_id, ids)
 
+    def test_client_order_json_hides_stripe_id(self):
+        order_id, token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')
+        order = db.session.get(Order, order_id)
+        order.stripe_payment_intent_id = 'pi_secret_should_not_leak'
+        db.session.commit()
+        mine = self.client.get(
+            '/api/v1/payments/my-orders',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        payload = next(row for row in mine.get_json()['orders'] if row['id'] == order_id)
+        self.assertNotIn('stripe_payment_intent_id', payload)
+        detail = self.client.get(
+            f'/api/v1/payments/orders/{order_id}',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(detail.status_code, 200)
+        self.assertNotIn('stripe_payment_intent_id', detail.get_json()['order'])
+        admin = self.login('admin@florashop.com', 'admin123')
+        listed = self.client.get(
+            '/api/v1/payments/orders',
+            headers={'Authorization': f'Bearer {admin}'},
+        )
+        admin_order = next(row for row in listed.get_json()['orders'] if row['id'] == order_id)
+        self.assertEqual(admin_order['stripe_payment_intent_id'], 'pi_secret_should_not_leak')
+
     def test_commandes_page_has_client_tracking(self):
         html = self.client.get('/commandes.html').get_data(as_text=True)
         self.assertEqual(self.client.get('/commandes.html').status_code, 200)
@@ -511,6 +536,10 @@ class CheckoutTestCase(unittest.TestCase):
         self.assertIn('track-steps', html)
         self.assertIn('À préparer', html)
         self.assertIn('not(:last-child)::after', html)
+        self.assertIn('Voir le détail', html)
+        self.assertIn('data-open-order', html)
+        self.assertIn('/api/v1/payments/orders/', html)
+        self.assertNotIn('settle_payment', html)
         from pathlib import Path
         root = Path(__file__).resolve().parents[1]
         js = root.joinpath('app/static/js/api.js').read_text()

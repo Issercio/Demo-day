@@ -366,7 +366,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 - Example / placeholder `SECRET_KEY` values from the repository are rejected at startup; the process generates a random signing key instead.
 - User JSON never includes `password`. Creating or updating a user cannot mint an administrator.
 - Checkout totals come from the database. Unknown Luhn-valid cards are declined. A logged-in checkout uses the account email, not a spoofed body field.
-- Order detail is limited to the owner or an admin; `GET /payments/orders` is admin-only. A customer lists **their** orders with `GET /payments/my-orders`.
+- Order detail is limited to the owner or an admin; `GET /payments/orders` is admin-only. A customer lists **their** orders with `GET /payments/my-orders` and opens one card via `GET /payments/orders/<id>`. Stripe payment-intent ids are omitted from customer JSON.
 - Card numbers are not stored; at most `card_last4`.
 - Product photo uploads are admin-only. Allowed types: jpg, png, webp, gif. Maximum size: 4 MB.
 - Stripe keys live only in the environment. Empty keys use documented test cards. No live charge in the default demo.
@@ -471,7 +471,7 @@ Marie forgot her mother’s birthday. The boutique in Sciez is closed. She opens
 3. Shop as a customer — filter a category or a colour swatch, add one bouquet with its photo (Fleurs Fraîches, Compositions, Fleurs Séchées, Plantes, Mariage, Deuil, Cadeaux; product hex colors match the filter bar).
 4. Sign in as `marie@test.com` / `marie123`. The cart is hers. Open the account icon: email and **Déconnexion** sit under the icon, the navbar does not grow.
 5. Pay with `4242 4242 4242 4242`. The server recalculates the total. Status `Payée` and workshop `À préparer`. Optionally tick **Verser un acompte de 30 %** for `Acompte versé` plus the remaining balance.
-6. Open the account icon → **Mes commandes**: Marie sees payment and the atelier stepper (`À préparer` → `Remise`). As the florist, change prep on **Commandes et paiements**; refresh Marie’s page to show the new step.
+6. Open the account icon → **Mes commandes**. Click **Voir le détail** on Marie’s order: photos, card last four digits, payment reference, line prices. The atelier stepper stays read-only. As the florist, change prep on **Commandes et paiements**; refresh Marie’s page to show the new step.
 7. Optionally add *Éclat Mensuel* (€19.99).
 8. Optionally show a declined card (`4000 0000 0000 0002`) — the order is `Paiement refusé` with no prep step.
 9. Back as the florist. Create a product with a photo. Open **Commandes et paiements**: Marie’s order is a card with payment badge, prep badge, client account, card last four digits, payment reference, each line’s photo, category, quantity, unit price and line total. Advance the atelier select (`En préparation` → `Prête` → `Remise`). On a deposit, **Marquer le solde payé** turns it into `Payée`.
