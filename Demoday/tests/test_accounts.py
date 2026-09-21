@@ -210,8 +210,21 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('repeat(auto-fill, minmax(240px, 1fr))', css)
         self.assertIn('product-photo', html)
         self.assertNotIn('product-color-code', html.split('function displayProductsFromAPI')[1].split('function getProductStockStatus')[0])
-        shop_block = css.split('.shop-container {', 1)[1].split('}', 1)[0]
+        shop_layout = css.split('/* --- SHOP LAYOUT --- */', 1)[1]
+        shop_block = shop_layout.split('.shop-container {', 1)[1].split('}', 1)[0]
         self.assertNotIn('overflow-x: hidden', shop_block)
+        self.assertIn('padding-bottom', shop_block)
+        sidebar = css.split('.sidebar-filters {', 1)[1].split('}', 1)[0]
+        self.assertIn('max-height: calc(100vh - 72px)', sidebar)
+        self.assertIn('height: auto', sidebar)
+        self.assertFalse(
+            any(line.strip() == 'height: calc(100vh - 72px);' for line in sidebar.splitlines())
+        )
+        products_area = css.split('.products-area {', 1)[1].split('}', 1)[0]
+        self.assertIn('4.5rem', products_area)
+        footer = css.split('.site-footer {', 1)[1].split('}', 1)[0]
+        self.assertIn('z-index: 2', footer)
+        self.assertIn('flex-shrink: 0', footer)
 
     def test_shop_filter_bar_stays_compact(self):
         from pathlib import Path
