@@ -123,7 +123,8 @@ nav a#cart-link:focus {
 }
 
 #profile-panel button,
-#profile-panel .cta-btn {
+#profile-panel .cta-btn,
+#profile-panel #orders-link {
     display: block;
     width: 100% !important;
     margin: 0 0 8px 0 !important;
@@ -135,6 +136,9 @@ nav a#cart-link:focus {
     background: #fff !important;
     color: var(--vintage-main-dark) !important;
     border: 1.5px solid var(--vintage-main) !important;
+    text-align: center;
+    text-decoration: none;
+    box-sizing: border-box;
 }
 
 #profile-panel button:last-child,
@@ -143,7 +147,8 @@ nav a#cart-link:focus {
 }
 
 #profile-panel button:hover,
-#profile-panel .cta-btn:hover {
+#profile-panel .cta-btn:hover,
+#profile-panel #orders-link:hover {
     background: var(--vintage-main) !important;
     color: #fff !important;
 }
@@ -968,8 +973,10 @@ body.admin-page #delete-btn {
 
 body.admin-page #profile-panel button,
 body.admin-page #profile-panel .cta-btn,
+body.admin-page #profile-panel #orders-link,
 #profile-panel button,
-#profile-panel .cta-btn {
+#profile-panel .cta-btn,
+#profile-panel #orders-link {
     background: #fff !important;
     color: #ab597c !important;
     border: 1.5px solid #bc6288 !important;

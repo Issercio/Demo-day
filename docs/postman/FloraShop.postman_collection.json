@@ -101,6 +101,16 @@
         ],
         "url": "{{baseUrl}}/api/v1/payments/orders"
       }
+    },
+    {
+      "name": "Payments — my orders (customer JWT)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": "{{baseUrl}}/api/v1/payments/my-orders"
+      }
     }
   ]
 }

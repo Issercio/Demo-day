@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Mes commandes — Pivoine &amp; Lilas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../static/css/style.css?v=20260921-orders">
+  <style>
+    .orders-page {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 24px 18px 80px;
+    }
+    .orders-page h1 {
+      color: #ab597c;
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+    }
+    .orders-intro {
+      color: #6c4a58;
+      margin-bottom: 24px;
+    }
+    .track-card {
+      background: #fff;
+      border: 1.5px solid #e7d6d6;
+      border-radius: 12px;
+      margin-bottom: 18px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(188,98,136,0.07);
+    }
+    .track-card.is-focus {
+      border-color: #bc6288;
+      box-shadow: 0 0 0 3px rgba(188,98,136,0.18);
+    }
+    .track-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px 16px;
+      padding: 12px 16px;
+      background: #bc6288;
+      color: #fff;
+    }
+    .track-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .track-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: rgba(255,255,255,0.18);
+    }
+    .track-badge.is-paid, .track-badge.is-pret { background: #d4edda; color: #155724; }
+    .track-badge.is-deposit, .track-badge.is-en_preparation { background: #cce5ff; color: #004085; }
+    .track-badge.is-failed { background: #f8d7da; color: #721c24; }
+    .track-badge.is-pending, .track-badge.is-a_preparer { background: #fff3cd; color: #856404; }
+    .track-badge.is-cancelled, .track-badge.is-remise { background: #e2e3e5; color: #383d41; }
+    .track-body { padding: 16px; color: #5a3d48; }
+    .track-steps {
+      display: flex;
+      gap: 0;
+      margin: 8px 0 18px;
+      list-style: none;
+      padding: 0;
+    }
+    .track-steps li {
+      flex: 1;
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #9a7a86;
+      position: relative;
+    }
+    .track-steps li::before {
+      content: '';
+      display: block;
+      width: 14px;
+      height: 14px;
+      margin: 0 auto 8px;
+      border-radius: 50%;
+      background: #e7d6d6;
+      border: 2px solid #e7d6d6;
+    }
+    .track-steps li.is-done { color: #bc6288; }
+    .track-steps li.is-done::before {
+      background: #bc6288;
+      border-color: #bc6288;
+    }
+    .track-steps li.is-current { color: #ab597c; }
+    .track-steps li.is-current::before {
+      background: #fff;
+      border-color: #bc6288;
+      box-shadow: 0 0 0 3px rgba(188,98,136,0.25);
+    }
+    .track-items { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    .track-items td { padding: 8px 4px; border-top: 1px solid #f0e4e8; }
+    .track-empty { text-align: center; color: #bc6288; padding: 40px 16px; }
+    .track-empty a { color: #ab597c; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <header>
+    <img class="logo" src="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6~mv2.png/v1/crop/x_748,y_1016,w_3355,h_2788/fill/w_239,h_198,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20P%26L%20Rond%20neutre%20pour%20fond%20clairsans%20fond%20-%20by%20fadamentalpics.png" alt="Logo pivoine &amp; lilas, artisan fleuriste" width="120" height="100">
+    <nav>
+      <ul>
+        <li><a href="accueil.html">ACCUEIL</a></li>
+        <li><a href="shop.html">SHOP</a></li>
+        <li><a href="evenementiel.html">ÉVÈNEMENTIEL</a></li>
+        <li><a href="entreprises.html">ENTREPRISES</a></li>
+        <li><a href="portfolio.html">PORTFOLIO</a></li>
+        <li><a href="contact.html">CONTACT</a></li>
+        <li><a href="subscription.html">ABONNEMENT</a></li>
+        <li>
+          <a href="panier.html" id="cart-link" style="position:relative;">
+            <span style="font-size:22px;vertical-align:middle;">🛒</span>
+            <span id="cart-count" style="position:absolute;top:0;right:-10px;background:#bc6288;color:#fff;font-size:13px;padding:1px 6px;border-radius:10px;display:none;">0</span>
+          </a>
+        </li>
+        <li id="admin-access" style="display:none;">
+          <a href="admin.html" class="admin-nav-link" title="Administration">ADMIN</a>
+        </li>
+        <li style="position:relative;">
+          <button type="button" id="profile-link" class="profile-icon-btn" aria-label="Compte">👤</button>
+          <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;min-width:200px;">
+            <div id="user-email" style="margin-bottom: 15px; color: #bc6288; font-size: 0.9em; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; display: none;"></div>
+            <button id="login-btn" class="cta-btn" style="width:100%; margin-bottom: 8px;">Se connecter</button>
+            <button id="logout-btn" class="cta-btn" style="width:100%; margin-bottom: 8px; display: none;">Déconnexion</button>
+            <button id="delete-btn" class="cta-btn" style="width:100%; background: #fff; color: #bc6288; border: 1.5px solid #bc6288; display: none;">Supprimer le compte</button>
+          </div>
+        </li>
+      </ul>
+    </nav>
+  </header>
+  <main class="orders-page">
+    <h1>Suivi de mes commandes</h1>
+    <p class="orders-intro">Paiement et atelier (à préparer → remise), mis à jour par la fleuriste.</p>
+    <div id="orders-list"><p class="track-empty">Chargement…</p></div>
+  </main>
+  <footer class="site-footer">
+    &copy; 2024 by Pivoine &amp; Lilas - Siren 522 234 871 -
+    <a href="cgv.html">Conditions générales de vente</a>
+  </footer>
+  <script src="../static/js/api.js?v=20260921-orders"></script>
+  <script>
+    const PREP_STEPS = [
+      ['a_preparer', 'À préparer'],
+      ['en_preparation', 'En préparation'],
+      ['pret', 'Prête'],
+      ['remise', 'Remise']
+    ];
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function money(value) {
+      const cents = Math.round(Number(value) * 100);
+      if (!Number.isFinite(cents)) {
+        return '—';
+      }
+      return (cents / 100).toFixed(2) + ' €';
+    }
+
+    function formatDate(iso) {
+      if (!iso) {
+        return 'Date inconnue';
+      }
+      const parsed = new Date(iso);
+      if (Number.isNaN(parsed.getTime())) {
+        return escapeHtml(String(iso).replace('T', ' ').slice(0, 16));
+      }
+      return parsed.toLocaleString('fr-FR', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function prepStepper(order) {
+      if (!order.prep_status) {
+        return '<p>Cette commande n’est pas passée en atelier (paiement non abouti).</p>';
+      }
+      const current = PREP_STEPS.findIndex((step) => step[0] === order.prep_status);
+      const items = PREP_STEPS.map(([id, label], index) => {
+        let klass = '';
+        if (current >= 0 && index < current) {
+          klass = 'is-done';
+        } else if (index === current) {
+          klass = 'is-current';
+        }
+        return `<li class="${klass}">${escapeHtml(label)}</li>`;
+      }).join('');
+      return `<ol class="track-steps" aria-label="Suivi atelier">${items}</ol>`;
+    }
+
+    function renderOrder(order) {
+      const status = order.status || 'pending';
+      const payment = order.payment_label || status;
+      const prep = order.prep_label
+        ? `<span class="track-badge is-${escapeHtml(order.prep_status)}">${escapeHtml(order.prep_label)}</span>`
+        : '';
+      const deposit = order.status === 'deposit' && order.deposit_amount != null
+        ? `<p>Acompte ${money(order.deposit_amount)} versé · reste ${money(order.remaining_amount)}</p>`
+        : '';
+      const lines = (order.items || []).map((item) => {
+        const name = (item.product && item.product.name) || `Produit #${item.product_id}`;
+        return `<tr><td>${escapeHtml(name)}</td><td>× ${Number(item.quantity) || 1}</td><td>${money(item.price)}</td></tr>`;
+      }).join('') || '<tr><td colspan="3">Aucun article</td></tr>';
+      const focus = location.hash === `#order-${order.id}` ? ' is-focus' : '';
+      return `
+        <article class="track-card${focus}" id="order-${Number(order.id)}">
+          <div class="track-head">
+            <span>Commande #${Number(order.id)} · ${formatDate(order.created_at)}</span>
+            <span class="track-badges">
+              <span class="track-badge is-${escapeHtml(status)}">${escapeHtml(payment)}</span>
+              ${prep}
+            </span>
+            <strong>${money(order.total_amount)}</strong>
+          </div>
+          <div class="track-body">
+            ${prepStepper(order)}
+            ${deposit}
+            <table class="track-items">${lines}</table>
+            <p style="margin-top:10px;font-size:0.85rem;">Réf. ${escapeHtml(order.payment_reference || '—')}</p>
+          </div>
+        </article>
+      `;
+    }
+
+    async function loadMyOrders() {
+      const body = document.getElementById('orders-list');
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        window.location.replace('account.html');
+        return;
+      }
+      const response = await fetch('/api/v1/payments/my-orders', {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      if (response.status === 401) {
+        window.location.replace('account.html');
+        return;
+      }
+      if (!response.ok) {
+        body.innerHTML = '<p class="track-empty">Impossible de charger vos commandes.</p>';
+        return;
+      }
+      const payload = await response.json();
+      const orders = payload.orders || [];
+      if (!orders.length) {
+        body.innerHTML = '<p class="track-empty">Aucune commande pour le moment. <a href="shop.html">Commander un bouquet</a></p>';
+        return;
+      }
+      body.innerHTML = orders.map(renderOrder).join('');
+      const hash = location.hash;
+      if (hash) {
+        const target = document.querySelector(hash);
+        if (target) {
+          target.scrollIntoView({ block: 'start' });
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadMyOrders);
+  </script>
+</body>
+</html>

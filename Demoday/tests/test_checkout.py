@@ -460,6 +460,60 @@ class CheckoutTestCase(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    def test_anonymous_cannot_list_own_orders(self):
+        response = self.client.get('/api/v1/payments/my-orders')
+        self.assertEqual(response.status_code, 401)
+
+    def test_client_lists_only_own_orders(self):
+        marie_id, marie_token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')
+        other_id, _other_token = self._checkout_as('client@test.com', 'client123', 'Léa Martin')
+        mine = self.client.get(
+            '/api/v1/payments/my-orders',
+            headers={'Authorization': f'Bearer {marie_token}'},
+        )
+        self.assertEqual(mine.status_code, 200, mine.get_json())
+        payload = mine.get_json()['orders']
+        ids = [order['id'] for order in payload]
+        self.assertIn(marie_id, ids)
+        self.assertNotIn(other_id, ids)
+        self.assertTrue(all(order['email'] == 'marie@test.com' for order in payload))
+        mine_order = next(order for order in payload if order['id'] == marie_id)
+        self.assertEqual(mine_order['payment_label'], 'Payée')
+        self.assertEqual(mine_order['prep_status'], 'a_preparer')
+        self.assertEqual(mine_order['prep_label'], 'À préparer')
+
+    def test_guest_order_shows_after_login_by_email(self):
+        created = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Dupont',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        order_id = created.get_json()['order']['id']
+        token = self.login('marie@test.com', 'marie123')
+        mine = self.client.get(
+            '/api/v1/payments/my-orders',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(mine.status_code, 200)
+        ids = [order['id'] for order in mine.get_json()['orders']]
+        self.assertIn(order_id, ids)
+
+    def test_commandes_page_has_client_tracking(self):
+        html = self.client.get('/commandes.html').get_data(as_text=True)
+        self.assertEqual(self.client.get('/commandes.html').status_code, 200)
+        self.assertEqual(self.client.get('/commandes').status_code, 200)
+        self.assertIn('Suivi de mes commandes', html)
+        self.assertIn('/api/v1/payments/my-orders', html)
+        self.assertIn('track-steps', html)
+        self.assertIn('À préparer', html)
+        from pathlib import Path
+        js = Path(__file__).resolve().parents[1].joinpath('app/static/js/api.js').read_text()
+        self.assertIn('Mes commandes', js)
+
 
 if __name__ == '__main__':
     unittest.main()

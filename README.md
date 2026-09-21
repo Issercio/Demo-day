@@ -49,6 +49,7 @@ python3 run.py
 | Shop | http://localhost:5000/shop.html |
 | Cart | http://localhost:5000/panier.html |
 | Checkout | http://localhost:5000/checkout.html |
+| My orders | http://localhost:5000/commandes.html |
 | Admin | http://localhost:5000/admin.html |
 | API (Swagger) | http://localhost:5000/api/v1 |
 
@@ -347,8 +348,9 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | GET | `/api/v1/payments/config` | public | `test` or `stripe` mode |
 | POST | `/api/v1/payments/checkout` | optional JWT | Create a paid, deposit, or failed order (`deposit: true` = 30 %) |
 | PATCH | `/api/v1/payments/orders/<id>` | admin JWT | Advance prep (`a_preparer` → `remise`) or settle a deposit |
+| GET | `/api/v1/payments/my-orders` | JWT | Customer’s own orders (tracking) |
 | GET | `/api/v1/payments/orders/<id>` | owner or admin JWT | Order detail |
-| GET | `/api/v1/payments/orders` | admin JWT | List orders |
+| GET | `/api/v1/payments/orders` | admin JWT | List every order |
 
 `GET /api/v1/themes` returns `applied`, `applied_ids`, `applied_season`, `applied_theme`, `label`, `blurb`, `product_names`, and the full theme list with `is_applied` and `can_delete`. A customer token cannot change the vitrine.
 
@@ -364,7 +366,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 - Example / placeholder `SECRET_KEY` values from the repository are rejected at startup; the process generates a random signing key instead.
 - User JSON never includes `password`. Creating or updating a user cannot mint an administrator.
 - Checkout totals come from the database. Unknown Luhn-valid cards are declined. A logged-in checkout uses the account email, not a spoofed body field.
-- Order detail is limited to the owner or an admin; the order list is admin-only.
+- Order detail is limited to the owner or an admin; `GET /payments/orders` is admin-only. A customer lists **their** orders with `GET /payments/my-orders`.
 - Card numbers are not stored; at most `card_last4`.
 - Product photo uploads are admin-only. Allowed types: jpg, png, webp, gif. Maximum size: 4 MB.
 - Stripe keys live only in the environment. Empty keys use documented test cards. No live charge in the default demo.
@@ -398,7 +400,7 @@ Flask and Jinja keep pages and API in one process. RESTX provides Swagger. SQLit
 
 Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **66 tests OK** in [`docs/test-evidence/`](docs/test-evidence/).
 
-Covered: registration and login hashing, demo seed (accounts, seven-category flower catalog, product photos), admin versus customer permissions, public catalog, product image upload (admin only, rejected for clients and non-images), checkout (success, decline, insufficient funds, unknown Luhn card, invalid PAN, PayPal, saved card, 30 % deposit, admin prep PATCH, subscription line, server-side prices, decimal cents, admin order list with item prices, order IDOR, spoofed email), vitrine (admin-only `PUT /themes`, shop payload, season/theme combo `printemps,mariage`), privilege escalation (forged JWT, placeholder secret, POST/PUT/register cannot mint admin).
+Covered: registration and login hashing, demo seed (accounts, seven-category flower catalog, product photos), admin versus customer permissions, public catalog, product image upload (admin only, rejected for clients and non-images), checkout (success, decline, insufficient funds, unknown Luhn card, invalid PAN, PayPal, saved card, 30 % deposit, admin prep PATCH, customer `my-orders` tracking, subscription line, server-side prices, decimal cents, admin order list with item prices, order IDOR, spoofed email), vitrine (admin-only `PUT /themes`, shop payload, season/theme combo `printemps,mariage`), privilege escalation (forged JWT, placeholder secret, POST/PUT/register cannot mint admin).
 
 Not covered yet: live Stripe calls, email, browser end-to-end tests, reviews, load tests.
 
@@ -469,9 +471,10 @@ Marie forgot her mother’s birthday. The boutique in Sciez is closed. She opens
 3. Shop as a customer — filter a category or a colour swatch, add one bouquet with its photo (Fleurs Fraîches, Compositions, Fleurs Séchées, Plantes, Mariage, Deuil, Cadeaux; product hex colors match the filter bar).
 4. Sign in as `marie@test.com` / `marie123`. The cart is hers. Open the account icon: email and **Déconnexion** sit under the icon, the navbar does not grow.
 5. Pay with `4242 4242 4242 4242`. The server recalculates the total. Status `Payée` and workshop `À préparer`. Optionally tick **Verser un acompte de 30 %** for `Acompte versé` plus the remaining balance.
-6. Optionally add *Éclat Mensuel* (€19.99).
-7. Optionally show a declined card (`4000 0000 0000 0002`) — the order is `Paiement refusé` with no prep step.
-8. Back as the florist. Create a product with a photo. Open **Commandes et paiements**: Marie’s order is a card with payment badge, prep badge, client account, card last four digits, payment reference, each line’s photo, category, quantity, unit price and line total. Advance the atelier select (`En préparation` → `Prête` → `Remise`). On a deposit, **Marquer le solde payé** turns it into `Payée`.
+6. Open the account icon → **Mes commandes**: Marie sees payment and the atelier stepper (`À préparer` → `Remise`). As the florist, change prep on **Commandes et paiements**; refresh Marie’s page to show the new step.
+7. Optionally add *Éclat Mensuel* (€19.99).
+8. Optionally show a declined card (`4000 0000 0000 0002`) — the order is `Paiement refusé` with no prep step.
+9. Back as the florist. Create a product with a photo. Open **Commandes et paiements**: Marie’s order is a card with payment badge, prep badge, client account, card last four digits, payment reference, each line’s photo, category, quantity, unit price and line total. Advance the atelier select (`En préparation` → `Prête` → `Remise`). On a deposit, **Marquer le solde payé** turns it into `Payée`.
 
 If the interface fails: Swagger at `/api/v1` and `./run-tests.sh` still show checkout, authentication, vitrine and admin guards.
 
@@ -481,7 +484,7 @@ The spoken presentation, including this walkthrough, stays inside **20 minutes**
 
 ## Conclusion
 
-Pivoine & Lilas is a florist shop that takes a real order: a customer can sign in, buy a photographed bouquet, pay in full or leave a 30 % deposit, subscribe, and the florist can manage the catalog, set the live vitrine, and follow payment plus workshop prep on an order card. The server owns the price. What is not built (click-and-collect, homepage CMS, delivery zones, email) is listed here. The next work is operations, not another visual pass.
+Pivoine & Lilas is a florist shop that takes a real order: a customer can sign in, buy a photographed bouquet, pay in full or leave a 30 % deposit, subscribe, and follow that order on **Mes commandes**; the florist can manage the catalog, set the live vitrine, and follow payment plus workshop prep on an order card. The server owns the price. What is not built (click-and-collect, homepage CMS, delivery zones, email) is listed here. The next work is operations, not another visual pass.
 
 Screenshots:
 

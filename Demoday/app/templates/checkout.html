@@ -423,7 +423,7 @@
         <a href="cgv.html">Conditions générales de vente</a>
     </footer>
 
-    <script src="../static/js/api.js?v=20260918-nav6"></script>
+    <script src="../static/js/api.js?v=20260921-orders"></script>
     <script>
         let cartItems = [];
         let selectedPaymentMethod = 'card';
@@ -549,7 +549,10 @@
                     ${depositLine}
                     ${prepLine}
                     <p>Référence : ${escapeHtml(order.payment_reference || '')}</p>
-                    <p style="margin-top:16px;"><a class="back-to-shop" href="shop.html">Retour boutique</a></p>
+                    <p style="margin-top:16px;">
+                        <a class="back-to-shop" href="commandes.html#order-${Number(order.id)}">Suivre ma commande</a>
+                        <a class="back-to-shop" href="shop.html" style="margin-left:8px;">Retour boutique</a>
+                    </p>
                 </div>
             `;
 

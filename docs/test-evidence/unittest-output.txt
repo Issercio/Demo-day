@@ -41,6 +41,7 @@ test_user_list_hides_from_client (test_admin_guard.AdminGuardTestCase.test_user_
 test_admin_advances_prep_and_settles_deposit (test_checkout.CheckoutTestCase.test_admin_advances_prep_and_settles_deposit) ... ok
 test_admin_can_list_paid_orders (test_checkout.CheckoutTestCase.test_admin_can_list_paid_orders) ... ok
 test_admin_can_read_any_order (test_checkout.CheckoutTestCase.test_admin_can_read_any_order) ... ok
+test_anonymous_cannot_list_own_orders (test_checkout.CheckoutTestCase.test_anonymous_cannot_list_own_orders) ... ok
 test_anonymous_cannot_read_order (test_checkout.CheckoutTestCase.test_anonymous_cannot_read_order) ... ok
 test_buyer_can_read_own_order (test_checkout.CheckoutTestCase.test_buyer_can_read_own_order) ... ok
 test_cannot_prep_a_failed_order (test_checkout.CheckoutTestCase.test_cannot_prep_a_failed_order) ... ok
@@ -49,9 +50,12 @@ test_checkout_total_uses_decimal_cents (test_checkout.CheckoutTestCase.test_chec
 10.10 x 3 must be 30.30, not a binary-float approximation. ... ok
 test_client_cannot_list_orders (test_checkout.CheckoutTestCase.test_client_cannot_list_orders) ... ok
 test_client_cannot_patch_order (test_checkout.CheckoutTestCase.test_client_cannot_patch_order) ... ok
+test_client_lists_only_own_orders (test_checkout.CheckoutTestCase.test_client_lists_only_own_orders) ... ok
+test_commandes_page_has_client_tracking (test_checkout.CheckoutTestCase.test_commandes_page_has_client_tracking) ... ok
 test_declined_card_records_failed_order (test_checkout.CheckoutTestCase.test_declined_card_records_failed_order) ... ok
 test_deposit_checkout_records_thirty_percent (test_checkout.CheckoutTestCase.test_deposit_checkout_records_thirty_percent) ... ok
 test_empty_cart_is_rejected (test_checkout.CheckoutTestCase.test_empty_cart_is_rejected) ... ok
+test_guest_order_shows_after_login_by_email (test_checkout.CheckoutTestCase.test_guest_order_shows_after_login_by_email) ... ok
 test_insufficient_funds_card (test_checkout.CheckoutTestCase.test_insufficient_funds_card) ... ok
 test_invalid_bearer_token_rejected_on_checkout (test_checkout.CheckoutTestCase.test_invalid_bearer_token_rejected_on_checkout) ... ok
 test_invalid_card_number_rejected (test_checkout.CheckoutTestCase.test_invalid_card_number_rejected) ... ok
@@ -67,7 +71,7 @@ test_unknown_luhn_card_is_declined (test_checkout.CheckoutTestCase.test_unknown_
 test_unknown_product_is_rejected (test_checkout.CheckoutTestCase.test_unknown_product_is_rejected) ... ok
 
 ----------------------------------------------------------------------
-Ran 66 tests in 30.629s
+Ran 70 tests in 32.037s
 
 OK
 === CREATION CATEGORIE ===

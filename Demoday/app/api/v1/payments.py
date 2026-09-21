@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_cors import CORS
+from sqlalchemy import func, or_
 from app.extensions import db
 from app.models import Order
 from app.models.order import PAID_LIKE, PREP_STATUSES
@@ -180,6 +181,17 @@ def stripe_webhook():
         return jsonify({'error': 'Erreur interne du serveur'}), 500
 
 
+def _user_owns_order(user, order):
+    """Le client ne lit que ses commandes (user_id ou même email)."""
+    if user.is_admin:
+        return True
+    if order.user_id and order.user_id == user.id:
+        return True
+    order_email = (order.email or '').lower()
+    user_email = (user.email or '').lower()
+    return bool(order_email and user_email and order_email == user_email)
+
+
 @payments_bp.route('/orders/<int:order_id>', methods=['GET'])
 def get_order(order_id):
     """Détail d'une commande : admin, propriétaire, ou email du JWT."""
@@ -191,12 +203,7 @@ def get_order(order_id):
     if not order:
         return jsonify({'error': 'Commande non trouvée'}), 404
     # IDOR : un client ne lit que sa commande ; la liste complète est admin-only.
-    owns = (
-        user.is_admin
-        or (order.user_id and order.user_id == user.id)
-        or (order.email and order.email.lower() == (user.email or '').lower())
-    )
-    if not owns:
+    if not _user_owns_order(user, order):
         return jsonify({'success': False, 'message': 'Accès refusé'}), 403
     return jsonify({'order': order.to_dict()}), 200
 
@@ -247,6 +254,25 @@ def patch_order(order_id):
 
     db.session.commit()
     return jsonify({'order': order.to_dict()}), 200
+
+
+@payments_bp.route('/my-orders', methods=['GET'])
+def get_my_orders():
+    """Suivi client : uniquement les commandes du compte connecté."""
+    user, error = load_current_user()
+    if error:
+        body, status = error
+        return jsonify(body), status
+    email = (user.email or '').strip().lower()
+    filters = [Order.user_id == user.id]
+    if email:
+        filters.append(func.lower(Order.email) == email)
+    orders = (
+        Order.query.filter(or_(*filters))
+        .order_by(Order.created_at.desc())
+        .all()
+    )
+    return jsonify({'orders': [order.to_dict() for order in orders]}), 200
 
 
 @payments_bp.route('/orders', methods=['GET'])

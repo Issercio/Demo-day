@@ -197,6 +197,8 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('profile-icon-btn', css)
         self.assertIn("classList.toggle('admin-session', isAdmin)", js)
         self.assertIn('isAdmin && !onAdminPage', js)
+        self.assertIn('orders-link', js)
+        self.assertIn('commandes.html', js)
         self.assertIn('body.admin-page #admin-btn', css)
 
     def test_shop_uses_wrapping_product_grid(self):

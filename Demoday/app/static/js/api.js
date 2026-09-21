@@ -228,6 +228,22 @@ class ApiService {
         if (!panel) {
             return;
         }
+        let ordersLink = document.getElementById('orders-link');
+        if (!ordersLink) {
+            ordersLink = document.createElement('a');
+            ordersLink.id = 'orders-link';
+            ordersLink.href = 'commandes.html';
+            ordersLink.className = 'cta-btn';
+            ordersLink.textContent = 'Mes commandes';
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                panel.insertBefore(ordersLink, logoutBtn);
+            } else {
+                panel.appendChild(ordersLink);
+            }
+        }
+        ordersLink.style.display = this.user ? 'block' : 'none';
+
         let adminBtn = document.getElementById('admin-btn');
         if (!adminBtn) {
             adminBtn = document.createElement('button');
