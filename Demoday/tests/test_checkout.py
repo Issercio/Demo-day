@@ -398,6 +398,49 @@ class CheckoutTestCase(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 403)
 
+    def test_client_cannot_delete_order(self):
+        order_id, token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')
+        response = self.client.delete(
+            f'/api/v1/payments/orders/{order_id}',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertIsNotNone(db.session.get(Order, order_id))
+
+    def test_admin_can_delete_order(self):
+        created = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        order_id = created.get_json()['order']['id']
+        admin = self.login('admin@florashop.com', 'admin123')
+        response = self.client.delete(
+            f'/api/v1/payments/orders/{order_id}',
+            headers={'Authorization': f'Bearer {admin}'},
+        )
+        self.assertEqual(response.status_code, 200, response.get_json())
+        self.assertIsNone(db.session.get(Order, order_id))
+
+    def test_anonymous_cannot_delete_order(self):
+        created = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        order_id = created.get_json()['order']['id']
+        response = self.client.delete(f'/api/v1/payments/orders/{order_id}')
+        self.assertEqual(response.status_code, 401)
+        self.assertIsNotNone(db.session.get(Order, order_id))
+
     def test_admin_advances_prep_and_settles_deposit(self):
         created = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',

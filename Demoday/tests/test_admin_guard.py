@@ -235,6 +235,8 @@ class AdminGuardTestCase(unittest.TestCase):
         self.assertIn('Acompte versé', html)
         self.assertIn('À préparer', html)
         self.assertIn('data-order-prep', html)
+        self.assertIn('data-order-delete', html)
+        self.assertIn('Enlever', html)
         self.assertIn('Carte bancaire', html)
         self.assertIn('orderProductImage', html)
         self.assertNotIn('/static/img/products/${slug}.jpg', html)

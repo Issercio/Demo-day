@@ -38,8 +38,8 @@ Postman collection for live API clicks: [postman/FloraShop.postman_collection.js
 | File | Critical path |
 | --- | --- |
 | `tests/test_accounts.py` | Demo client seed (Marie Dupont, Léa Martin, Camille Pivoine), seven-category flower catalog with photos, register hashes + hides password, plaintext login rejected, legacy bcrypt login, unusable Marie hash reset, public `GET /themes`, admin-only vitrine `PUT`, event theme POST/DELETE with `theme_products` FKs, shop payload follows Automne, season/theme combo `printemps,mariage` |
-| `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET, Admin-Token rejected, forged JWT `is_admin` ignored, POST/PUT cannot mint admin, register cannot mint admin, client cannot read/delete another user, placeholder SECRET_KEY cannot impersonate admin, debug categories 403, admin product photo upload, client cannot upload, non-image rejected, admin order cards (`renderOrderCard`, unit price, acompte, à préparer) |
-| `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds / unknown Luhn card, invalid PAN, subscription line, PayPal, saved card, 30 % deposit, admin prep PATCH / settle deposit, empty cart, unknown product, invalid JWT, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30`, order IDOR (401/200/403/404), spoofed checkout email ignored, admin order item unit price, customer `GET /payments/my-orders` (own orders only, guest-by-email after login), `/commandes.html` tracking page |
+| `tests/test_admin_guard.py` | Client cannot create categories, anonymous 401, admin 201, user list 403 for client, user detail without password, public catalog GET, Admin-Token rejected, forged JWT `is_admin` ignored, POST/PUT cannot mint admin, register cannot mint admin, client cannot read/delete another user, placeholder SECRET_KEY cannot impersonate admin, debug categories gone, admin product photo upload, client cannot upload, non-image rejected, admin order cards (`renderOrderCard`, unit price, acompte, à préparer, Enlever) |
+| `tests/test_checkout.py` | Payment config in test mode, paid order + total, client cannot override price, declined / insufficient funds / unknown Luhn card, invalid PAN, subscription line, PayPal, saved card, 30 % deposit, admin prep PATCH / settle deposit, admin DELETE order (client/anonymous 403/401), empty cart, unknown product, invalid JWT, client cannot list orders, admin can, Decimal `10.10 × 3 = 30.30`, order IDOR (401/200/403/404), spoofed checkout email ignored, admin order item unit price, customer `GET /payments/my-orders` (own orders only, guest-by-email after login), `/commandes.html` tracking page |
 
 ## What is not covered yet
 
@@ -87,7 +87,7 @@ Use demo users from the README. Mark the result when you walk the jury scenario.
 
 ## Coverage notes
 
-Latest captured run: **75 tests, OK**.
+Latest captured run: **78 tests, OK**.
 
 `coverage` is measured on the `app` package (templates and static JS are excluded):
 

@@ -348,6 +348,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | GET | `/api/v1/payments/config` | public | `test` or `stripe` mode |
 | POST | `/api/v1/payments/checkout` | optional JWT | Create a paid, deposit, or failed order (`deposit: true` = 30 %) |
 | PATCH | `/api/v1/payments/orders/<id>` | admin JWT | Advance prep (`a_preparer` → `remise`) or settle a deposit |
+| DELETE | `/api/v1/payments/orders/<id>` | admin JWT | Remove an order (line items cascade) |
 | GET | `/api/v1/payments/my-orders` | JWT | Customer’s own orders (tracking) |
 | GET | `/api/v1/payments/orders/<id>` | owner or admin JWT | Order detail |
 | GET | `/api/v1/payments/orders` | admin JWT | List every order |
@@ -398,7 +399,7 @@ Flask and Jinja keep pages and API in one process. RESTX provides Swagger. SQLit
 
 ## Testing
 
-Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **75 tests OK**.
+Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **78 tests OK**.
 
 Covered: registration and login hashing, demo seed (accounts, seven-category flower catalog, product photos), admin versus customer permissions, public catalog, product image upload (admin only, rejected for clients and non-images), checkout (success, decline, insufficient funds, unknown Luhn card, invalid PAN, PayPal, saved card, 30 % deposit, admin prep PATCH, customer `my-orders` tracking, subscription line, server-side prices, decimal cents, admin order list with item prices, order IDOR, spoofed email), vitrine (admin-only `PUT /themes`, shop payload, season/theme combo `printemps,mariage`), privilege escalation (forged JWT, placeholder secret, POST/PUT/register cannot mint admin).
 

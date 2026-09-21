@@ -274,6 +274,20 @@ def patch_order(order_id):
     return jsonify({'order': order.to_dict(include_stripe=True)}), 200
 
 
+@payments_bp.route('/orders/<int:order_id>', methods=['DELETE'])
+def delete_order(order_id):
+    """Fleuriste : enlever une commande (lignes cascade)."""
+    denied = admin_required_response()
+    if denied:
+        return denied
+    order = db.session.get(Order, order_id)
+    if not order:
+        return jsonify({'error': 'Commande non trouvée'}), 404
+    db.session.delete(order)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Commande supprimée'}), 200
+
+
 @payments_bp.route('/my-orders', methods=['GET'])
 def get_my_orders():
     """Suivi client : uniquement les commandes du compte connecté."""

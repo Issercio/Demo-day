@@ -363,6 +363,13 @@
             cursor: pointer;
         }
 
+        .order-prep-controls .order-delete-btn {
+            background: #fff;
+            color: #721c24;
+            border-color: #e7b6be;
+            margin-left: auto;
+        }
+
         .order-card-meta {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1405,14 +1412,13 @@
             const prepOptions = PREP_OPTIONS.map(([value, label]) => (
                 `<option value="${value}"${value === prepStatus ? ' selected' : ''}>${label}</option>`
             )).join('');
-            const prepControls = prepStatus
-                ? `<div class="order-prep-controls">
-                        <label>Atelier
+            const prepControls = `<div class="order-prep-controls">
+                        ${prepStatus ? `<label>Atelier
                             <select data-order-prep="${Number(order.id)}">${prepOptions}</select>
-                        </label>
+                        </label>` : ''}
                         ${status === 'deposit' ? `<button type="button" data-order-settle="${Number(order.id)}">Marquer le solde payé</button>` : ''}
-                   </div>`
-                : '';
+                        <button type="button" class="order-delete-btn" data-order-delete="${Number(order.id)}">Enlever</button>
+                   </div>`;
             return `
                 <article class="order-card" data-order-id="${Number(order.id)}">
                     <div class="order-card-head">
@@ -1913,6 +1919,28 @@
                 }
             });
             ordersList.addEventListener('click', async function(event) {
+                const deleteBtn = event.target.closest('[data-order-delete]');
+                if (deleteBtn) {
+                    const orderId = deleteBtn.getAttribute('data-order-delete');
+                    if (!confirm('Enlever la commande #' + orderId + ' ?')) {
+                        return;
+                    }
+                    const response = await fetch('/api/v1/payments/orders/' + orderId, {
+                        method: 'DELETE',
+                        headers: getAdminHeaders()
+                    });
+                    if (sessionBlocked(response)) {
+                        return;
+                    }
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        showNotice(apiErrorMessage(payload, 'Impossible d\'enlever la commande'), 'error');
+                        return;
+                    }
+                    showNotice(payload.message || 'Commande enlevée.', 'success');
+                    await loadOrders();
+                    return;
+                }
                 const button = event.target.closest('[data-order-settle]');
                 if (!button) {
                     return;
