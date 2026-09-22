@@ -16,13 +16,13 @@ Source: [github.com/Issercio/Demo-day](https://github.com/Issercio/Demo-day) · 
 
 Page with both buttons: http://localhost:5000/livrables.html
 
-**Open in Google Docs / Google Slides.** The `.docx` and `.pptx` are Office Open XML with Arial, JPEG pictures, standard Word tables, and 16:9 title/content slides so Drive can convert them without flattening the file into an image.
+**Open in an empty Google Doc.** The `.docx` is plain Word (Arial, JPEG, grid tables) so Docs can convert it.
 
-1. Download the file (GitHub, or http://localhost:5000/livrables.html).
-2. Open [Google Drive](https://drive.google.com) → **New** → **File upload**.
-3. Right-click the uploaded file → **Open with** → **Google Docs** (Word) or **Google Slides** (PowerPoint).
+1. Open a blank document: https://docs.google.com/document/create
+2. **File → Open → Upload** (Importer) → choose `Pivoine-Lilas-Specifications.docx`.
+3. Google Docs converts the Word file; text and pictures stay editable.
 
-Optional: Drive ⚙ Settings → tick **Convert uploaded files to Google Docs editor format**.
+For the deck: upload `Pivoine-Lilas.pptx` to Drive → **Open with Google Slides**.
 
 Testing: [`docs/testing.md`](docs/testing.md) · evidence [`docs/test-evidence/`](docs/test-evidence/)  
 Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraShop.postman_collection.json)
