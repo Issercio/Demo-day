@@ -186,34 +186,7 @@ Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
 
 ## Architecture
 
-```mermaid
-flowchart LR
-  subgraph Browser
-    Pages[Jinja pages]
-    JS[api.js / FloraCart]
-  end
-  subgraph Flask
-    Restx["REST API /api/v1"]
-    Pay[Checkout service]
-    Themes[Shop themes]
-    Photos[Product images]
-    Auth[JWT]
-  end
-  DB[(SQLite or PostgreSQL)]
-  Disk[(static product photos)]
-  Stripe[Stripe optional]
-  Pages --> JS
-  JS -->|JSON + Bearer HTTP| Restx
-  JS -->|POST checkout| Pay
-  Restx --> Auth
-  Restx --> Themes
-  Restx --> Photos
-  Restx --> DB
-  Pay --> DB
-  Pay -.->|PaymentIntent| Stripe
-  Themes --> DB
-  Photos --> Disk
-```
+![Architecture](docs/diagrams/architecture.png)
 
 **Frontend.** Jinja templates, `static/css/style.css`, `static/js/api.js`. Vanilla JS — no React. Palette `#bc6288` / `#7f3f5a` / `#f8f5f2`.
 
@@ -229,6 +202,8 @@ flowchart LR
 
 Money columns use `Numeric(10, 2)`. JSON still exposes numbers at the HTTP boundary; storage and totals are decimals.
 
+![Modèle de données](docs/diagrams/erd.png)
+
 ```mermaid
 erDiagram
   users ||--o{ orders : places
@@ -237,9 +212,6 @@ erDiagram
   products ||--o{ order_items : appears_in
   orders ||--o{ order_items : contains
   products ||--o{ prices : optional_history
-  shop_themes ||--o{ theme_products : lists
-  products ||--o{ theme_products : featured_in
-  shop_themes ||--o| shop_vitrine : season_or_theme
 
   users {
     int id PK
@@ -261,31 +233,13 @@ erDiagram
     string color
     string image
   }
-  shop_themes {
-    string id PK
-    string label
-    string kind
-    bool is_builtin
-  }
-  theme_products {
-    string theme_id FK
-    int product_id FK
-    int position
-  }
-  shop_vitrine {
-    int id PK
-    string season_id FK
-    string theme_id FK
-  }
   orders {
     int id PK
     int user_id FK
     string email
     string customer_name
     numeric total_amount
-    numeric deposit_amount
     string status
-    string prep_status
     string payment_method
     string card_last4
     string payment_reference
@@ -299,7 +253,7 @@ erDiagram
   }
 ```
 
-`reviews` and `prices` exist as models but are not on the purchase path. Product `color` is `#rrggbb` (`VARCHAR(7)`). Card numbers are not stored.
+`reviews` and `prices` exist as models but are not on the purchase path. Extra vitrine tables (`shop_themes`, `theme_products`, `shop_vitrine`) store the live season/theme combo. Product `color` is `#rrggbb` (`VARCHAR(7)`). Card numbers are not stored.
 
 ### UML — use cases
 
@@ -569,13 +523,42 @@ If the UI fails: Swagger `/api/v1` and `./run-tests.sh`.
 
 Fonts: Georgia / EB Garamond for titles, Inter for UI. Palette `#bc6288`, `#7f3f5a`, `#d2a0b5`, `#fff6f2`, `#f8f5f2`, `#3a2a30`.
 
-**Clickable prototype** (HTML, desktop + mobile, Marie and Camille flows, empty cart): [docs/mockups/index.html](docs/mockups/index.html) · http://localhost:5000/maquettes/
+**Maquette cliquable** (HTML, desktop + mobile, parcours Marie et Camille, panier vide): [docs/mockups/index.html](docs/mockups/index.html) · http://localhost:5000/maquettes/
 
-Hi-fi PNG frames live in [`docs/mockups/frames/`](docs/mockups/frames/). Live-shop captures below. There is no separate Figma file: the HTML prototype is the design source used for Demo Day.
+The same frames are in the Demo Day deck (`docs/presentation/Pivoine-Lilas.pptx`). There is no separate Figma file.
+
+### Maquette (cadres hi-fi)
+
+![Système visuel](docs/mockups/frames/mockup-palette.png)
+![Accueil](docs/mockups/frames/mockup-accueil.png)
+![Shop](docs/mockups/frames/mockup-shop.png)
+![Connexion](docs/mockups/frames/mockup-login.png)
+![Panier](docs/mockups/frames/mockup-panier.png)
+![Paiement](docs/mockups/frames/mockup-checkout.png)
+![Mes commandes](docs/mockups/frames/mockup-commandes.png)
+![Admin vitrine](docs/mockups/frames/mockup-admin-vitrine.png)
+![Facture FAC](docs/mockups/frames/mockup-admin-facture.png)
+![Shop mobile](docs/mockups/frames/mockup-shop-mobile.png)
+![Panier vide mobile](docs/mockups/frames/mockup-panier-vide-mobile.png)
+
+| Écran | Cadre |
+| --- | --- |
+| Système visuel | [mockup-palette.png](docs/mockups/frames/mockup-palette.png) |
+| Accueil | [mockup-accueil.png](docs/mockups/frames/mockup-accueil.png) |
+| Shop | [mockup-shop.png](docs/mockups/frames/mockup-shop.png) |
+| Connexion | [mockup-login.png](docs/mockups/frames/mockup-login.png) |
+| Panier | [mockup-panier.png](docs/mockups/frames/mockup-panier.png) |
+| Paiement | [mockup-checkout.png](docs/mockups/frames/mockup-checkout.png) |
+| Mes commandes | [mockup-commandes.png](docs/mockups/frames/mockup-commandes.png) |
+| Admin vitrine | [mockup-admin-vitrine.png](docs/mockups/frames/mockup-admin-vitrine.png) |
+| Facture FAC | [mockup-admin-facture.png](docs/mockups/frames/mockup-admin-facture.png) |
+| Shop mobile | [mockup-shop-mobile.png](docs/mockups/frames/mockup-shop-mobile.png) |
+| Panier vide mobile | [mockup-panier-vide-mobile.png](docs/mockups/frames/mockup-panier-vide-mobile.png) |
+
+### Captures du shop live
 
 | Page | Capture |
 | --- | --- |
-| Design system | [mockup-palette.png](docs/mockups/frames/mockup-palette.png) |
 | Home | [accueil.png](docs/screenshots/accueil.png) |
 | Shop | [shop.jpg](docs/screenshots/shop.jpg) |
 | Shop vitrine | [shop-vitrine.jpg](docs/screenshots/shop-vitrine.jpg) |
@@ -586,15 +569,6 @@ Hi-fi PNG frames live in [`docs/mockups/frames/`](docs/mockups/frames/). Live-sh
 | Admin vitrine | [admin-vitrine.png](docs/screenshots/admin-vitrine.png) |
 | Admin catalog | [admin-catalog.png](docs/screenshots/admin-catalog.png) |
 | Admin invoices | [admin-orders.png](docs/screenshots/admin-orders.png) |
-| Shop mobile (mockup) | [mockup-shop-mobile.png](docs/mockups/frames/mockup-shop-mobile.png) |
-| Empty cart mobile | [mockup-panier-vide-mobile.png](docs/mockups/frames/mockup-panier-vide-mobile.png) |
-
-![Design system](docs/mockups/frames/mockup-palette.png)
-![Home](docs/screenshots/accueil.png)
-![Shop](docs/screenshots/shop.jpg)
-![Checkout](docs/screenshots/checkout.png)
-![Admin invoices](docs/screenshots/admin-orders.png)
-![Shop mobile](docs/mockups/frames/mockup-shop-mobile.png)
 
 ---
 
