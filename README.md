@@ -6,8 +6,15 @@ The previous site was a Wix brochure that was no longer maintained. This reposit
 
 Source: [github.com/Issercio/Demo-day](https://github.com/Issercio/Demo-day) · branch `main`
 
-Specifications: [`docs/Pivoine-Lilas-Specifications.docx`](docs/Pivoine-Lilas-Specifications.docx)  
-Presentation deck: [`docs/presentation/Pivoine-Lilas.pptx`](docs/presentation/Pivoine-Lilas.pptx)  
+**Download the evaluation files**
+
+| File | GitHub | Local shop |
+| --- | --- | --- |
+| Specifications (.docx) | [Pivoine-Lilas-Specifications.docx](docs/Pivoine-Lilas-Specifications.docx) | http://localhost:5000/downloads/Pivoine-Lilas-Specifications.docx |
+| Presentation (.pptx) | [Pivoine-Lilas.pptx](docs/presentation/Pivoine-Lilas.pptx) | http://localhost:5000/downloads/Pivoine-Lilas.pptx |
+
+Page with both buttons: http://localhost:5000/livrables.html
+
 Testing: [`docs/testing.md`](docs/testing.md) · evidence [`docs/test-evidence/`](docs/test-evidence/)  
 Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraShop.postman_collection.json)
 
@@ -145,6 +152,7 @@ chmod +x setup.sh run.sh run-tests.sh
 | My orders | http://localhost:5000/commandes.html |
 | Admin | http://localhost:5000/admin.html |
 | API (Swagger / OpenAPI) | http://localhost:5000/api/v1 |
+| Specs + deck (download) | http://localhost:5000/livrables.html |
 
 ```bash
 ./run-tests.sh

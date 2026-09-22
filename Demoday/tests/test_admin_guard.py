@@ -252,6 +252,23 @@ class AdminGuardTestCase(unittest.TestCase):
         self.assertIn('order-lines-wrap', html)
         self.assertEqual(self.client.get('/index.html').status_code, 404)
 
+    def test_eval_docs_download_as_attachments(self):
+        docx = self.client.get('/downloads/Pivoine-Lilas-Specifications.docx')
+        pptx = self.client.get('/downloads/Pivoine-Lilas.pptx')
+        self.assertEqual(docx.status_code, 200, docx.get_data()[:200])
+        self.assertEqual(pptx.status_code, 200)
+        self.assertIn('attachment', docx.headers.get('Content-Disposition', ''))
+        self.assertIn('attachment', pptx.headers.get('Content-Disposition', ''))
+        self.assertIn('.docx', docx.headers.get('Content-Disposition', ''))
+        self.assertIn('.pptx', pptx.headers.get('Content-Disposition', ''))
+        self.assertGreater(len(docx.get_data()), 1000)
+        self.assertGreater(len(pptx.get_data()), 1000)
+        self.assertEqual(self.client.get('/downloads/secret.env').status_code, 404)
+        page = self.client.get('/livrables.html')
+        self.assertEqual(page.status_code, 200)
+        self.assertIn('/downloads/Pivoine-Lilas-Specifications.docx', page.get_data(as_text=True))
+        self.assertIn('/downloads/Pivoine-Lilas.pptx', page.get_data(as_text=True))
+
     def test_invalid_product_color_is_rejected(self):
         from app.models import Category, Product
         token = self.login('admin@florashop.com', 'admin123')
