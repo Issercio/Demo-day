@@ -115,10 +115,10 @@ Production: terminate TLS on nginx/Caddy and set `FORCE_HTTPS=1` so Flask redire
 
 | Priority | Features |
 | --- | --- |
-| Must | Register, login, logout, JWT, hashed passwords, catalog + photos, isolated cart, server checkout, admin guard, florist FAC + prep, HTTPS (local cert / prod reverse proxy), CNIL login lockout |
+| Must | Register, login, logout, JWT, hashed passwords, email/SMS verification, customer password change, catalog + photos, isolated cart, server checkout, admin guard, florist FAC + prep, HTTPS (local cert / prod reverse proxy), CNIL login lockout |
 | Should | Subscriptions (monthly / semester / yearly), 30 % deposit, Mes commandes, colour / price / name filters |
 | Could | Season / event combo vitrine, custom event themes, optional Stripe, print invoice window |
-| Won’t (this release) | Email verification / reset mail, click-and-collect, geo zones, fiscal HT/TVA, native app, chat, AI, 2FA, mounted reviews |
+| Won’t (this release) | Click-and-collect, geo zones, fiscal HT/TVA, native app, chat, AI, 2FA, mounted reviews |
 
 ---
 
@@ -127,6 +127,8 @@ Production: terminate TLS on nginx/Caddy and set `FORCE_HTTPS=1` so Flask redire
 | Role | Story | Priority |
 | --- | --- | --- |
 | Customer | Create an account and log in to place orders | Must have |
+| Customer | Verify the account with a 6-digit email or SMS code | Must have |
+| Customer | Change password from the account page | Must have |
 | Customer | Browse products by category, with photos and colour swatches | Must have |
 | Customer | Order flowers online and pay | Must have |
 | Customer | Keep a cart that does not leak to another account | Must have |
@@ -152,11 +154,9 @@ These were in the original specification and are not in this release.
 
 | Role | Story | Priority | Current state |
 | --- | --- | --- | --- |
-| Customer | Account verification by email/SMS | Mandatory list | `verify-code.html` is UI only |
-| Customer | Change password from the account page | Mandatory list | Admin `PUT /users/<id>` only |
 | Customer | Click-and-collect time slot | Must have | The order is paid; there is no pickup window |
 | Customer | Delivery limited to configured zones | Must have | No postcode or zone table |
-| Customer | Email alerts for events and sales | Could have | Password-reset pages are interface only |
+| Customer | Email alerts for events and sales | Could have | Account verification / reset use a 6-digit code (SMTP if `MAIL_SERVER` is set; classroom returns `demo_code`) |
 | Florist | Edit homepage images and seasonal copy | Must have | Home is a template; seasons and themes are applied from admin to the shop, not to `/accueil.html` |
 | Florist | Configure delivery areas | Must have | Not modelled |
 | Florist | Enforce minimum and maximum catalog prices as rules | Must have | Admin sets a price; min/max in the shop is a filter |
@@ -183,7 +183,7 @@ Resolved:
 
 Open, none of them block a purchase:
 
-- Forgot-password and verify-code pages do not send email
+- Forgot-password and verify-code now issue a hashed 6-digit code (classroom `demo_code`; email if `MAIL_SERVER` is set)
 - Reviews API is not registered
 - The cart lives in `localStorage`, not in a server table
 - The `prices` table is unused (`products.price` is the source of truth)
@@ -233,6 +233,8 @@ erDiagram
     string email
     string password_hash
     bool is_admin
+    bool email_verified
+    string phone
     int failed_login_count
     datetime locked_until
   }
@@ -299,6 +301,8 @@ classDiagram
     +str email
     +str password
     +bool is_admin
+    +bool email_verified
+    +str phone
     +int failed_login_count
     +datetime locked_until
     +set_password()
@@ -357,8 +361,13 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| POST | `/api/v1/auth/register` | public | Create user, return JWT |
-| POST | `/api/v1/auth/login` | public | Sign in |
+| POST | `/api/v1/auth/register` | public | Create user (unverified), return `demo_code` |
+| POST | `/api/v1/auth/login` | public | Sign in (403 until the account is verified) |
+| POST | `/api/v1/auth/verify` | public | Confirm the 6-digit email/SMS code, return JWT |
+| POST | `/api/v1/auth/resend-code` | public | New code by `email` or `sms` |
+| POST | `/api/v1/auth/forgot-password` | public | Reset code (`demo_code` in class) |
+| POST | `/api/v1/auth/reset-password` | public | Set a new password with the reset code |
+| POST | `/api/v1/auth/change-password` | JWT | Customer changes their own password |
 | GET | `/api/v1/products` | public | Full catalog (`?theme=` season, event, or comma-separated combo) |
 | GET | `/api/v1/themes` | public | Seasons, event themes, and the applied shop vitrine |
 | POST | `/api/v1/themes` | admin JWT | Create a custom event theme (not a season) |
@@ -384,7 +393,9 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 ## Authentication and security
 
 - Passwords are hashed with Werkzeug. Legacy bcrypt hashes are still verified, then upgraded. Rows still stored in plaintext are rejected.
-- Login and register return a JWT (HS256) stored in `localStorage` and sent as `Authorization: Bearer`.
+- Login returns a JWT (HS256) after the account is verified. Register does not log the user in until `/auth/verify`.
+- **Account verification.** After sign-up a 6-digit code is hashed in `users.verify_code_hash` (15 min). Channel `email` or `sms`. Classroom JSON includes `demo_code` (same idea as test card 4242). If `MAIL_SERVER` is set, the code is also emailed.
+- **Password change.** Logged-in customers `POST /api/v1/auth/change-password` with the current password from `/account.html`. Forgot-password uses the same 6-digit flow.
 - Claims: `sub`, `email`, `is_admin`, `exp`.
 - The admin page is hidden in the browser **and** every mutation is checked on the server. A customer token cannot create categories, upload photos, change the vitrine, or list all orders.
 - Authorization uses the `is_admin` column in the database, not the JWT claim. A forged `is_admin: true` token is ignored.
@@ -425,7 +436,7 @@ Flask and Jinja keep pages and API in one process. RESTX provides Swagger. SQLit
 
 ## Testing
 
-Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **86 tests OK**.
+Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **92 tests OK**.
 
 Covered: registration and login hashing, demo seed (accounts, seven-category flower catalog, product photos), admin versus customer permissions, public catalog, product image upload (admin only, rejected for clients and non-images), checkout (success, decline, insufficient funds, unknown Luhn card, invalid PAN, PayPal, saved card, 30 % deposit, admin prep PATCH, customer `my-orders` tracking, subscription line, server-side prices, decimal cents, admin order list with item prices, order IDOR, spoofed email), vitrine (admin-only `PUT /themes`, shop payload, season/theme combo `printemps,mariage`), privilege escalation (forged JWT, placeholder secret, POST/PUT/register cannot mint admin).
 
@@ -476,7 +487,7 @@ Dimitri and Mattieu share this repository. Cadence for a demonstration: one loca
 
 - Store the cart on the server
 - Click-and-collect slots and delivery zones
-- Real email for receipts, verification and password reset
+- SMTP in production instead of classroom `demo_code`
 - Seasonal editing of the homepage (the shop vitrine already exists)
 - Playwright end-to-end tests
 - PostgreSQL in CI

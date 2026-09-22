@@ -7,17 +7,18 @@ Columns: **Backlog** → **In progress** (branche `cursor/…`) → **Review** (
 ```mermaid
 kanban
   Backlog
-    US-email[Email verify / reset — Won’t this release]
     US-geo[Click-and-collect + zones — Won’t]
     US-reviews[Reviews API — leftover]
   In progress
+    PR36[PR #36 eval docs + verify + password]
+  Review
     NFR-https[Local HTTPS + FORCE_HTTPS]
     NFR-cnil[Login lockout 5 / 15 min]
-  Review
-    PR36[PR #36 eval docs + mockup]
   Done
     US01[US-01 Register]
     US02[US-02 Login / logout]
+    US-verify[Email / SMS verify + reset]
+    US-passwd[Customer password change]
     US03[US-03 Catalog photos]
     US05[US-05 Isolated cart]
     US06[US-06 Checkout]
@@ -47,7 +48,8 @@ kanban
 | HTTPS / TLS | Tech | Dimitri | Must (NFR) | Review |
 | CNIL login lockout | Tech | Dimitri | Must (NFR) | Review |
 | README + mockup | Tech | Both | Must | Review (PR #36) |
-| Email verification | Story | — | Mandatory list | Backlog / Won’t this demo |
+| Email / SMS verification | Story | Dimitri | Must | Done |
+| Customer password change | Story | Dimitri | Must | Done |
 | Delivery zones | Story | — | Must original spec | Backlog / Won’t |
 
 Assignments: Dimitri = API, money, security, tests. Mattieu = storefront, demo, deck.

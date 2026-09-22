@@ -58,6 +58,17 @@
                 <input type="password" id="confirm-password" required>
             </div>
 
+            <div class="form-group">
+                <label for="phone">Téléphone (optionnel, pour un code SMS)</label>
+                <input type="tel" id="phone" placeholder="+33612345678">
+            </div>
+
+            <div class="form-group">
+                <span>Recevoir le code par</span>
+                <label style="font-weight:400;"><input type="radio" name="channel" value="email" checked> Email</label>
+                <label style="font-weight:400;"><input type="radio" name="channel" value="sms"> SMS</label>
+            </div>
+
             <button type="submit" class="login-button">Créer mon compte</button>
 
             <div class="help-links">
@@ -65,7 +76,7 @@
             </div>
         </form>
     </div>
-    <script src="../static/js/api.js?v=20260921-orders"></script>
+    <script src="../static/js/api.js?v=20260922-auth"></script>
     <script>
         document.getElementById('register-form').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -74,17 +85,21 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm-password').value;
+            const phone = document.getElementById('phone').value.trim();
+            const channel = (document.querySelector('input[name="channel"]:checked') || {}).value || 'email';
             
             if (password !== confirmPassword) {
                 alert('Les mots de passe ne correspondent pas');
                 return;
             }
             
-            const result = await apiService.register(username, email, password);
+            const extra = { channel };
+            if (phone) extra.phone = phone;
+            const result = await apiService.register(username, email, password, extra);
             
             if (result.success) {
-                alert('Compte créé avec succès !');
-                window.location.href = 'accueil.html';
+                const params = new URLSearchParams({ email: email });
+                window.location.href = 'verify-code.html?' + params.toString();
             } else {
                 alert(result.error || 'Erreur lors de la création du compte');
             }

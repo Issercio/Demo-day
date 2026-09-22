@@ -60,9 +60,11 @@ class ApiService {
                 return { success: true, data: data.data };
             }
             
-            return { 
-                success: false, 
-                error: data.message || 'Erreur de connexion'
+            return {
+                success: false,
+                error: data.message || 'Erreur de connexion',
+                needs_verification: !!data.needs_verification,
+                email: data.email || email
             };
         } catch (error) {
             console.error('Erreur de connexion:', error);
@@ -74,7 +76,7 @@ class ApiService {
     }
 
     // Méthode pour créer un compte utilisateur
-    async register(username, email, password) {
+    async register(username, email, password, extra = {}) {
         try {
             const response = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: 'POST',
@@ -82,24 +84,18 @@ class ApiService {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ username, email, password })
+                body: JSON.stringify({ username, email, password, ...extra })
             });
             
             const data = await response.json();
             
             if (response.ok && data.success) {
-                this.user = data.data.user;
-                this.token = data.data.token || null;
-                if (this.token) {
-                    localStorage.setItem('auth_token', this.token);
+                const payload = data.data || {};
+                if (payload.demo_code) {
+                    sessionStorage.setItem('demo_code', payload.demo_code);
+                    sessionStorage.setItem('verify_email', email);
                 }
-                localStorage.setItem('user', JSON.stringify(this.user));
-                this.updateProfileUI();
-                if (window.FloraCart) {
-                    window.FloraCart.onAccountChanged();
-                }
-                updateCartCount();
-                return { success: true, data: data.data };
+                return { success: true, data: payload };
             }
             
             return { 
@@ -108,6 +104,93 @@ class ApiService {
             };
         } catch (error) {
             console.error('Erreur création de compte:', error);
+            return { success: false, error: 'Erreur de communication avec le serveur' };
+        }
+    }
+
+    async verifyAccount(email, code) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ email, code })
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                this.user = data.data.user;
+                this.token = data.data.token;
+                localStorage.setItem('auth_token', this.token);
+                localStorage.setItem('user', JSON.stringify(this.user));
+                this.updateProfileUI();
+                if (window.FloraCart) {
+                    window.FloraCart.onAccountChanged();
+                }
+                updateCartCount();
+                sessionStorage.removeItem('demo_code');
+                return { success: true, data: data.data };
+            }
+            return { success: false, error: data.message || 'Code invalide' };
+        } catch (error) {
+            return { success: false, error: 'Erreur de communication avec le serveur' };
+        }
+    }
+
+    async resendCode(email, extra = {}) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/resend-code`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ email, ...extra })
+            });
+            const data = await response.json();
+            if (data.demo_code) {
+                sessionStorage.setItem('demo_code', data.demo_code);
+                sessionStorage.setItem('verify_email', email);
+            }
+            return { success: response.ok && data.success !== false, data, error: data.message };
+        } catch (error) {
+            return { success: false, error: 'Erreur de communication avec le serveur' };
+        }
+    }
+
+    async forgotPassword(email, extra = {}) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ email, ...extra })
+            });
+            const data = await response.json();
+            return { success: response.ok && data.success !== false, data, error: data.message };
+        } catch (error) {
+            return { success: false, error: 'Erreur de communication avec le serveur' };
+        }
+    }
+
+    async resetPassword(email, code, newPassword) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ email, code, new_password: newPassword })
+            });
+            const data = await response.json();
+            return { success: response.ok && data.success, error: data.message, data };
+        } catch (error) {
+            return { success: false, error: 'Erreur de communication avec le serveur' };
+        }
+    }
+
+    async changePassword(currentPassword, newPassword) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+            });
+            const data = await response.json();
+            return { success: response.ok && data.success, error: data.message, data };
+        } catch (error) {
             return { success: false, error: 'Erreur de communication avec le serveur' };
         }
     }
@@ -160,6 +243,7 @@ class ApiService {
         const loginBtn = document.getElementById('login-btn');
         const logoutBtn = document.getElementById('logout-btn');
         const deleteBtn = document.getElementById('delete-btn');
+        const passwordBtn = document.getElementById('password-btn');
 
         if (this.user) {
             if (userEmail) {
@@ -175,6 +259,9 @@ class ApiService {
             if (deleteBtn) {
                 deleteBtn.style.display = this.isAdmin() ? 'none' : 'block';  // fleuriste : pas de self-delete
             }
+            if (passwordBtn) {
+                passwordBtn.style.display = 'block';
+            }
         } else {
             if (userEmail) {
                 userEmail.style.display = 'none';
@@ -187,6 +274,9 @@ class ApiService {
             }
             if (deleteBtn) {
                 deleteBtn.style.display = 'none';
+            }
+            if (passwordBtn) {
+                passwordBtn.style.display = 'none';
             }
         }
         this.syncAdminControls();
@@ -511,6 +601,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginBtn) {
         loginBtn.addEventListener('click', () => {
             window.location.href = 'account.html';
+        });
+    }
+
+    const passwordBtn = document.getElementById('password-btn');
+    if (passwordBtn) {
+        passwordBtn.addEventListener('click', () => {
+            window.location.href = 'account.html#password';
         });
     }
 

@@ -172,12 +172,14 @@ def ensure_demo_accounts():
         if user is None:
             user = User(username=username, email=email, is_admin=is_admin, password='x')
             user.set_password(password)
+            user.email_verified = True  # comptes de démo déjà vérifiés
             db.session.add(user)
             created.append(email)
             continue
         user.email = email
         user.username = username
         user.is_admin = is_admin  # à chaque boot : Camille reste fleuriste, Marie/Léa clientes
+        user.email_verified = True
         # Compte démo déjà là mais hash incompatible (bcrypt, etc.) → on rétablit marie123 / admin123.
         if not user.check_password(password) or not user.has_modern_hash():
             user.set_password(password)

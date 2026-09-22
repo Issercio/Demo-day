@@ -48,10 +48,14 @@ class AccountsTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 201, response.get_json())
         payload = response.get_json()
         self.assertNotIn('password', payload['data']['user'])
+        self.assertFalse(payload['data']['user']['email_verified'])
+        self.assertIn('demo_code', payload['data'])
+        self.assertEqual(len(payload['data']['demo_code']), 6)
         user = User.query.filter_by(email='lea@test.com').first()
         self.assertTrue(user.has_modern_hash())
         self.assertNotEqual(user.password, 'lea12345')
         self.assertTrue(user.check_password('lea12345'))
+        self.assertFalse(user.email_verified)
 
     def test_login_rejects_legacy_plaintext(self):
         user = User(username='paul', email='paul@test.com', password='paul123', is_admin=False)
@@ -565,6 +569,125 @@ class AccountsTestCase(unittest.TestCase):
         stored = User.query.filter_by(email='lea-ok@test.com').first()
         self.assertEqual(stored.failed_login_count, 0)
         self.assertIsNone(stored.locked_until)
+
+    def test_register_requires_verification_before_login(self):
+        created = self.client.post('/api/v1/auth/register', json={
+            'username': 'nina',
+            'email': 'nina@test.com',
+            'password': 'nina1234',
+        })
+        self.assertEqual(created.status_code, 201, created.get_json())
+        code = created.get_json()['data']['demo_code']
+        blocked = self.client.post('/api/v1/auth/login', json={
+            'email': 'nina@test.com',
+            'password': 'nina1234',
+        })
+        self.assertEqual(blocked.status_code, 403, blocked.get_json())
+        self.assertTrue(blocked.get_json().get('needs_verification'))
+        bad = self.client.post('/api/v1/auth/verify', json={
+            'email': 'nina@test.com',
+            'code': '000000',
+        })
+        self.assertEqual(bad.status_code, 400)
+        ok = self.client.post('/api/v1/auth/verify', json={
+            'email': 'nina@test.com',
+            'code': code,
+        })
+        self.assertEqual(ok.status_code, 200, ok.get_json())
+        self.assertIn('token', ok.get_json()['data'])
+        self.assertTrue(ok.get_json()['data']['user']['email_verified'])
+        login = self.client.post('/api/v1/auth/login', json={
+            'email': 'nina@test.com',
+            'password': 'nina1234',
+        })
+        self.assertEqual(login.status_code, 200, login.get_json())
+
+    def test_resend_code_sms_channel(self):
+        created = self.client.post('/api/v1/auth/register', json={
+            'username': 'sms-user',
+            'email': 'sms@test.com',
+            'password': 'sms12345',
+            'phone': '+33612345678',
+            'channel': 'sms',
+        })
+        self.assertEqual(created.status_code, 201, created.get_json())
+        resent = self.client.post('/api/v1/auth/resend-code', json={
+            'email': 'sms@test.com',
+            'channel': 'sms',
+        })
+        self.assertEqual(resent.status_code, 200, resent.get_json())
+        self.assertEqual(resent.get_json().get('channel'), 'sms')
+        self.assertEqual(len(resent.get_json()['demo_code']), 6)
+
+    def test_customer_can_change_password(self):
+        ensure_demo_accounts()
+        token = self.client.post('/api/v1/auth/login', json={
+            'email': 'marie@test.com',
+            'password': 'marie123',
+        }).get_json()['data']['token']
+        denied = self.client.post('/api/v1/auth/change-password', json={
+            'current_password': 'marie123',
+            'new_password': 'marie999',
+        })
+        self.assertEqual(denied.status_code, 401)
+        wrong = self.client.post(
+            '/api/v1/auth/change-password',
+            json={'current_password': 'nope', 'new_password': 'marie999'},
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(wrong.status_code, 401)
+        ok = self.client.post(
+            '/api/v1/auth/change-password',
+            json={'current_password': 'marie123', 'new_password': 'marie999'},
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(ok.status_code, 200, ok.get_json())
+        old = self.client.post('/api/v1/auth/login', json={
+            'email': 'marie@test.com',
+            'password': 'marie123',
+        })
+        self.assertEqual(old.status_code, 401)
+        fresh = self.client.post('/api/v1/auth/login', json={
+            'email': 'marie@test.com',
+            'password': 'marie999',
+        })
+        self.assertEqual(fresh.status_code, 200, fresh.get_json())
+
+    def test_forgot_password_reset_with_demo_code(self):
+        ensure_demo_accounts()
+        forgot = self.client.post('/api/v1/auth/forgot-password', json={
+            'email': 'client@test.com',
+        })
+        self.assertEqual(forgot.status_code, 200, forgot.get_json())
+        code = forgot.get_json()['demo_code']
+        reset = self.client.post('/api/v1/auth/reset-password', json={
+            'email': 'client@test.com',
+            'code': code,
+            'new_password': 'client999',
+        })
+        self.assertEqual(reset.status_code, 200, reset.get_json())
+        login = self.client.post('/api/v1/auth/login', json={
+            'email': 'client@test.com',
+            'password': 'client999',
+        })
+        self.assertEqual(login.status_code, 200, login.get_json())
+
+    def test_demo_accounts_are_verified(self):
+        ensure_demo_accounts()
+        marie = User.query.filter_by(email='marie@test.com').first()
+        self.assertTrue(marie.email_verified)
+
+    def test_verify_and_password_pages_are_wired(self):
+        verify = self.client.get('/verify-code.html')
+        self.assertEqual(verify.status_code, 200)
+        self.assertIn('verify-form', verify.get_data(as_text=True))
+        self.assertIn('verifyAccount', verify.get_data(as_text=True))
+        account = self.client.get('/account.html')
+        html = account.get_data(as_text=True)
+        self.assertIn('password-form', html)
+        self.assertIn('changePassword', html)
+        forgot = self.client.get('/forgot-password.html')
+        self.assertIn('reset-fields', forgot.get_data(as_text=True))
 
 
 class HttpsRedirectTestCase(unittest.TestCase):

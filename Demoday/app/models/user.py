@@ -18,6 +18,13 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False)  # jamais admin par défaut
     failed_login_count = db.Column(db.Integer, default=0)  # CNIL : compteur d'échecs
     locked_until = db.Column(db.DateTime, nullable=True)  # None = pas de verrou
+    # Comptes déjà en base / démo = vérifiés. L'inscription pose email_verified=False.
+    email_verified = db.Column(db.Boolean, default=True)
+    phone = db.Column(db.String(20), nullable=True)
+    verify_code_hash = db.Column(db.String(255), nullable=True)
+    verify_code_expires = db.Column(db.DateTime, nullable=True)
+    verify_channel = db.Column(db.String(10), nullable=True)  # email | sms
+    verify_purpose = db.Column(db.String(10), nullable=True)  # verify | reset
     orders = db.relationship('Order', back_populates='user', lazy=True)
 
     def __repr__(self):
@@ -49,5 +56,7 @@ class User(db.Model):
             'id': self.id,
             'username': self.username,
             'email': self.email,
-            'is_admin': self.is_admin
+            'is_admin': self.is_admin,
+            'email_verified': bool(self.email_verified),
+            'phone': self.phone,
         }

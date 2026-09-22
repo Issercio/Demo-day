@@ -4,49 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vérification du compte</title>
+    <link rel="stylesheet" href="../static/css/style.css?v=20260921-visual">
     <link rel="stylesheet" href="../static/css/account.css">
-    <style>
-        .site-footer {
-            text-align: center;
-            color: #f9edf2;
-            font-size: 16px;
-            margin-top: 24px;
-            padding: 18px 12px;
-            background: linear-gradient(90deg, #7f3f5a 0%, #bc6288 100%);
-            border-top: 2px solid #d7a9bd;
-            letter-spacing: 0.01em;
-            font-weight: 600;
-        }
-
-        .site-footer a {
-            color: #fff;
-            text-decoration: underline;
-            text-underline-offset: 3px;
-            font-weight: 700;
-        }
-    </style>
 </head>
 <body>
     <div class="login-container verify-container">
-        <form class="login-form">
+        <form class="login-form" id="verify-form">
             <h1>Vérification du compte</h1>
             
-            <p class="verify-text">Un code a été envoyé à votre boîte email.<br>
-            Veuillez entrer le code à 6 chiffres pour valider votre compte.</p>
+            <p class="verify-text">Un code à 6 chiffres a été envoyé par email ou SMS.<br>
+            En classe (comme la carte 4242), le code s’affiche ci-dessous.</p>
 
-            <div class="code-input-container">
-                <input type="text" maxlength="1" class="code-input" pattern="[0-9]" required>
-                <input type="text" maxlength="1" class="code-input" pattern="[0-9]" required>
-                <input type="text" maxlength="1" class="code-input" pattern="[0-9]" required>
-                <input type="text" maxlength="1" class="code-input" pattern="[0-9]" required>
-                <input type="text" maxlength="1" class="code-input" pattern="[0-9]" required>
-                <input type="text" maxlength="1" class="code-input" pattern="[0-9]" required>
+            <div class="form-group">
+                <label for="verify-email">Adresse email</label>
+                <input type="email" id="verify-email" required>
+            </div>
+
+            <p id="demo-code-hint" class="text-muted" style="display:none;text-align:center;"></p>
+
+            <div class="code-input-container" aria-label="Code à 6 chiffres">
+                <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="code-input" inputmode="numeric" pattern="[0-9]" required>
             </div>
 
             <button type="submit" class="login-button">Valider</button>
+            <p id="verify-feedback" class="text-muted" style="display:none;text-align:center;"></p>
 
             <div class="help-links">
-                <a href="#" class="text-muted">Renvoyer le code</a>
+                <a href="#" id="resend-email" class="text-muted">Renvoyer par email</a>
+                <a href="#" id="resend-sms" class="text-muted">Renvoyer par SMS</a>
+                <a href="account.html" class="text-muted">Retour à la connexion</a>
             </div>
         </form>
     </div>
@@ -54,5 +45,72 @@
       &copy; 2024 by Pivoine &amp; Lilas - Siren 522 234 871 -
       <a href="cgv.html">Conditions générales de vente</a>
     </footer>
+    <script src="../static/js/api.js?v=20260922-auth"></script>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const emailInput = document.getElementById('verify-email');
+      emailInput.value = params.get('email') || sessionStorage.getItem('verify_email') || '';
+
+      function showDemoCode() {
+        const hint = document.getElementById('demo-code-hint');
+        const demo = sessionStorage.getItem('demo_code');
+        if (demo) {
+          hint.style.display = 'block';
+          hint.textContent = 'Code démo : ' + demo;
+        }
+      }
+      showDemoCode();
+
+      const boxes = Array.from(document.querySelectorAll('.code-input'));
+      boxes.forEach((box, i) => {
+        box.addEventListener('input', function() {
+          this.value = this.value.replace(/\D/g, '').slice(0, 1);
+          if (this.value && boxes[i + 1]) boxes[i + 1].focus();
+        });
+        box.addEventListener('keydown', function(e) {
+          if (e.key === 'Backspace' && !this.value && boxes[i - 1]) boxes[i - 1].focus();
+        });
+      });
+
+      function readCode() {
+        return boxes.map((b) => b.value).join('');
+      }
+
+      document.getElementById('verify-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const feedback = document.getElementById('verify-feedback');
+        feedback.style.display = 'block';
+        const result = await apiService.verifyAccount(emailInput.value.trim(), readCode());
+        if (result.success) {
+          window.location.href = 'accueil.html';
+        } else {
+          feedback.textContent = result.error || 'Code invalide';
+        }
+      });
+
+      async function resend(channel) {
+        const extra = { channel };
+        if (channel === 'sms') {
+          const phone = prompt('Numéro pour le SMS (ex. +33612345678)') || '';
+          if (!phone) return;
+          extra.phone = phone;
+        }
+        const result = await apiService.resendCode(emailInput.value.trim(), extra);
+        showDemoCode();
+        const feedback = document.getElementById('verify-feedback');
+        feedback.style.display = 'block';
+        feedback.textContent = (result.data && result.data.demo_code)
+          ? ('Nouveau code démo : ' + result.data.demo_code)
+          : (result.data && result.data.message) || result.error;
+      }
+      document.getElementById('resend-email').addEventListener('click', function(e) {
+        e.preventDefault();
+        resend('email');
+      });
+      document.getElementById('resend-sms').addEventListener('click', function(e) {
+        e.preventDefault();
+        resend('sms');
+      });
+    </script>
 </body>
 </html>

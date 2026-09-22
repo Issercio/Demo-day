@@ -31,6 +31,7 @@
                 <div id="user-email" style="margin-bottom: 10px; color: #bc6288; font-size: 0.9em; text-align: center; display: none;"></div>
                 <button id="login-btn" class="cta-btn" style="width:100%; margin-bottom: 5px;">Se connecter</button>
                 <button id="logout-btn" class="cta-btn" style="width:100%; margin-bottom: 5px; display: none;">Déconnexion</button>
+                <button id="password-btn" class="cta-btn" style="width:100%; margin-bottom: 5px; display: none;">Changer le mot de passe</button>
                 <button id="delete-btn" class="cta-btn" style="width:100%; background: #fff; color: #bc6288; border: 1.5px solid #bc6288; display: none;">Supprimer le compte</button>
             </div>
           </li>
@@ -52,14 +53,35 @@
             </div>
 
             <button type="submit" class="login-button">Se connecter</button>
+            <p id="login-feedback" class="text-muted" style="display:none;margin-top:8px;text-align:center;"></p>
 
             <div class="help-links">
                 <a href="register.html" class="text-muted">Vous n'avez pas de compte ? Créez-en un !</a>
                 <a href="forgot-password.html" class="text-muted">J'ai oublié mon mot de passe</a>
+                <a href="verify-code.html" class="text-muted">J'ai un code de vérification</a>
             </div>
         </form>
+
+        <form class="login-form" id="password-form" style="display:none;">
+            <h1>Changer le mot de passe</h1>
+            <p class="text-muted" style="text-align:center;">Connecté en tant que <span id="password-email"></span></p>
+            <div class="form-group">
+                <label for="current-password">Mot de passe actuel</label>
+                <input type="password" id="current-password" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label for="new-password">Nouveau mot de passe</label>
+                <input type="password" id="new-password" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label for="confirm-new-password">Confirmer</label>
+                <input type="password" id="confirm-new-password" required minlength="6">
+            </div>
+            <button type="submit" class="login-button">Enregistrer</button>
+            <p id="password-feedback" class="text-muted" style="display:none;margin-top:8px;text-align:center;"></p>
+        </form>
     </div>
-    <script src="../static/js/api.js?v=20260921-orders"></script>
+    <script src="../static/js/api.js?v=20260922-auth"></script>
     <script>
         // Fonction pour mettre à jour l'interface utilisateur après connexion/déconnexion
         function updateUIAfterLogin(userData) {
@@ -86,12 +108,34 @@
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const feedback = document.getElementById('login-feedback');
             const result = await apiService.login(email, password);
             if (result.success) {
                 window.location.href = 'accueil.html';
+            } else if (result.needs_verification) {
+                sessionStorage.setItem('verify_email', result.email || email);
+                window.location.href = 'verify-code.html?email=' + encodeURIComponent(result.email || email);
             } else {
-                alert(result.error);
+                feedback.style.display = 'block';
+                feedback.textContent = result.error;
             }
+        });
+
+        document.getElementById('password-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirm = document.getElementById('confirm-new-password').value;
+            const feedback = document.getElementById('password-feedback');
+            feedback.style.display = 'block';
+            if (newPassword !== confirm) {
+                feedback.textContent = 'Les mots de passe ne correspondent pas.';
+                return;
+            }
+            const result = await apiService.changePassword(currentPassword, newPassword);
+            feedback.textContent = result.success
+                ? (result.data && result.data.message) || 'Mot de passe modifié.'
+                : (result.error || 'Impossible de modifier le mot de passe');
         });
 
         document.getElementById('logout-btn').addEventListener('click', function() {
@@ -99,6 +143,19 @@
             updateUIAfterLogin(null);
             window.location.reload();
         });
+
+        function showAccountPanels(userData) {
+            const loginForm = document.getElementById('login-form');
+            const passwordForm = document.getElementById('password-form');
+            if (userData) {
+                loginForm.style.display = 'none';
+                passwordForm.style.display = 'flex';
+                document.getElementById('password-email').textContent = userData.email || '';
+            } else {
+                loginForm.style.display = 'flex';
+                passwordForm.style.display = 'none';
+            }
+        }
 
         // Vérifier l'état de connexion au chargement de la page
         document.addEventListener('DOMContentLoaded', function() {
@@ -128,6 +185,10 @@
             const userData = JSON.parse(localStorage.getItem('user'));
             if (userData) {
                 updateUIAfterLogin(userData);
+            }
+            showAccountPanels(userData);
+            if (window.location.hash === '#password' && !userData) {
+                window.location.href = 'account.html';
             }
         });
     </script>
