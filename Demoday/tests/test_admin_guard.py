@@ -1,5 +1,7 @@
 import os
 import unittest
+from io import BytesIO
+from zipfile import ZipFile
 
 os.environ['DATABASE_URL'] = 'sqlite://'
 
@@ -266,9 +268,26 @@ class AdminGuardTestCase(unittest.TestCase):
         self.assertEqual(self.client.get('/downloads/secret.env').status_code, 404)
         page = self.client.get('/livrables.html')
         self.assertEqual(page.status_code, 200)
-        self.assertIn('/downloads/Pivoine-Lilas-Specifications.docx', page.get_data(as_text=True))
-        self.assertIn('/downloads/Pivoine-Lilas.pptx', page.get_data(as_text=True))
-        self.assertIn('/maquettes/', page.get_data(as_text=True))
+        html = page.get_data(as_text=True)
+        self.assertIn('/downloads/Pivoine-Lilas-Specifications.docx', html)
+        self.assertIn('/downloads/Pivoine-Lilas.pptx', html)
+        self.assertIn('/maquettes/', html)
+        self.assertIn('Google Docs', html)
+        self.assertIn('Google Slides', html)
+        with ZipFile(BytesIO(docx.get_data())) as z:
+            names = z.namelist()
+            self.assertIn('[Content_Types].xml', names)
+            self.assertIn('word/document.xml', names)
+            self.assertTrue(any(n.startswith('word/media/') and n.endswith('.jpg') for n in names))
+            self.assertIn('image/jpeg', z.read('[Content_Types].xml').decode('utf-8'))
+            self.assertIn('Google Docs', z.read('word/document.xml').decode('utf-8'))
+        with ZipFile(BytesIO(pptx.get_data())) as z:
+            names = z.namelist()
+            self.assertIn('ppt/presentation.xml', names)
+            pres = z.read('ppt/presentation.xml').decode('utf-8')
+            self.assertIn('screen16x9', pres)
+            self.assertTrue(any(n.startswith('ppt/media/') and n.endswith('.jpg') for n in names))
+            self.assertIn('image/jpeg', z.read('[Content_Types].xml').decode('utf-8'))
 
     def test_clickable_mockup_is_served(self):
         index = self.client.get('/maquettes/')
