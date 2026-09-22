@@ -2,6 +2,8 @@
 
 FloraShop is a small Flask shop. The suite is **API / integration tests** with an in-memory SQLite database (`DATABASE_URL=sqlite://`). There is no separate frontend test runner yet.
 
+Full project specification (identity, MoSCoW, user stories, NFR, UML, API, Git): [`Pivoine-Lilas-Specifications.docx`](Pivoine-Lilas-Specifications.docx). Demo Day deck: [`presentation/Pivoine-Lilas.pptx`](presentation/Pivoine-Lilas.pptx).
+
 ## Strategy
 
 | Layer | Tool | When |

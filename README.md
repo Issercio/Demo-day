@@ -1,10 +1,15 @@
 # Pivoine & Lilas
 
-Online boutique for a florist in Sciez (Léman, Haute-Savoie). Customers browse bouquets with photos, filter by category or colour, subscribe to seasonal flowers, and pay online. The florist manages the catalog from a protected back-office, applies a season, a theme, or both as a combo to the live shop, and reviews paid orders with line prices and payment details.
+Online boutique for a family florist in Sciez (Léman, Haute-Savoie). Customers browse photographed bouquets, filter by category or colour, keep a private cart, pay online (full payment or a 30 % deposit), subscribe to a floral plan, and track workshop preparation. The florist manages the catalog, applies a season, an event theme, or both as a live shop vitrine, and reviews each paid order as a printable **FAC** document (TTC demo invoice — not a fiscal HT/TVA invoice).
 
-The previous site was a Wix brochure that was no longer maintained. This application is the working shop: accounts, catalog, cart, server-side checkout, subscriptions, vitrine, and administration.
+The previous site was a Wix brochure that was no longer maintained. This repository is the working shop used for Holberton Demo Day.
 
-Source: [github.com/Issercio/Demo-day](https://github.com/Issercio/Demo-day)
+Source: [github.com/Issercio/Demo-day](https://github.com/Issercio/Demo-day) · branch `main`
+
+Specifications: [`docs/Pivoine-Lilas-Specifications.docx`](docs/Pivoine-Lilas-Specifications.docx)  
+Presentation deck: [`docs/presentation/Pivoine-Lilas.pptx`](docs/presentation/Pivoine-Lilas.pptx)  
+Testing: [`docs/testing.md`](docs/testing.md) · evidence [`docs/test-evidence/`](docs/test-evidence/)  
+Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraShop.postman_collection.json)
 
 ---
 
@@ -12,8 +17,108 @@ Source: [github.com/Issercio/Demo-day](https://github.com/Issercio/Demo-day)
 
 | Name | Role | Responsibilities |
 | --- | --- | --- |
-| Issercio | Full-stack developer | Flask API, SQLAlchemy models, authentication, checkout, tests, security, documentation |
-| Matthieu | Front-end & product | Storefront (Jinja, CSS, JavaScript), user stories, live demonstration, presentation |
+| Dimitri Jaille | Backend lead & full-stack | Flask API, SQLAlchemy, JWT, checkout, payments, tests, security, this README |
+| Mattieu Mouroux | Frontend, product & Demo Day | Jinja/CSS/JS storefront, user stories, screens, live demonstration, presentation deck |
+
+**Communication.** Daily work is visible on GitHub. We sync 15–30 minutes before each demo. Technical decisions that affect money or auth are written here and in the specification.
+
+**Decisions.** Mattieu owns UI copy. Dimitri owns API, schema, and security. Cutting email, delivery zones, or inventing a 20 % TVA requires both of us and is listed under missing stories — never hidden.
+
+---
+
+## Problem and target users
+
+**Problem.** The boutique still sold after 19:00 (birthdays, hotels, funeral pieces) while the public site was a Wix brochure: no cart, no account, no payment, no catalog the florist could update. Information lived on Instagram, the phone, and the street window.
+
+**Users.** Marie Dupont (last-minute customer), Léa Martin (subscriber), Camille Pivoine (florist / admin).
+
+**Pain.** No pay after closing time; phone orders without line items; no workshop status; seasonal windows not applied to the shop; demo carts leaked between accounts.
+
+**Evidence.** Observation of the old Wix site; classroom bugs we actually fixed (empty checkout, bcrypt lockout on `marie@test.com`, client-trusted prices); local Léman florists and Interflora already take cards after hours; **80 automated tests** on the purchase path.
+
+---
+
+## Solution and value
+
+A responsive **Flask + Jinja** shop with a REST API under `/api/v1`. Prices come from SQLAlchemy `Numeric(10, 2)` / `Decimal`, never from the browser. Optional Stripe when keys exist; the classroom demo uses documented test cards.
+
+**Value.** Customers buy after closing time. The florist sees payment (`Payée` / `Acompte versé` / `Paiement refusé`) and atelier prep (`À préparer` → `Remise`). Demo Day runs in 20 minutes without Stripe secrets.
+
+**MVP is green when** Marie pays for a photographed bouquet and Camille opens `FAC-YYYY-NNNN` and advances prep.
+
+---
+
+## Implemented features
+
+### Mandatory core
+
+| Feature | Status |
+| --- | --- |
+| Sign up | Done — `POST /api/v1/auth/register` |
+| Login / sign out | Done — JWT in `localStorage`, **Déconnexion** |
+| JWT | Done — HS256, 24 h, `Authorization: Bearer` |
+| CRUD (catalog, themes, orders) | Done |
+| External API | Done — optional Stripe PaymentIntent + webhook; test-card processor when keys are empty |
+| Account verification by email/SMS | **Not shipped** — `verify-code.html` is UI only |
+| Password change | **Partial** — `PUT /users/<id>` hashes a password but is admin-only; no customer form |
+
+### Additional (more than ten, shop context)
+
+Shopping cart · order management · workshop tracking (`Mes commandes`) · subscriptions · file upload · image management · admin dashboard · text search · category/colour/price filters · online payment · 30 % deposit · account deletion (self or admin) · customizable vitrine · Swagger/OpenAPI.
+
+Invoices on the admin **Commandes et factures** screen are **TTC demonstration documents** (SIREN, FAC number, lines). There is no HT column and no invented 20 % TVA: the CGV has no VAT regime.
+
+---
+
+## MoSCoW
+
+| Priority | Features |
+| --- | --- |
+| Must | Register/login/logout, catalog + photos, isolated cart, server checkout, admin guard, florist invoice + prep |
+| Should | Subscriptions, 30 % deposit, Mes commandes, shop filters |
+| Could | Season/event combo vitrine, custom event themes, optional Stripe, print window |
+| Won’t (this release) | Native app, chat, AI, 2FA, OAuth, email, geo/click-and-collect, fiscal HT/TVA, mounted reviews |
+
+---
+
+## Implemented user stories
+
+| ID | Role | Story | Priority |
+| --- | --- | --- | --- |
+| US-01 | Customer | Create an account so I can place orders | Must |
+| US-02 | Customer | Log in / out so my cart and orders stay mine | Must |
+| US-03 | Customer | Browse photographed bouquets by category | Must |
+| US-04 | Customer | Filter by colour, price and name | Should |
+| US-05 | Customer | Keep a cart that does not leak to another account | Must |
+| US-06 | Customer | Pay online after closing time | Must |
+| US-07 | Customer | Pay a 30 % deposit | Should |
+| US-08 | Customer | Follow preparation on Mes commandes | Should |
+| US-09 | Customer | Subscribe to a floral plan | Should |
+| US-10 | Customer | Delete my account | Could |
+| US-11 | Florist | CRUD products/categories and upload a photo | Must |
+| US-12 | Florist | Apply a season, a theme, or both to the live shop | Could |
+| US-13 | Florist | Create / delete event themes (not seasons) | Could |
+| US-14 | Florist | Review a printable FAC (TTC) | Must |
+| US-15 | Florist | Move prep À préparer → Remise | Must |
+| US-16 | Florist | Keep the back-office for administrators only | Must |
+
+Evidence: `/account.html`, `/shop.html`, `/checkout.html`, `/commandes.html`, `/subscription.html`, `/admin.html`, REST under `/api/v1`.
+
+---
+
+## Missing user stories
+
+| Role | Story | Priority | Current state |
+| --- | --- | --- | --- |
+| Customer | Email / SMS account verification | Mandatory list | UI only |
+| Customer | Change password from the account page | Mandatory list | Admin `PUT` only |
+| Customer | Click-and-collect time slot | Must (original spec) | Paid order, no pickup window |
+| Customer | Delivery limited to configured zones | Must (original spec) | No zone table |
+| Customer | Email alerts for events and sales | Could | Password-reset pages are interface only |
+| Florist | Edit homepage images and seasonal copy | Must (original spec) | Home is a template; vitrine applies to `/shop.html` |
+| Florist | Configure delivery areas | Must (original spec) | Not modelled |
+| Florist | Fiscal invoice HT + TVA | — | TTC demo FAC only |
+| Customer | Write product reviews | Specified | `reviews` model exists; endpoints are not mounted |
 
 ---
 
@@ -29,19 +134,7 @@ chmod +x setup.sh run.sh run-tests.sh
 ./run.sh
 ```
 
-`setup.sh` creates `Demoday/.venv`, installs `Demoday/requirements.txt`, copies `.env.example` to `Demoday/.env` if needed, and seeds demo users plus seven florist categories with product photos (Fleurs Fraîches, Compositions, Fleurs Séchées, Plantes d’intérieur, Mariage & Événements, Deuil, Cadeaux).
-
-Manual equivalent:
-
-```bash
-cd Demoday
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp ../.env.example .env
-python3 init_db.py
-python3 run.py
-```
+`setup.sh` creates `Demoday/.venv`, installs `Demoday/requirements.txt`, copies `.env.example` to `Demoday/.env` if needed, and seeds demo users plus seven florist categories with product photos.
 
 | Page | URL |
 | --- | --- |
@@ -51,23 +144,21 @@ python3 run.py
 | Checkout | http://localhost:5000/checkout.html |
 | My orders | http://localhost:5000/commandes.html |
 | Admin | http://localhost:5000/admin.html |
-| API (Swagger) | http://localhost:5000/api/v1 |
+| API (Swagger / OpenAPI) | http://localhost:5000/api/v1 |
 
 ```bash
 ./run-tests.sh
 ```
 
-If a hosted URL is unavailable, run the local SQLite demo with the accounts below. Test output is in [`docs/testing.md`](docs/testing.md) and [`docs/test-evidence/`](docs/test-evidence/).
-
 ### Environment
 
-Copy [`.env.example`](.env.example) to `Demoday/.env`. Never commit `.env`. Secrets are listed in `.gitignore`.
+Copy [`.env.example`](.env.example) to `Demoday/.env`. Never commit `.env`.
 
 | Variable | Example | Role |
 | --- | --- | --- |
 | `DATABASE_URL` | `sqlite:///florashop.db` | SQLAlchemy URI |
-| `SECRET_KEY` | long random string | Flask and JWT signing |
-| `JWT_SECRET_KEY` | long random string | Reserved JWT secret |
+| `SECRET_KEY` | long random string | Flask and JWT signing (placeholders are refused) |
+| `JWT_SECRET_KEY` | long random string | Reserved |
 | `STRIPE_SECRET_KEY` | empty | Leave empty to use test cards |
 | `STRIPE_PUBLISHABLE_KEY` | empty | Leave empty for the classroom demo |
 
@@ -81,74 +172,6 @@ Copy [`.env.example`](.env.example) to `Demoday/.env`. Never commit `.env`. Secr
 
 Successful payment: `4242 4242 4242 4242`, any future expiry, CVC `123`.  
 Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
-
----
-
-## Implemented user stories
-
-| Role | Story | Priority |
-| --- | --- | --- |
-| Customer | Create an account and log in to place orders | Must have |
-| Customer | Browse products by category, with photos and colour swatches | Must have |
-| Customer | Order flowers online and pay | Must have |
-| Customer | Keep a cart that does not leak to another account | Must have |
-| Customer | Subscribe to a floral plan (monthly, semester, yearly) | Should have |
-| Customer | Filter the catalog by minimum and maximum price | Shop filter |
-| Customer | See the season, theme, or combo vitrine applied by the florist | Shop filter |
-| Florist | Add, update and delete products and categories | Must have |
-| Florist | Upload a product photo from the catalog form | Must have |
-| Florist | Apply a season, a theme, or both as a combo to the live shop | Must have |
-| Florist | Create or delete shop event themes from the admin catalog | Must have |
-| Florist | Review paid orders as printable invoices (FAC number, TTC lines, workshop toolbar) | Must have |
-| Florist | Keep the back-office for administrators only | Must have |
-
-Evidence: `/account.html`, `/shop.html`, `/checkout.html`, `/subscription.html`, `/admin.html` (Vitrine du shop, catalogue photos, Commandes et factures), and the REST routes under `/api/v1`.
-
----
-
-## Missing user stories
-
-These were in the original specification and are not in this release.
-
-| Role | Story | Priority | Current state |
-| --- | --- | --- | --- |
-| Customer | Click-and-collect time slot | Must have | The order is paid; there is no pickup window |
-| Customer | Delivery limited to configured zones | Must have | No postcode or zone table |
-| Customer | Email alerts for events and sales | Could have | Password-reset pages are interface only |
-| Florist | Edit homepage images and seasonal copy | Must have | Home is a template; seasons and themes are applied from admin to the shop, not to `/accueil.html` |
-| Florist | Configure delivery areas | Must have | Not modelled |
-| Florist | Enforce minimum and maximum catalog prices as rules | Must have | Admin sets a price; min/max in the shop is a filter |
-| Florist | Publish blog posts and workshops | Should have | `/evenementiel.html` is static |
-| Customer | Write product reviews | Specified | `reviews` model exists; endpoints are not mounted |
-
----
-
-## Known bugs and limitations
-
-Resolved:
-
-- Empty cart on the payment page after per-account cart keys — checkout loads the shared cart script and a snapshot
-- `marie@test.com` rejected on legacy bcrypt hashes — login accepts bcrypt and the demo seed repairs unusable hashes
-- Cart shared between accounts — keys are `cart:user:<id>` and `cart:guest`
-- Checkout trusted prices sent by the browser — totals come from the database
-- Money stored as binary `float` — columns are `Numeric(10, 2)`, totals use `Decimal`
-- Fixed navigation covering content — sticky header in document flow
-- Profile / logout menu stretching the navbar — compact overlay under the account icon
-- Empty shop on a fresh database — demo bouquets, compositions and photos are seeded on startup
-- Season picker on the public homepage — moved to admin **Vitrine du shop**; the shop reads `GET /api/v1/themes`
-- Admin orders shown as a one-line table — each order is a card with items, unit price, line total, payment status, prep status, and payment metadata
-- Virtualenv and a Stripe publishable key in Git — removed
-
-Open, none of them block a purchase:
-
-- Forgot-password and verify-code pages do not send email
-- Reviews API is not registered
-- The cart lives in `localStorage`, not in a server table
-- The `prices` table is unused (`products.price` is the source of truth)
-- Duplicate CSS and leftover debug prints
-- No production host in this repository (local demo)
-- CORS allow-list is localhost
-- Package coverage is pulled down by unused modules; checkout, authentication, vitrine and catalog paths are covered
 
 ---
 
@@ -169,25 +192,27 @@ flowchart LR
   end
   DB[(SQLite or PostgreSQL)]
   Disk[(static product photos)]
+  Stripe[Stripe optional]
   Pages --> JS
-  JS -->|JSON + Bearer| Restx
+  JS -->|JSON + Bearer HTTP| Restx
   JS -->|POST checkout| Pay
   Restx --> Auth
   Restx --> Themes
   Restx --> Photos
   Restx --> DB
   Pay --> DB
+  Pay -.->|PaymentIntent| Stripe
   Themes --> DB
   Photos --> Disk
 ```
 
-The browser renders server templates and calls `/api/v1`. Checkout never uses a price from the client: `checkout_service.build_order_lines` loads `Product.price` from the database and totals with `Decimal`.
+**Frontend.** Jinja templates, `static/css/style.css`, `static/js/api.js`. Vanilla JS — no React. Palette `#bc6288` / `#7f3f5a` / `#f8f5f2`.
 
-The public shop does not auto-filter `GET /api/v1/products`. After load it reads `GET /api/v1/themes` (`applied_ids`, `product_names`) and shows the florist’s vitrine. A combo is the union of the season list and the event list. Applied ids are stored as a comma-separated string (`printemps,mariage`), not with `+`, so they stay URL-safe.
+**Backend.** `create_app()` wires CORS, SQLAlchemy, RESTX (`auth`, `products`, `categories`, `users`) and `payments`. Domain logic in `app/services/`.
 
-**Frontend.** Templates in `Demoday/app/templates/` (home, shop, cart, checkout, account, admin, subscription). Shared CSS in `static/css/style.css`. Cart and session in `static/js/api.js`. Vanilla JavaScript and Jinja — no React.
+**Deploy.** Classroom bind `0.0.0.0:5000`. No production host in this repository. Backup = SQLite file or managed PostgreSQL.
 
-**Backend.** `create_app()` in `app/__init__.py` wires CORS, SQLAlchemy, Flask-RESTX namespaces (`auth`, `products`, `categories`, `users`) and the payments blueprint. Domain logic lives in `app/services/` (`checkout_service.py`, `demo_accounts.py`, `shop_themes.py`, `product_images.py`, `stripe_service.py`). Seasons, event themes and the applied vitrine are SQL tables (`shop_themes`, `theme_products`, `shop_vitrine`) linked to `products`.
+**Why this stack.** One process for Demo Day. RESTX gives Swagger. SQLite needs no ops. Decimal is the correct euro type. Test cards satisfy “external service” without live keys.
 
 ---
 
@@ -265,9 +290,21 @@ erDiagram
   }
 ```
 
-`reviews` and `prices` exist as models but are not on the purchase path. Product `color` is a hex code (`VARCHAR(7)`). Product `image` is a path under `/static/img/products/`. Card numbers are not stored; `card_last4` is at most four digits. Each vitrine theme stores an ordered list of `product_id` rows in `theme_products`. The live shop selection is one `shop_vitrine` row (`season_id`, `theme_id`).
+`reviews` and `prices` exist as models but are not on the purchase path. Product `color` is `#rrggbb` (`VARCHAR(7)`). Card numbers are not stored.
 
-### UML
+### UML — use cases
+
+Actors: **Guest** (browse, guest checkout, register), **Customer** (JWT, pay, track, delete account), **Florist** (catalog, vitrine, FAC, prep, list orders).
+
+### UML — sequence (checkout 4242)
+
+1. Customer submits card + `items[{product_id, quantity}]` (no trusted price).
+2. `POST /api/v1/payments/checkout`. JWT optional; logged-in email overwrites the body.
+3. `build_order_lines` loads `Product.price`. `payment_intent_id` → 400.
+4. Luhn test card. `4242` → `paid` + `a_preparer`. `0002` → 402 `failed`.
+5. `201` order JSON without Stripe PI. UI → `commandes.html#order-<id>`.
+
+### UML — classes
 
 ```mermaid
 classDiagram
@@ -286,7 +323,6 @@ classDiagram
     +str name
     +Decimal price
     +int category_id
-    +bool is_on_sale
     +str color
     +str image
   }
@@ -297,15 +333,11 @@ classDiagram
   class Order {
     +int id
     +int user_id
-    +str email
-    +str customer_name
     +Decimal total_amount
     +Decimal deposit_amount
     +str status
     +str prep_status
-    +str payment_method
     +str card_last4
-    +str payment_reference
   }
   class OrderItem {
     +int quantity
@@ -328,72 +360,104 @@ classDiagram
 
 ## API
 
-Interactive documentation: http://localhost:5000/api/v1  
-Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraShop.postman_collection.json)
+Interactive docs: http://localhost:5000/api/v1  
+Error format: `{ "error": "…" }` or `{ "success": false, "message": "Accès refusé" }`.  
+Auth: `Authorization: Bearer <jwt>`. Admin checks use the **database** `is_admin` column, not the JWT claim.
+
+### Register (public)
+
+`POST /api/v1/auth/register`
+
+```json
+{ "username": "Marie Dupont", "email": "marie@test.com", "password": "marie123" }
+```
+
+**201** `{ "success": true, "data": { "token": "<jwt>", "user": { "id", "username", "email", "is_admin" } } }`  
+**400** validation. `is_admin` in the body is ignored. Password is never returned.
+
+### Login (public)
+
+`POST /api/v1/auth/login` — same envelope, **401** if invalid. Plaintext stored hashes are refused.
+
+### Checkout (optional JWT)
+
+`POST /api/v1/payments/checkout`
+
+```json
+{
+  "email": "marie@test.com",
+  "name": "Marie Dupont",
+  "payment_method": "card",
+  "card_number": "4242424242424242",
+  "card_expiry": "12/34",
+  "card_cvc": "123",
+  "deposit": false,
+  "items": [{ "product_id": 4, "quantity": 1 }]
+}
+```
+
+**201** paid or deposit order. **402** declined (`failed` order attached). **400** empty cart, invalid card, or `payment_intent_id` present (use `/confirm-payment` with owner JWT instead).
+
+### Other routes
 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
-| POST | `/api/v1/auth/register` | public | Create user, return JWT |
-| POST | `/api/v1/auth/login` | public | Sign in |
-| GET | `/api/v1/products` | public | Full catalog (`?theme=` season, event, or comma-separated combo) |
-| GET | `/api/v1/themes` | public | Seasons, event themes, and the applied shop vitrine |
-| POST | `/api/v1/themes` | admin JWT | Create a custom event theme (not a season) |
-| PUT | `/api/v1/themes` | admin JWT | Apply `{ "season", "theme" }` or a legacy `{ "id" }` |
-| DELETE | `/api/v1/themes/<id>` | admin JWT | Delete an event theme |
-| POST | `/api/v1/products` | admin JWT | Create product (JSON or multipart with `image`) |
-| PUT / DELETE | `/api/v1/products/<id>` | admin JWT | Update or delete product (multipart photo allowed on PUT) |
-| GET | `/api/v1/categories` | public | List categories |
-| POST / PUT / DELETE | `/api/v1/categories`… | admin JWT | Mutate categories |
-| GET | `/api/v1/users` | admin JWT | List users (no password field) |
-| GET | `/api/v1/payments/config` | public | `test` or `stripe` mode |
-| POST | `/api/v1/payments/checkout` | optional JWT | Create a paid, deposit, or failed order (`deposit: true` = 30 %) |
-| PATCH | `/api/v1/payments/orders/<id>` | admin JWT | Advance prep (`a_preparer` → `remise`) or settle a deposit |
-| DELETE | `/api/v1/payments/orders/<id>` | admin JWT | Remove an order (line items cascade) |
-| GET | `/api/v1/payments/my-orders` | JWT | Customer’s own orders (tracking) |
-| GET | `/api/v1/payments/orders/<id>` | owner or admin JWT | Order detail |
-| GET | `/api/v1/payments/orders` | admin JWT | List every order |
+| GET | `/api/v1/products` | public | Catalog (`?theme=printemps,mariage`) |
+| POST | `/api/v1/products` | admin | Create (JSON or multipart `image`) |
+| PUT / DELETE | `/api/v1/products/<id>` | admin | Update / delete |
+| GET | `/api/v1/categories` | public | List |
+| POST / PUT / DELETE | `/api/v1/categories`… | admin | Mutate |
+| GET | `/api/v1/themes` | public | Vitrine payload |
+| PUT | `/api/v1/themes` | admin | Apply `{season, theme}` |
+| POST / DELETE | `/api/v1/themes`… | admin | Event themes |
+| GET | `/api/v1/users` | admin | List users (no password) |
+| GET / DELETE | `/api/v1/users/<id>` | self or admin | Profile / account deletion |
+| PUT | `/api/v1/users/<id>` | admin | Update (password hashed; cannot mint admin) |
+| GET | `/api/v1/payments/config` | public | `test` or `stripe` |
+| GET | `/api/v1/payments/my-orders` | JWT | Customer tracking |
+| GET | `/api/v1/payments/orders/<id>` | owner or admin | Detail |
+| GET | `/api/v1/payments/orders` | admin | All orders (`include_stripe`) |
+| PATCH | `/api/v1/payments/orders/<id>` | admin | Prep or settle deposit |
+| DELETE | `/api/v1/payments/orders/<id>` | admin | Remove (cascade items) |
+| POST | `/api/v1/payments/create-payment-intent` | optional JWT | Stripe PI |
+| POST | `/api/v1/payments/confirm-payment` | owner JWT | Stripe confirm |
+| POST | `/api/v1/payments/webhook` | Stripe signature | Webhook |
 
-`GET /api/v1/themes` returns `applied`, `applied_ids`, `applied_season`, `applied_theme`, `label`, `blurb`, `product_names`, and the full theme list with `is_applied` and `can_delete`. A customer token cannot change the vitrine.
-
----
-
-## Authentication and security
-
-- Passwords are hashed with Werkzeug. Legacy bcrypt hashes are still verified, then upgraded. Rows still stored in plaintext are rejected.
-- Login and register return a JWT (HS256) stored in `localStorage` and sent as `Authorization: Bearer`.
-- Claims: `sub`, `email`, `is_admin`, `exp`.
-- The admin page is hidden in the browser **and** every mutation is checked on the server. A customer token cannot create categories, upload photos, change the vitrine, or list all orders.
-- Authorization uses the `is_admin` column in the database, not the JWT claim. A forged `is_admin: true` token is ignored.
-- Example / placeholder `SECRET_KEY` values from the repository are rejected at startup; the process generates a random signing key instead.
-- User JSON never includes `password`. Creating or updating a user cannot mint an administrator.
-- Checkout totals come from the database. Unknown Luhn-valid cards are declined. A logged-in checkout uses the account email, not a spoofed body field.
-- Order detail is limited to the owner or an admin; `GET /payments/orders` is admin-only. A customer lists **their** orders with `GET /payments/my-orders` and opens one card via `GET /payments/orders/<id>`. Stripe payment-intent ids are omitted from customer JSON (including `payment_reference`). `POST /payments/confirm-payment` requires the owner’s JWT.
-- Card numbers are not stored; at most `card_last4`.
-- Product photo uploads are admin-only. Allowed types: jpg, png, webp, gif. Maximum size: 4 MB.
-- Stripe keys live only in the environment. Empty keys use documented test cards. No live charge in the default demo.
-- CORS is limited to localhost.
-- `.env` is gitignored; only `.env.example` is committed.
-
-Remaining risks: JWT in `localStorage` (XSS), no CSRF on cookie-less Bearer, no login rate limit. PayPal and saved-card checkouts are sandbox (no live money movement). Flask binds `0.0.0.0:5000` for the classroom demo; the debugger stays off unless `FLASK_DEBUG=1`.
+**External API.** Stripe (`api.stripe.com`) when `STRIPE_SECRET_KEY` is a real `sk_test_`. Classroom leaves it empty.
 
 ---
 
-## Stack
+## Non-functional requirements and security
 
-| Layer | Choice |
-| --- | --- |
-| Frontend | HTML5, CSS3, vanilla JavaScript, Jinja2 |
-| Backend | Python 3.10+, Flask 3, Flask-RESTX, Flask-Migrate |
-| Auth | PyJWT (HS256), Werkzeug hashes, bcrypt for legacy rows |
-| Database | SQLite locally, PostgreSQL when `DATABASE_URL` points to it |
-| ORM | SQLAlchemy 2, `Numeric(10, 2)` for money |
-| Payments | Built-in test processor, optional Stripe |
-| Tests | `unittest`, `coverage` |
-| Config | python-dotenv, Flask-CORS, Alembic |
+- **SQL injection.** ORM and bound parameters. No concatenation of user input into SQL.
+- **Hashing.** Werkzeug PBKDF2 with unique salt; legacy bcrypt verified; plaintext rows rejected.
+- **Secrets.** `.env` gitignored; placeholder `SECRET_KEY` refused; `instance/secret_key` mode `0600`.
+- **JWT.** HS256, `sub` / `email` / `is_admin` / `exp`. Role checks reload `users.is_admin`.
+- **IDOR.** Orders owner-or-admin; `confirm-payment` owner; logged-in checkout overwrites email.
+- **XSS.** `escapeHtml` on storefront/admin; colours must match `#rrggbb`.
+- **Uploads.** Admin only, jpg/png/webp/gif, 4 MB, UUID names under `/static/img/products/`.
+- **PAN.** Never stored; at most `card_last4`. Stripe `pi_` hidden from customer JSON.
+- **CORS.** localhost only.
+- **TLS.** Classroom HTTP. Production must use HTTPS. Cookie flags apply if cookies are introduced.
+- **CNIL.** Salted hashes; demo passwords are classroom fixtures. **Gaps:** no brute-force lockout, no customer password-change form, no email verification — listed as missing.
+- **Performance.** Catalog is tens of products; one `GET /products` then client filters. No pagination yet.
+- **Responsive.** Sticky header in document flow; shop grid wraps; invoice layout stacks under 720 px.
+- **Accessibility.** Form labels; keyboard buttons; admin notices instead of `alert()`.
+- **Errors.** JSON `{error}` with 400/401/402/403/404/500. Flask debug off unless `FLASK_DEBUG=1`.
+- **Backup.** SQLite file or managed PostgreSQL. Recovery: `./setup.sh`.
 
-Flask and Jinja keep pages and API in one process. RESTX provides Swagger. SQLite keeps a classroom machine free of PostgreSQL. Decimal types are the correct way to store euros. Test cards make the demonstration work without secrets.
+Remaining risks: JWT in `localStorage` (XSS), no CSRF on cookie-less Bearer, PayPal/saved-card sandboxes, bind `0.0.0.0:5000` for class.
 
-**Decisions.** Server-side checkout. Per-user carts after a shared-cart bug. Sticky navigation instead of a floating bar. Profile menu as an overlay under the account icon. Demo users, bouquets and photos re-seeded so `marie@test.com` / `marie123` and `/shop.html` always work. Vitrine controls live in admin, not on the homepage, so every visitor sees the same shop. Season and event can be combined; the shop shows the union of both product lists. Admin orders are cards, not a one-line table, so the florist can read payment (unpaid, deposit, paid, refused) and workshop prep (`À préparer` → `Remise`).
+---
+
+## Git collaboration
+
+- `main` is the stable demo.
+- Feature branches, then PR, then merge when `./run-tests.sh` is green and `.env` is not in the diff.
+- Commits: short imperative (`Show florist orders as printable invoices.`).
+- Review: readable, no secrets, story matches, UI responsive if touched, API JSON consistent.
+- Conflicts: resolve locally, re-run tests, never force-push `main`.
+- Board: Backlog → In progress (branch) → Review (PR) → Done (`main`). Cards map to US-01… in the specification.
 
 ---
 
@@ -401,9 +465,30 @@ Flask and Jinja keep pages and API in one process. RESTX provides Swagger. SQLit
 
 Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **80 tests OK**.
 
-Covered: registration and login hashing, demo seed (accounts, seven-category flower catalog, product photos), admin versus customer permissions, public catalog, product image upload (admin only, rejected for clients and non-images), checkout (success, decline, insufficient funds, unknown Luhn card, invalid PAN, PayPal, saved card, 30 % deposit, admin prep PATCH, customer `my-orders` tracking, subscription line, server-side prices, decimal cents, admin order list with item prices, order IDOR, spoofed email), vitrine (admin-only `PUT /themes`, shop payload, season/theme combo `printemps,mariage`), privilege escalation (forged JWT, placeholder secret, POST/PUT/register cannot mint admin).
+Covered: registration hashing, demo seed, admin vs customer, uploads, checkout (success, decline, insufficient funds, Luhn, PayPal, saved card, 30 % deposit, prep PATCH, delete order, tracking, Decimal cents, IDOR, spoofed email), vitrine combos, forged JWT, placeholder secret, `payment_intent_id` rejected on public checkout, invalid product colour stored as null.
 
-Not covered yet: live Stripe calls, email, browser end-to-end tests, reviews, load tests.
+Not covered: live Stripe network, email, Playwright e2e, reviews, load.
+
+Bugs found in testing (empty cart, bcrypt Marie, shared cart, float money, forged admin claim, season picker on home, sparse admin orders, Stripe PI reuse) are **fixed**. Open items are in the next section.
+
+---
+
+## Known bugs and limitations
+
+Resolved: empty checkout cart; Marie bcrypt; shared cart; client prices; float money; fixed navbar; profile overlay; empty shop seed; vitrine moved off accueil; combo `+` ids; admin order cards/invoices; plaintext login rejected; stolen `pi_` on checkout; XSS tester `index.html`.
+
+Open, none of them block a purchase:
+
+- Forgot-password and verify-code pages do not send email
+- Customer cannot change password from the UI
+- Reviews API is not registered
+- Cart lives in `localStorage`
+- `prices` table unused
+- Duplicate CSS and leftover debug prints
+- No production host / TLS in this repository
+- CORS allow-list is localhost
+- Package coverage pulled down by unused modules
+- FAC invoices are TTC demo documents, not tax invoices
 
 ---
 
@@ -412,107 +497,96 @@ Not covered yet: live Stripe calls, email, browser end-to-end tests, reviews, lo
 | Challenge | Kind | Resolution |
 | --- | --- | --- |
 | Front-end and API disagreed on cart identity | Technical | One `FloraCart` helper, per-account keys, checkout snapshot |
-| Mixed password hashes in `users.password` | Technical | `check_password` accepts Werkzeug and bcrypt; plaintext rows are refused; demo seed repairs Marie |
-| Stripe keys missing in the classroom | Technical | Documented test cards when environment keys are empty |
-| Money rounding | Technical | `Decimal` and `Numeric(10, 2)`; admin line totals in cents |
-| Logout menu stretched the navbar | Technical | Dropdown overlay under the account icon; leftover fixed-header padding removed |
-| Empty shop after a clean SQLite start | Technical | Seed seven florist categories with photos and hex colors that match the shop filter swatches |
-| Season picker on the homepage confused visitors | Product | Move **Vitrine du shop** to admin; public `GET /themes` updates `/shop.html` for everyone |
-| Season *and* event at the same time | Product | Persist `{season, theme}`; combo ids are comma-separated; shop shows the union |
-| Admin orders too sparse to demo a payment | Product | Order cards with French payment + prep status, optional 30 % deposit, last four digits, reference, photo, quantity, unit price, line total |
-| Rebuilding every Wix page versus a working shop | Product | Cut CMS, geo and email; keep the purchase path |
-| Presentation time including the live demo | Organisation | Timed story; skip the declined card if the clock runs out |
-
-Difficult moments in code: empty checkout after cart keys became user-scoped; Marie locked out by bcrypt; binary floats; a committed virtualenv and a leftover Stripe key; the profile panel opening a gap under the header; applying a vitrine on the homepage instead of the shop; `+` in combo ids breaking query strings.
+| Mixed password hashes | Technical | Werkzeug + bcrypt; plaintext refused; seed repairs Marie |
+| Stripe keys missing in class | Technical | Documented test cards |
+| Money rounding | Technical | `Decimal` + `Numeric(10, 2)` |
+| Season picker on the homepage | Product | Admin **Vitrine du shop**; public `GET /themes` |
+| Fake TVA on invoices | Product | TTC only; legal line says demonstration |
+| Rebuild every Wix page | Product | Cut CMS, geo, email; keep the purchase path |
+| Twenty minutes including the live demo | Organisation | Timed Marie story; skip decline if the clock runs out |
 
 ---
 
-## Collaboration
+## Collaboration evidence
 
-Work lives on [Issercio/Demo-day](https://github.com/Issercio/Demo-day), branch `main`. Feature work is tested with `./run-tests.sh` before merge.
+- GitHub [Issercio/Demo-day](https://github.com/Issercio/Demo-day)
+- [`docs/test-evidence/`](docs/test-evidence/)
+- Swagger `/api/v1` and Postman
+- Screenshots in [`docs/screenshots/`](docs/screenshots/)
+- Specification and deck linked at the top of this file
 
-To show how the project is organised:
-
-- GitHub history and this README
-- [`docs/test-evidence/unittest-output.txt`](docs/test-evidence/unittest-output.txt)
-- Swagger at `/api/v1` and the Postman collection
-- Storefront captures in [`docs/screenshots/`](docs/screenshots/) (home, shop, vitrine, cart, account, checkout, admin)
-
-Issercio and Matthieu share this repository. Cadence for a demonstration: one local server, credentials written above, a fallback of tests plus this file if a deploy is down.
+Cadence for a demonstration: one local server, credentials above, tests + this README if a deploy is down.
 
 ---
 
 ## What we would improve
 
-- Store the cart on the server
+- Server-side cart
 - Click-and-collect slots and delivery zones
-- Real email for receipts and password reset
-- Seasonal editing of the homepage (the shop vitrine already exists)
-- Playwright end-to-end tests
-- PostgreSQL in CI
-- A hosted instance and a recorded walkthrough as backup
-- Remove or test leftover modules (`prices`, unmounted reviews) so coverage reflects the live code
+- Real email (receipts, verification, reset) and CNIL lockout
+- Hosted HTTPS and a recorded walkthrough
+- Playwright and PostgreSQL in CI
+- HT/TVA only if the CGV gains a VAT regime
+- Remove or test leftover modules (`prices`, unmounted reviews)
 
 ---
 
 ## What we learned
 
-**Technical.** Never trust a price from the browser. Store money as decimals. Support legacy password hashes or the demo account locks. An empty Stripe key must not crash checkout. Secrets do not belong in Git. A dropdown must overlay the page, not stretch the header. A shop-wide theme belongs in admin, not on the marketing homepage, and combo ids must stay URL-safe.
+**Technical.** Never trust a price from the browser. Store money as decimals. Support legacy hashes or the demo account locks. An empty Stripe key must not crash checkout. Secrets do not belong in Git. Combo ids must stay URL-safe. Do not invent TVA.
 
-**Non-technical.** A demonstration needs a story, not a click tour. Features that were specified and not built must be listed, or they look like defects. Twenty minutes including the demo forces cuts. Documentation is part of the product.
+**Non-technical.** A demonstration needs a story, not a click tour. Missing stories must be listed or they look like defects. Twenty minutes including the demo forces cuts. Documentation is part of the product. Each of us can explain the shared checkout.
 
 ---
 
-## Live demonstration
+## Live demonstration (≤ 20 minutes)
 
 Marie forgot her mother’s birthday. The boutique in Sciez is closed. She opens Pivoine & Lilas.
 
-1. Home — the boutique is open online (address and hours; no theme picker).
-2. Sign in as `admin@florashop.com` / `admin123`. Open **Vitrine du shop**. Apply **Automne**, or a combo such as **Printemps + Mariage**. Open `/shop.html` (or **SHOP** in another tab): the catalog follows that vitrine for every visitor. Reset filters does not clear the vitrine. **Catalogue complet** in admin restores the full shop.
-3. Shop as a customer — filter a category or a colour swatch, add one bouquet with its photo (Fleurs Fraîches, Compositions, Fleurs Séchées, Plantes, Mariage, Deuil, Cadeaux; product hex colors match the filter bar).
-4. Sign in as `marie@test.com` / `marie123`. The cart is hers. Open the account icon: email and **Déconnexion** sit under the icon, the navbar does not grow.
-5. Pay with `4242 4242 4242 4242`. The server recalculates the total. Status `Payée` and workshop `À préparer`. Optionally tick **Verser un acompte de 30 %** for `Acompte versé` plus the remaining balance.
-6. Open the account icon → **Mes commandes**. Click **Voir le détail** on Marie’s order: photos, card last four digits, payment reference, line prices. The atelier stepper stays read-only. As the florist, change prep on **Commandes et factures**; refresh Marie’s page to show the new step.
-7. Optionally add *Éclat Mensuel* (€19.99).
-8. Optionally show a declined card (`4000 0000 0000 0002`) — the order is `Paiement refusé` with no prep step.
-9. Back as the florist. Create a product with a photo. Open **Commandes et factures**: Marie’s order is a printable invoice (`FAC-YYYY-NNNN`, shop address, SIREN, client, TTC lines). The atelier toolbar stays above it (`En préparation` → `Prête` → `Remise`, **Imprimer la facture**). On a deposit, **Marquer le solde payé** turns it into `Payée`.
+1. Home — boutique open online (no theme picker on accueil).
+2. Florist `admin@florashop.com` / `admin123` → **Vitrine du shop** → **Printemps + Mariage**. `/shop.html` follows for every visitor.
+3. Shop as Marie — filter, add **Bouquet Pivoine** (photo).
+4. Sign in `marie@test.com` / `marie123`. Cart is hers. Profile menu does not stretch the navbar.
+5. Pay `4242 4242 4242 4242`. Server total. `Payée` + `À préparer`. Optional 30 % deposit.
+6. **Mes commandes** → **Voir le détail**. Stepper read-only.
+7. Optional *Éclat Mensuel* €19.99. Optional declined `4000…0002`.
+8. Florist **Commandes et factures**: `FAC-YYYY-NNNN`, TTC lines, **Imprimer la facture**, prep → `Remise`.
 
-If the interface fails: Swagger at `/api/v1` and `./run-tests.sh` still show checkout, authentication, vitrine and admin guards.
-
-The spoken presentation, including this walkthrough, stays inside **20 minutes**.
+If the UI fails: Swagger `/api/v1` and `./run-tests.sh`.
 
 ---
 
-## Conclusion
+## Mockups / screenshots
 
-Pivoine & Lilas is a florist shop that takes a real order: a customer can sign in, buy a photographed bouquet, pay in full or leave a 30 % deposit, subscribe, and follow that order on **Mes commandes**; the florist can manage the catalog, set the live vitrine, and follow payment plus workshop prep on a printable invoice. The server owns the price. What is not built (click-and-collect, homepage CMS, delivery zones, email) is listed here. The next work is operations, not another visual pass.
-
-Screenshots:
+Fonts: Georgia / EB Garamond for titles, system sans for UI. Palette `#bc6288`, `#7f3f5a`, `#f8f5f2`, `#3a2a30`. The live CSS is the design system; Figma is not a separate source of truth.
 
 | Page | Capture |
 | --- | --- |
 | Home | [accueil.png](docs/screenshots/accueil.png) |
 | Shop | [shop.jpg](docs/screenshots/shop.jpg) |
-| Shop vitrine (Printemps + Mariage) | [shop-vitrine.jpg](docs/screenshots/shop-vitrine.jpg) |
+| Shop vitrine | [shop-vitrine.jpg](docs/screenshots/shop-vitrine.jpg) |
 | Cart | [panier.png](docs/screenshots/panier.png) |
 | Account | [account.png](docs/screenshots/account.png) |
 | Profile menu | [account-menu.png](docs/screenshots/account-menu.png) |
 | Checkout | [checkout.png](docs/screenshots/checkout.png) |
 | Admin vitrine | [admin-vitrine.png](docs/screenshots/admin-vitrine.png) |
 | Admin catalog | [admin-catalog.png](docs/screenshots/admin-catalog.png) |
-| Admin orders | [admin-orders.png](docs/screenshots/admin-orders.png) |
+| Admin invoices | [admin-orders.png](docs/screenshots/admin-orders.png) |
 
 ![Home](docs/screenshots/accueil.png)
 ![Shop](docs/screenshots/shop.jpg)
-![Shop vitrine](docs/screenshots/shop-vitrine.jpg)
-![Cart](docs/screenshots/panier.png)
 ![Checkout](docs/screenshots/checkout.png)
-![Admin vitrine](docs/screenshots/admin-vitrine.png)
-![Admin orders](docs/screenshots/admin-orders.png)
+![Admin invoices](docs/screenshots/admin-orders.png)
+
+---
+
+## Conclusion
+
+Pivoine & Lilas takes a real order after closing time. A customer can sign in, buy a photographed bouquet, pay or leave a deposit, subscribe, and follow the atelier. The florist manages the catalog, the vitrine, and a printable TTC invoice. The server owns the price. What is not built is listed here. The next work is operations, not another visual pass.
 
 ---
 
 ## Authors
 
-- **Issercio** — [github.com/Issercio](https://github.com/Issercio)
-- **Matthieu**
+- **Dimitri Jaille** — [github.com/Issercio](https://github.com/Issercio)
+- **Mattieu Mouroux**
