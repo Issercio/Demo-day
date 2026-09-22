@@ -20,6 +20,9 @@ erDiagram
   products ||--o{ order_items : appears_in
   orders ||--o{ order_items : contains
   products ||--o{ prices : optional_history
+  shop_themes ||--o{ theme_products : lists
+  products ||--o{ theme_products : featured_in
+  shop_themes ||--o| shop_vitrine : season_or_theme
 
   users {
     int id PK
@@ -41,13 +44,31 @@ erDiagram
     string color
     string image
   }
+  shop_themes {
+    string id PK
+    string label
+    string kind
+    bool is_builtin
+  }
+  theme_products {
+    string theme_id FK
+    int product_id FK
+    int position
+  }
+  shop_vitrine {
+    int id PK
+    string season_id FK
+    string theme_id FK
+  }
   orders {
     int id PK
     int user_id FK
     string email
     string customer_name
     numeric total_amount
+    numeric deposit_amount
     string status
+    string prep_status
     string payment_method
     string card_last4
     string payment_reference
