@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maquette — Pivoine &amp; Lilas</title>
+  <link rel="stylesheet" href="screens.css">
+</head>
+<body>
+  <div class="proto-bar">
+    <strong>Maquette cliquable · Pivoine &amp; Lilas</strong>
+    <span class="proto-flow">Palette · typo · desktop · mobile · parcours client et admin</span>
+  </div>
+  <main class="wrap">
+    <header class="ds-hero">
+      <img class="logo" src="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6~mv2.png/v1/crop/x_748,y_1016,w_3355,h_2788/fill/w_239,h_198,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20P%26L%20Rond%20neutre%20pour%20fond%20clairsans%20fond%20-%20by%20fadamentalpics.png" alt="Pivoine &amp; Lilas">
+      <h1>Système visuel</h1>
+      <p class="muted">Prototype HTML (outil de maquette du projet). Cliquez les écrans — ce n’est pas le shop live.</p>
+    </header>
+
+    <section class="card" style="margin-bottom:22px;">
+      <h2 class="rose">Couleurs</h2>
+      <div class="swatches">
+        <div class="swatch"><i style="background:#bc6288"></i>rose<br>#bc6288</div>
+        <div class="swatch"><i style="background:#7f3f5a"></i>wine<br>#7f3f5a</div>
+        <div class="swatch"><i style="background:#d2a0b5"></i>blush<br>#d2a0b5</div>
+        <div class="swatch"><i style="background:#fff6f2;border-color:#e7d6d6"></i>cream<br>#fff6f2</div>
+        <div class="swatch"><i style="background:#f8f5f2;border-color:#e7d6d6"></i>paper<br>#f8f5f2</div>
+        <div class="swatch"><i style="background:#3a2a30"></i>ink<br>#3a2a30</div>
+      </div>
+      <div class="type-row">
+        <div>
+          <h2 class="rose" style="font-size:2rem;">Bienvenue chez Pivoine &amp; Lilas</h2>
+          <p class="muted" style="margin:8px 0;">Titres : EB Garamond / Georgia. Corps : Inter. Nav en petites capitales.</p>
+        </div>
+        <div>
+          <p class="muted">Composants</p>
+          <div class="comp-row">
+            <a class="btn" href="shop.html">Commander</a>
+            <span class="chip on">Mariage</span>
+            <span class="chip">Printemps</span>
+            <span class="pill">Payée</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <h2 class="rose">Parcours Marie (cliente)</h2>
+    <div class="flow">
+      <a href="accueil.html">Accueil</a><span class="arrow">→</span>
+      <a href="shop.html">Shop</a><span class="arrow">→</span>
+      <a href="login.html">Connexion</a><span class="arrow">→</span>
+      <a href="panier.html">Panier</a><span class="arrow">→</span>
+      <a href="checkout.html">Paiement</a><span class="arrow">→</span>
+      <a href="commandes.html">Mes commandes</a>
+    </div>
+
+    <h2 class="rose">Parcours Camille (fleuriste)</h2>
+    <div class="flow">
+      <a href="login.html">Connexion admin</a><span class="arrow">→</span>
+      <a href="admin-vitrine.html">Vitrine</a><span class="arrow">→</span>
+      <a href="admin-catalogue.html">Catalogue</a><span class="arrow">→</span>
+      <a href="admin-facture.html">Facture FAC</a>
+    </div>
+
+    <h2 class="rose" style="margin-top:8px;">États et mobile</h2>
+    <div class="flow">
+      <a href="register.html">Inscription</a>
+      <a href="panier-vide.html">Panier vide</a>
+      <a href="mobile-shop.html">Shop mobile</a>
+      <a href="mobile-panier-vide.html">Panier vide mobile</a>
+    </div>
+
+    <h2 class="rose">Écrans (cliquables)</h2>
+    <p class="muted" style="margin-bottom:12px;">Les PNG sont les cadres hi-fi. Les HTML sont le prototype cliquable.</p>
+    <div class="screen-grid">
+      <a class="screen-card" href="accueil.html"><img src="frames/mockup-accueil.png" alt="Accueil"><figcaption><strong>Accueil</strong>Desktop — boutique Sciez</figcaption></a>
+      <a class="screen-card" href="shop.html"><img src="frames/mockup-shop.png" alt="Shop"><figcaption><strong>Shop</strong>Filtres + photos</figcaption></a>
+      <a class="screen-card" href="login.html"><img src="frames/mockup-login.png" alt="Connexion"><figcaption><strong>Connexion</strong>Marie / Camille</figcaption></a>
+      <a class="screen-card" href="panier.html"><img src="frames/mockup-panier.png" alt="Panier"><figcaption><strong>Panier</strong>Bouquet Pivoine 45 €</figcaption></a>
+      <a class="screen-card" href="checkout.html"><img src="frames/mockup-checkout.png" alt="Paiement"><figcaption><strong>Paiement</strong>Carte test 4242</figcaption></a>
+      <a class="screen-card" href="commandes.html"><img src="frames/mockup-commandes.png" alt="Commandes"><figcaption><strong>Mes commandes</strong>Stepper atelier</figcaption></a>
+      <a class="screen-card" href="admin-vitrine.html"><img src="frames/mockup-admin-vitrine.png" alt="Vitrine"><figcaption><strong>Admin vitrine</strong>Combo saison + thème</figcaption></a>
+      <a class="screen-card" href="admin-facture.html"><img src="frames/mockup-admin-facture.png" alt="Facture"><figcaption><strong>Facture FAC</strong>TTC de démonstration</figcaption></a>
+      <a class="screen-card" href="mobile-shop.html"><img src="frames/mockup-shop-mobile.png" alt="Shop mobile"><figcaption><strong>Shop mobile</strong>390 px</figcaption></a>
+      <a class="screen-card" href="mobile-panier-vide.html"><img src="frames/mockup-panier-vide-mobile.png" alt="Panier vide"><figcaption><strong>Panier vide</strong>État vide mobile</figcaption></a>
+    </div>
+  </main>
+  <footer class="site-footer">Maquette Demo Day · pas le shop live · SIREN 522 234 871</footer>
+</body>
+</html>

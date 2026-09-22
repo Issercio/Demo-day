@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paiement — maquette Pivoine &amp; Lilas</title>
+  <link rel="stylesheet" href="screens.css">
+</head>
+<body>
+  <div class="proto-bar">
+    <a href="index.html">← Système visuel</a>
+    <span class="proto-flow">Payer → Mes commandes</span>
+  </div>
+  <header class="site-header">
+    <img class="logo" src="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6~mv2.png/v1/crop/x_748,y_1016,w_3355,h_2788/fill/w_239,h_198,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20P%26L%20Rond%20neutre%20pour%20fond%20clairsans%20fond%20-%20by%20fadamentalpics.png" alt="Pivoine &amp; Lilas">
+    <nav>
+      <ul>
+        <li><a href="accueil.html">ACCUEIL</a></li>
+        <li><a href="shop.html">SHOP</a></li>
+        <li><a href="accueil.html">ÉVÈNEMENTIEL</a></li>
+        <li><a href="accueil.html">ENTREPRISES</a></li>
+        <li><a href="accueil.html">PORTFOLIO</a></li>
+        <li><a href="accueil.html">CONTACT</a></li>
+        <li><a href="accueil.html">ABONNEMENT</a></li>
+        <li><a class="nav-ico" href="panier.html">🛒<span class="badge">1</span></a></li>
+        <li><a class="nav-ico" href="login.html">👤</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main class="wrap">
+    <article class="card" style="padding:0;overflow:hidden;">
+      <div class="pay-head">
+        <h1 class="serif">Finaliser votre commande</h1>
+        <p>Paiement sécurisé — les prix sont recalculés par le serveur</p>
+      </div>
+      <div class="checkout" style="padding:22px;">
+        <section>
+          <h2>Résumé de votre commande</h2>
+          <p style="display:flex;justify-content:space-between;margin:14px 0;padding:12px;background:var(--paper);border-radius:10px;">
+            <span>Bouquet Pivoine<br><small class="muted">45.00 € × 1</small></span>
+            <strong>45.00 €</strong>
+          </p>
+          <p style="display:flex;justify-content:space-between;"><span>Sous-total</span><span>45.00 €</span></p>
+          <p style="display:flex;justify-content:space-between;"><span>Livraison</span><span>Gratuite</span></p>
+          <p style="display:flex;justify-content:space-between;font-weight:700;margin-top:8px;"><span>Total</span><span>45.00 €</span></p>
+        </section>
+        <section class="form" style="max-width:none;">
+          <h2>Informations de paiement</h2>
+          <label>Email de confirmation</label>
+          <input value="marie@test.com" readonly>
+          <label>Nom complet</label>
+          <input value="marie" readonly>
+          <label>Numéro de carte</label>
+          <input value="4242 4242 4242 4242" readonly>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div><label>Expiration</label><input value="12/28" readonly></div>
+            <div><label>CVC</label><input value="123" readonly></div>
+          </div>
+          <p class="hint">Cartes de test : 4242…4242 (acceptée), 4000…0002 (refusée), 4000…9995 (fonds insuffisants).</p>
+          <a class="btn" href="commandes.html" style="display:block;text-align:center;">Payer avec Carte bancaire 45.00 €</a>
+          <p class="center" style="margin-top:10px;"><a href="commandes.html">Payer un acompte de 30 %</a></p>
+        </section>
+      </div>
+    </article>
+  </main>
+  <footer class="site-footer">© 2024 by Pivoine &amp; Lilas - Siren 522 234 871</footer>
+</body>
+</html>

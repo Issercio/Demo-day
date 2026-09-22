@@ -12,6 +12,7 @@ Source: [github.com/Issercio/Demo-day](https://github.com/Issercio/Demo-day) · 
 | --- | --- | --- |
 | Specifications (.docx) | [Pivoine-Lilas-Specifications.docx](docs/Pivoine-Lilas-Specifications.docx) | http://localhost:5000/downloads/Pivoine-Lilas-Specifications.docx |
 | Presentation (.pptx) | [Pivoine-Lilas.pptx](docs/presentation/Pivoine-Lilas.pptx) | http://localhost:5000/downloads/Pivoine-Lilas.pptx |
+| Clickable mockup | [docs/mockups/](docs/mockups/index.html) | http://localhost:5000/maquettes/ |
 
 Page with both buttons: http://localhost:5000/livrables.html
 
@@ -566,10 +567,15 @@ If the UI fails: Swagger `/api/v1` and `./run-tests.sh`.
 
 ## Mockups / screenshots
 
-Fonts: Georgia / EB Garamond for titles, system sans for UI. Palette `#bc6288`, `#7f3f5a`, `#f8f5f2`, `#3a2a30`. The live CSS is the design system; Figma is not a separate source of truth.
+Fonts: Georgia / EB Garamond for titles, Inter for UI. Palette `#bc6288`, `#7f3f5a`, `#d2a0b5`, `#fff6f2`, `#f8f5f2`, `#3a2a30`.
+
+**Clickable prototype** (HTML, desktop + mobile, Marie and Camille flows, empty cart): [docs/mockups/index.html](docs/mockups/index.html) · http://localhost:5000/maquettes/
+
+Hi-fi PNG frames live in [`docs/mockups/frames/`](docs/mockups/frames/). Live-shop captures below. There is no separate Figma file: the HTML prototype is the design source used for Demo Day.
 
 | Page | Capture |
 | --- | --- |
+| Design system | [mockup-palette.png](docs/mockups/frames/mockup-palette.png) |
 | Home | [accueil.png](docs/screenshots/accueil.png) |
 | Shop | [shop.jpg](docs/screenshots/shop.jpg) |
 | Shop vitrine | [shop-vitrine.jpg](docs/screenshots/shop-vitrine.jpg) |
@@ -580,11 +586,15 @@ Fonts: Georgia / EB Garamond for titles, system sans for UI. Palette `#bc6288`, 
 | Admin vitrine | [admin-vitrine.png](docs/screenshots/admin-vitrine.png) |
 | Admin catalog | [admin-catalog.png](docs/screenshots/admin-catalog.png) |
 | Admin invoices | [admin-orders.png](docs/screenshots/admin-orders.png) |
+| Shop mobile (mockup) | [mockup-shop-mobile.png](docs/mockups/frames/mockup-shop-mobile.png) |
+| Empty cart mobile | [mockup-panier-vide-mobile.png](docs/mockups/frames/mockup-panier-vide-mobile.png) |
 
+![Design system](docs/mockups/frames/mockup-palette.png)
 ![Home](docs/screenshots/accueil.png)
 ![Shop](docs/screenshots/shop.jpg)
 ![Checkout](docs/screenshots/checkout.png)
 ![Admin invoices](docs/screenshots/admin-orders.png)
+![Shop mobile](docs/mockups/frames/mockup-shop-mobile.png)
 
 ---
 

@@ -1,6 +1,6 @@
 import os
 
-from flask import Blueprint, jsonify, request, render_template, abort, send_file
+from flask import Blueprint, jsonify, request, render_template, abort, send_file, send_from_directory, redirect
 from flask_cors import CORS
 from .models import Product, Category, User
 from . import db
@@ -45,6 +45,7 @@ TEMPLATE_PAGES = {
     'subscription_payment.html',
     'verify-code.html',
     'livrables.html',
+    'maquettes.html',
 }
 
 PAGE_ALIASES = {
@@ -67,6 +68,7 @@ PAGE_ALIASES = {
     'subscription-payment': 'subscription_payment.html',
     'verify-code': 'verify-code.html',
     'livrables': 'livrables.html',
+    'maquettes': 'maquettes.html',
 }
 
 # Cahier des charges et deck : téléchargement direct (évaluation / Demo Day).
@@ -645,6 +647,26 @@ def download_eval_doc(filename):
     if not os.path.isfile(path):
         abort(404)
     return send_file(path, mimetype=mime, as_attachment=True, download_name=filename)
+
+
+# Prototype HTML cliquable (maquette Demo Day), fichiers dans docs/mockups/.
+_MOCKUPS_ROOT = os.path.join(_REPO_ROOT, 'docs', 'mockups')
+
+
+@main_bp.route('/maquettes')
+def mockups_redirect():
+    return redirect('/maquettes/')
+
+
+@main_bp.route('/maquettes/')
+@main_bp.route('/maquettes/<path:filename>')
+def serve_mockups(filename='index.html'):
+    """Sert le prototype cliquable sans exposer le reste du dépôt."""
+    if not os.path.isdir(_MOCKUPS_ROOT):
+        abort(404)
+    if filename.endswith('/') or filename == '':
+        filename = 'index.html'
+    return send_from_directory(_MOCKUPS_ROOT, filename)
 
 
 @main_bp.route('/')
