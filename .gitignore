@@ -34,11 +34,12 @@ coverage.xml
 *.sqlite3
 instance/
 
-# Private keys and certificates
+# Private keys and certificates (setup.sh writes Demoday/certs/)
 *.pem
 *.key
 id_rsa
 id_rsa.pub
+Demoday/certs/
 
 # Logs and OS/IDE noise
 *.log

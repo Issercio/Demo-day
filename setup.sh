@@ -17,6 +17,19 @@ if [[ ! -f "$APP_DIR/.env" ]]; then
   echo "Created $APP_DIR/.env from .env.example (edit secrets before production)."
 fi
 
+CERT_DIR="$APP_DIR/certs"
+mkdir -p "$CERT_DIR"
+if [[ ! -f "$CERT_DIR/localhost.pem" || ! -f "$CERT_DIR/localhost-key.pem" ]]; then
+  openssl req -x509 -newkey rsa:2048 -sha256 -nodes \
+    -keyout "$CERT_DIR/localhost-key.pem" \
+    -out "$CERT_DIR/localhost.pem" \
+    -days 365 \
+    -subj "/CN=localhost" \
+    >/dev/null 2>&1
+  chmod 600 "$CERT_DIR/localhost-key.pem"
+  echo "Generated self-signed TLS cert in $CERT_DIR (gitignored)."
+fi
+
 (
   cd "$APP_DIR"
   python init_db.py
@@ -24,5 +37,6 @@ fi
 
 echo
 echo "Installation complete."
-echo "Launch:  ./run.sh"
-echo "Tests:   ./run-tests.sh"
+echo "Launch:       ./run.sh"
+echo "Launch HTTPS: ./run-https.sh"
+echo "Tests:        ./run-tests.sh"

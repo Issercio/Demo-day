@@ -42,7 +42,7 @@ chmod +x setup.sh run.sh run-tests.sh
 ./run.sh
 ```
 
-`setup.sh` creates `Demoday/.venv`, installs `Demoday/requirements.txt`, copies `.env.example` to `Demoday/.env` if needed, and seeds demo users plus seven florist categories with product photos (Fleurs Fraîches, Compositions, Fleurs Séchées, Plantes d’intérieur, Mariage & Événements, Deuil, Cadeaux).
+`setup.sh` creates `Demoday/.venv`, installs `Demoday/requirements.txt`, copies `.env.example` to `Demoday/.env` if needed, seeds demo users plus seven florist categories with product photos (Fleurs Fraîches, Compositions, Fleurs Séchées, Plantes d’intérieur, Mariage & Événements, Deuil, Cadeaux), and writes a gitignored self-signed TLS pair in `Demoday/certs/`.
 
 Manual equivalent:
 
@@ -96,6 +96,21 @@ Copy [`.env.example`](.env.example) to `Demoday/.env`. Never commit `.env`. Secr
 
 Successful payment: `4242 4242 4242 4242`, any future expiry, CVC `123`.  
 Declined: `4000 0000 0000 0002`. Insufficient funds: `4000 0000 0000 9995`.
+
+Classroom HTTP: `./run.sh` → http://localhost:5000  
+Classroom HTTPS (self-signed): `./setup.sh` then `./run-https.sh` → https://127.0.0.1:5000 (accept the browser warning once).  
+Production: terminate TLS on nginx/Caddy and set `FORCE_HTTPS=1` so Flask redirects HTTP using `X-Forwarded-Proto`.
+
+---
+
+## MoSCoW
+
+| Priority | Features |
+| --- | --- |
+| Must | Register, login, logout, JWT, hashed passwords, catalog + photos, isolated cart, server checkout, admin guard, florist FAC + prep, HTTPS (local cert / prod reverse proxy), CNIL login lockout |
+| Should | Subscriptions (monthly / semester / yearly), 30 % deposit, Mes commandes, colour / price / name filters |
+| Could | Season / event combo vitrine, custom event themes, optional Stripe, print invoice window |
+| Won’t (this release) | Email verification / reset mail, click-and-collect, geo zones, fiscal HT/TVA, native app, chat, AI, 2FA, mounted reviews |
 
 ---
 
@@ -165,7 +180,7 @@ Open, none of them block a purchase:
 - The cart lives in `localStorage`, not in a server table
 - The `prices` table is unused (`products.price` is the source of truth)
 - Duplicate CSS and leftover debug prints
-- No production host in this repository (local demo)
+- No production host in this repository (local HTTP `./run.sh` or HTTPS `./run-https.sh`)
 - CORS allow-list is localhost
 - Package coverage is pulled down by unused modules; checkout, authentication, vitrine and catalog paths are covered
 - FAC invoices are TTC demo documents, not tax invoices
@@ -210,6 +225,8 @@ erDiagram
     string email
     string password_hash
     bool is_admin
+    int failed_login_count
+    datetime locked_until
   }
   categories {
     int id PK
@@ -274,6 +291,8 @@ classDiagram
     +str email
     +str password
     +bool is_admin
+    +int failed_login_count
+    +datetime locked_until
     +set_password()
     +check_password()
     +to_dict()
@@ -368,10 +387,12 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 - Card numbers are not stored; at most `card_last4`.
 - Product photo uploads are admin-only. Allowed types: jpg, png, webp, gif. Maximum size: 4 MB.
 - Stripe keys live only in the environment. Empty keys use documented test cards. No live charge in the default demo.
-- CORS is limited to localhost.
+- CORS is limited to localhost (HTTP and HTTPS).
 - `.env` is gitignored; only `.env.example` is committed.
+- **HTTPS.** `./run-https.sh` serves TLS with a gitignored self-signed cert. Production sits behind nginx with `FORCE_HTTPS=1` (301 from HTTP, `X-Forwarded-Proto`).
+- **CNIL lockout.** After **5** failed logins on an existing account, login returns **429** for **15 minutes**. A successful login resets the counter. Unknown emails stay a generic 401.
 
-Remaining risks: JWT in `localStorage` (XSS), no CSRF on cookie-less Bearer, no login rate limit. PayPal and saved-card checkouts are sandbox (no live money movement). Flask binds `0.0.0.0:5000` for the classroom demo; the debugger stays off unless `FLASK_DEBUG=1`.
+Remaining risks: JWT in `localStorage` (XSS), no CSRF on cookie-less Bearer. PayPal and saved-card checkouts are sandbox. Flask binds `0.0.0.0:5000` for the classroom demo; the debugger stays off unless `FLASK_DEBUG=1`.
 
 ---
 
@@ -396,7 +417,7 @@ Flask and Jinja keep pages and API in one process. RESTX provides Swagger. SQLit
 
 ## Testing
 
-Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **80 tests OK**.
+Strategy and evidence: [`docs/testing.md`](docs/testing.md). Last captured run: **86 tests OK**.
 
 Covered: registration and login hashing, demo seed (accounts, seven-category flower catalog, product photos), admin versus customer permissions, public catalog, product image upload (admin only, rejected for clients and non-images), checkout (success, decline, insufficient funds, unknown Luhn card, invalid PAN, PayPal, saved card, 30 % deposit, admin prep PATCH, customer `my-orders` tracking, subscription line, server-side prices, decimal cents, admin order list with item prices, order IDOR, spoofed email), vitrine (admin-only `PUT /themes`, shop payload, season/theme combo `printemps,mariage`), privilege escalation (forged JWT, placeholder secret, POST/PUT/register cannot mint admin).
 
@@ -428,9 +449,12 @@ Difficult moments in code: empty checkout after cart keys became user-scoped; Ma
 
 Work lives on [Issercio/Demo-day](https://github.com/Issercio/Demo-day), branch `main`. Feature work is tested with `./run-tests.sh` before merge.
 
+**Project board:** [`docs/board.md`](docs/board.md) — columns Backlog → In progress (branch) → Review (PR) → Done (`main`). GitHub Projects is not enabled on this repository (API 403); the board file plus PRs are the evaluation board.
+
 To show how the project is organised:
 
-- GitHub history and this README
+- GitHub history, PRs, and this README
+- [`docs/board.md`](docs/board.md)
 - [`docs/test-evidence/unittest-output.txt`](docs/test-evidence/unittest-output.txt)
 - Swagger at `/api/v1` and the Postman collection
 - Storefront captures in [`docs/screenshots/`](docs/screenshots/) (home, shop, vitrine, cart, account, checkout, admin)
@@ -444,7 +468,7 @@ Dimitri and Mattieu share this repository. Cadence for a demonstration: one loca
 
 - Store the cart on the server
 - Click-and-collect slots and delivery zones
-- Real email for receipts and password reset
+- Real email for receipts, verification and password reset
 - Seasonal editing of the homepage (the shop vitrine already exists)
 - Playwright end-to-end tests
 - PostgreSQL in CI

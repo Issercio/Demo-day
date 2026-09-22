@@ -531,6 +531,69 @@ class AccountsTestCase(unittest.TestCase):
         self.assertNotIn(custom['id'], ids)
         self.assertIsNone(deleted.get_json()['applied'])
 
+    def test_login_lockout_after_five_failures(self):
+        user = User(username='lea-lock', email='lea-lock@test.com', password='x', is_admin=False)
+        user.set_password('lea12345')
+        db.session.add(user)
+        db.session.commit()
+        for _ in range(4):
+            bad = self.client.post('/api/v1/auth/login', json={
+                'email': 'lea-lock@test.com',
+                'password': 'wrong',
+            })
+            self.assertEqual(bad.status_code, 401, bad.get_json())
+        locked = self.client.post('/api/v1/auth/login', json={
+            'email': 'lea-lock@test.com',
+            'password': 'wrong',
+        })
+        self.assertEqual(locked.status_code, 429, locked.get_json())
+        self.assertIn('verrouillé', locked.get_json()['message'])
+        still = self.client.post('/api/v1/auth/login', json={
+            'email': 'lea-lock@test.com',
+            'password': 'lea12345',
+        })
+        self.assertEqual(still.status_code, 429)
+
+    def test_login_success_clears_failed_attempts(self):
+        user = User(username='lea-ok', email='lea-ok@test.com', password='x', is_admin=False)
+        user.set_password('lea12345')
+        db.session.add(user)
+        db.session.commit()
+        self.client.post('/api/v1/auth/login', json={'email': 'lea-ok@test.com', 'password': 'no'})
+        ok = self.client.post('/api/v1/auth/login', json={'email': 'lea-ok@test.com', 'password': 'lea12345'})
+        self.assertEqual(ok.status_code, 200, ok.get_json())
+        stored = User.query.filter_by(email='lea-ok@test.com').first()
+        self.assertEqual(stored.failed_login_count, 0)
+        self.assertIsNone(stored.locked_until)
+
+
+class HttpsRedirectTestCase(unittest.TestCase):
+    def setUp(self):
+        self._prev = os.environ.get('FORCE_HTTPS')
+        os.environ['FORCE_HTTPS'] = '1'
+        os.environ['DATABASE_URL'] = 'sqlite://'
+        self.app = create_app()
+        self.app.config['TESTING'] = True
+        self.client = self.app.test_client()
+        self.ctx = self.app.app_context()
+        self.ctx.push()
+
+    def tearDown(self):
+        self.ctx.pop()
+        if self._prev is None:
+            os.environ.pop('FORCE_HTTPS', None)
+        else:
+            os.environ['FORCE_HTTPS'] = self._prev
+
+    def test_http_is_redirected_to_https(self):
+        response = self.client.get('/accueil.html', base_url='http://localhost', follow_redirects=False)
+        self.assertEqual(response.status_code, 301)
+        self.assertTrue((response.headers.get('Location') or '').startswith('https://'))
+
+    def test_forwarded_https_is_allowed(self):
+        response = self.client.get('/accueil.html', headers={'X-Forwarded-Proto': 'https'})
+        self.assertEqual(response.status_code, 200)
+
 
 if __name__ == '__main__':
     unittest.main()

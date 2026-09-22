@@ -16,6 +16,8 @@ class User(db.Model):
     # Hash Werkzeug (pbkdf2:...). Un mot de passe encore en clair est refusé (seed démo le répare).
     password = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)  # jamais admin par défaut
+    failed_login_count = db.Column(db.Integer, default=0)  # CNIL : compteur d'échecs
+    locked_until = db.Column(db.DateTime, nullable=True)  # None = pas de verrou
     orders = db.relationship('Order', back_populates='user', lazy=True)
 
     def __repr__(self):

@@ -118,8 +118,10 @@ def ensure_runtime_schema():
     ))
     db.session.commit()
     from app.services.demo_accounts import ensure_product_color_column, ensure_product_image_column
+    from app.services.login_lockout import ensure_login_lockout_columns
     ensure_product_color_column()
     ensure_product_image_column()
+    ensure_login_lockout_columns()
     ensure_subscription_catalog()
 
 

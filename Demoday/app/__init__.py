@@ -53,7 +53,13 @@ def create_app():
     # CORS limité à localhost : la démo n'est pas un site public.
     CORS(app, resources={
         r"/api/*": {
-            "origins": ["http://localhost:8000", "http://localhost:5000", "http://127.0.0.1:5000"],
+            "origins": [
+                "http://localhost:8000",
+                "http://localhost:5000",
+                "http://127.0.0.1:5000",
+                "https://localhost:5000",
+                "https://127.0.0.1:5000",
+            ],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
         }
@@ -69,11 +75,26 @@ def create_app():
         STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', ''),
         STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', ''),
         MAX_CONTENT_LENGTH = 4 * 1024 * 1024,  # photos produits : 4 Mo max
+        PREFERRED_URL_SCHEME = 'https' if os.environ.get('FORCE_HTTPS', '').lower() in ('1', 'true', 'yes') else 'http',
     )
 
     # Initialisation des extensions
     db.init_app(app)
     migrate.init_app(app, db)
+
+    if app.config['PREFERRED_URL_SCHEME'] == 'https':
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        from flask import request, redirect
+
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+        # Derrière nginx : HTTP → HTTPS. En local, lancer ./run-https.sh.
+
+        @app.before_request
+        def redirect_to_https():
+            proto = request.headers.get('X-Forwarded-Proto', request.scheme)
+            if proto != 'https':
+                https_url = request.url.replace('http://', 'https://', 1)
+                return redirect(https_url, code=301)
 
     # Import des modèles pour l'initialisation
     from .models import Category, Product, User, Order, OrderItem, ShopTheme, ShopVitrine, ThemeProduct
