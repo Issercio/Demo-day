@@ -17,7 +17,7 @@ Boutique florale en ligne : le client choisit un bouquet, paie, et suit sa comma
 - Abonnements mensuel, semestriel et annuel
 - Suivi de commande (compte, ou invité avec email + n°) et facture
 - Formulaire Contact : le message arrive dans l’inbox du fleuriste, qui peut répondre
-- Livraison en Île-de-France (tarif et départements réglables) ou retrait atelier
+- Livraison en France (métropole et DOM, tarif réglable) ou retrait atelier
 - Code promo au paiement
 
 **Côté fleuriste**
@@ -25,7 +25,7 @@ Boutique florale en ligne : le client choisit un bouquet, paie, et suit sa comma
 - Vitrine du shop : une saison, un thème, ou les deux
 - Tableau du jour : à préparer, stock bas / rupture, prochains retraits
 - Demandes contact : nouveau → lu → traité, réponse au client
-- Identité boutique, zones de livraison, jours fermés, codes promo
+- Identité boutique, zone de livraison (France entière par défaut), jours fermés, codes promo
 - Commandes : statut de paiement, préparation (`À préparer` → `Remise`), facture imprimable
 - Accès admin réservé : un client ne peut pas ouvrir le back-office
 

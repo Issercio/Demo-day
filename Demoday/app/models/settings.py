@@ -13,7 +13,7 @@ class ShopSettings(db.Model):
     siren = db.Column(db.String(20), nullable=True)
     pickup_note = db.Column(db.String(255), nullable=True)
     delivery_fee = db.Column(db.Numeric(10, 2), nullable=False, default=8.90)
-    delivery_prefixes = db.Column(db.String(120), nullable=False, default='75,77,78,91,92,93,94,95')
+    delivery_prefixes = db.Column(db.String(120), nullable=False, default='FR')
     closed_weekdays = db.Column(db.String(20), nullable=False, default='6')
     updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
@@ -26,7 +26,7 @@ class ShopSettings(db.Model):
             'siren': self.siren or '',
             'pickup_note': self.pickup_note or 'Retrait à l’atelier aux horaires indiqués.',
             'delivery_fee': float(self.delivery_fee or 0),
-            'delivery_prefixes': self.delivery_prefixes or '',
+            'delivery_prefixes': self.delivery_prefixes or 'FR',
             'closed_weekdays': self.closed_weekdays or '6',
         }
 

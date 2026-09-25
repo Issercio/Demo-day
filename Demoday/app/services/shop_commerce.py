@@ -12,6 +12,9 @@ from app.services.mailer import mail_configured, send_mail, florist_inbox
 
 POSTAL_RE = re.compile(r'\b(\d{5})\b')
 WEEKDAY_LABELS = ('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche')
+NATIONWIDE_TOKENS = {'', 'FR', '*', 'FRANCE', 'ALL', 'TOUTELAFRANCE'}
+OLD_IDF_PREFIXES = '75,77,78,91,92,93,94,95'
+OVERSEAS_PREFIXES = ('971', '972', '973', '974', '975', '976')
 
 
 def parse_description(value):
@@ -59,10 +62,13 @@ def get_settings():
             email='atelier@florashop.demo',
             pickup_note='Retrait à l’atelier, 10h–18h (fermé le dimanche).',
             delivery_fee=Decimal('8.90'),
-            delivery_prefixes='75,77,78,91,92,93,94,95',
+            delivery_prefixes='FR',
             closed_weekdays='6',
         )
         db.session.add(row)
+        db.session.commit()
+    elif (row.delivery_prefixes or '') == OLD_IDF_PREFIXES:
+        row.delivery_prefixes = 'FR'
         db.session.commit()
     return row
 
@@ -70,6 +76,11 @@ def get_settings():
 def public_settings():
     payload = get_settings().to_public_dict()
     payload['mail_configured'] = mail_configured()
+    payload['delivery_nationwide'] = delivery_is_nationwide()
+    payload['delivery_label'] = (
+        'France entière' if payload['delivery_nationwide']
+        else (payload['delivery_prefixes'] or '')
+    )
     return payload
 
 
@@ -99,15 +110,19 @@ def update_settings(data):
             raise ValueError('Tarif de livraison invalide.')
         row.delivery_fee = fee
     if 'delivery_prefixes' in data:
-        raw = str(data.get('delivery_prefixes') or '')
-        prefixes = []
-        for part in raw.replace(';', ',').split(','):
-            token = part.strip()
-            if token.isdigit() and 2 <= len(token) <= 3:
-                prefixes.append(token)
-        if not prefixes:
-            raise ValueError('Indiquez au moins un département (ex. 75,92,93).')
-        row.delivery_prefixes = ','.join(prefixes)
+        raw = str(data.get('delivery_prefixes') or '').strip()
+        compact = raw.upper().replace(' ', '').replace('-', '')
+        if compact in NATIONWIDE_TOKENS:
+            row.delivery_prefixes = 'FR'
+        else:
+            prefixes = []
+            for part in raw.replace(';', ',').split(','):
+                token = part.strip()
+                if token.isdigit() and 2 <= len(token) <= 3:
+                    prefixes.append(token)
+            if not prefixes:
+                raise ValueError('Indiquez FR (toute la France) ou des départements (ex. 75,13,33).')
+            row.delivery_prefixes = ','.join(prefixes)
     if 'closed_weekdays' in data:
         raw = str(data.get('closed_weekdays') or '')
         days = []
@@ -143,24 +158,49 @@ def extract_postal(address):
     return match.group(1) if match else None
 
 
+def delivery_is_nationwide(raw=None):
+    text = (raw if raw is not None else (get_settings().delivery_prefixes or 'FR'))
+    compact = str(text).strip().upper().replace(' ', '').replace('-', '')
+    return compact in NATIONWIDE_TOKENS
+
+
+def is_french_postal(postal):
+    """Métropole (01–95, Corse 20) et DOM 971–976."""
+    if not postal or not postal.isdigit() or len(postal) != 5:
+        return False
+    dept = int(postal[:2])
+    if 1 <= dept <= 95:
+        return True
+    return postal[:3] in OVERSEAS_PREFIXES
+
+
 def prefix_list():
-    raw = get_settings().delivery_prefixes or ''
+    raw = get_settings().delivery_prefixes or 'FR'
+    if delivery_is_nationwide(raw):
+        return []
     return [part.strip() for part in raw.split(',') if part.strip()]
 
 
 def quote_shipping(fulfillment_type, address):
-    """0 € au retrait. Livraison : tarif boutique si le CP est dans la zone."""
+    """0 € au retrait. Livraison : tarif boutique si le CP est français (ou dans la zone)."""
     if fulfillment_type != 'livraison':
         return Decimal('0.00')
     postal = extract_postal(address or '')
     if not postal:
         raise ValueError('Pour une livraison, indiquez une adresse avec le code postal à 5 chiffres.')
-    prefixes = prefix_list()
-    if not any(postal.startswith(prefix) for prefix in prefixes):
-        raise ValueError(
-            f'Livraison indisponible pour le {postal}. '
-            f'Zone desservie : {", ".join(prefixes)} (retrait à l’atelier possible).'
-        )
+    if delivery_is_nationwide():
+        if not is_french_postal(postal):
+            raise ValueError(
+                f'Livraison uniquement en France (code postal à 5 chiffres). '
+                f'Le {postal} n’est pas desservi (retrait à l’atelier possible).'
+            )
+    else:
+        prefixes = prefix_list()
+        if not prefixes or not any(postal.startswith(prefix) for prefix in prefixes):
+            raise ValueError(
+                f'Livraison indisponible pour le {postal}. '
+                f'Zone desservie : {", ".join(prefixes)} (retrait à l’atelier possible).'
+            )
     fee = Decimal(str(get_settings().delivery_fee or 0)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     return fee
 

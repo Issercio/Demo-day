@@ -94,7 +94,8 @@ class ShopCommerceTestCase(unittest.TestCase):
         self.assertEqual(public.status_code, 200)
         data = public.get_json()
         self.assertEqual(data['legal_name'], 'FloraShop')
-        self.assertIn('delivery_prefixes', data)
+        self.assertTrue(data.get('delivery_nationwide'))
+        self.assertEqual(data.get('delivery_prefixes'), 'FR')
         self.assertFalse(data['mail_configured'])
         denied = self.client.put('/api/v1/settings', json={'legal_name': 'Atelier Test'})
         self.assertEqual(denied.status_code, 401)
@@ -116,6 +117,7 @@ class ShopCommerceTestCase(unittest.TestCase):
         self.assertEqual(body['legal_name'], 'Atelier Test')
         self.assertEqual(body['delivery_fee'], 12.5)
         self.assertEqual(body['delivery_prefixes'], '75,92')
+        self.assertFalse(body.get('delivery_nationwide'))
         self.assertEqual(body['closed_weekdays'], '0,6')
         self.assertEqual(body.get('siren') or '', '')
 
@@ -139,11 +141,20 @@ class ShopCommerceTestCase(unittest.TestCase):
     def test_shipping_quote_and_checkout_adds_fee(self):
         bad = self.client.get('/api/v1/shipping?type=livraison&address=Marseille')
         self.assertEqual(bad.status_code, 400)
-        ok = self.client.get('/api/v1/shipping?type=livraison&address=12 rue des Fleurs 75001 Paris')
-        self.assertEqual(ok.status_code, 200, ok.get_json())
-        self.assertEqual(ok.get_json()['shipping'], 8.9)
+        paris = self.client.get('/api/v1/shipping?type=livraison&address=12 rue des Fleurs 75001 Paris')
+        self.assertEqual(paris.status_code, 200, paris.get_json())
+        self.assertEqual(paris.get_json()['shipping'], 8.9)
+        marseille = self.client.get('/api/v1/shipping?type=livraison&address=1 quai 13001 Marseille')
+        self.assertEqual(marseille.status_code, 200, marseille.get_json())
+        self.assertEqual(marseille.get_json()['shipping'], 8.9)
+        lyon = self.client.get('/api/v1/shipping?type=livraison&address=5 place Bellecour 69002 Lyon')
+        self.assertEqual(lyon.status_code, 200)
+        reunion = self.client.get('/api/v1/shipping?type=livraison&address=12 rue de la Plage 97400 Saint-Denis')
+        self.assertEqual(reunion.status_code, 200)
+        foreign = self.client.get('/api/v1/shipping?type=livraison&address=Via Roma 00100 Roma')
+        self.assertEqual(foreign.status_code, 400)
         paid = self.pay({
-            'address': '12 rue des Fleurs 75001 Paris',
+            'address': '1 quai 13001 Marseille',
             'fulfillment_type': 'livraison',
             'fulfillment_date': open_day().isoformat(),
             'fulfillment_slot': 'matin',
@@ -152,13 +163,38 @@ class ShopCommerceTestCase(unittest.TestCase):
         order = paid.get_json()['order']
         self.assertEqual(order['shipping_amount'], 8.9)
         self.assertEqual(order['total_amount'], 38.89)
-        outside = self.pay({
+
+    def test_admin_can_restrict_delivery_departments(self):
+        token = self.login('admin@florashop.com', 'admin123')
+        restricted = self.client.put(
+            '/api/v1/settings',
+            json={'delivery_prefixes': '75,92'},
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(restricted.status_code, 200, restricted.get_json())
+        body = restricted.get_json()
+        self.assertEqual(body['delivery_prefixes'], '75,92')
+        self.assertFalse(body.get('delivery_nationwide'))
+        ok = self.client.get('/api/v1/shipping?type=livraison&address=12 rue des Fleurs 75001 Paris')
+        self.assertEqual(ok.status_code, 200)
+        outside = self.client.get('/api/v1/shipping?type=livraison&address=1 quai 13001 Marseille')
+        self.assertEqual(outside.status_code, 400)
+        paid = self.pay({
             'address': '1 quai 13001 Marseille',
             'fulfillment_type': 'livraison',
             'fulfillment_date': open_day().isoformat(),
             'fulfillment_slot': 'matin',
         })
-        self.assertEqual(outside.status_code, 400)
+        self.assertEqual(paid.status_code, 400)
+        restored = self.client.put(
+            '/api/v1/settings',
+            json={'delivery_prefixes': 'FR'},
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(restored.status_code, 200, restored.get_json())
+        self.assertTrue(restored.get_json().get('delivery_nationwide'))
+        nationwide = self.client.get('/api/v1/shipping?type=livraison&address=1 quai 13001 Marseille')
+        self.assertEqual(nationwide.status_code, 200)
 
     def test_closed_sunday_is_rejected(self):
         sunday = a_sunday()
@@ -232,11 +268,13 @@ class ShopCommerceTestCase(unittest.TestCase):
         self.assertIn('style.css', checkout)
         self.assertIn('promo-code', checkout)
         self.assertIn('/api/v1/shipping', checkout)
+        self.assertIn('Livraison en France', checkout)
         admin = self.client.get('/admin.html').get_data(as_text=True)
         self.assertIn('shop-settings', admin)
         self.assertIn('promo-section', admin)
         self.assertIn('data-contact-send', admin)
         self.assertIn('product-description', admin)
+        self.assertIn('toute la France', admin)
         cgv = self.client.get('/cgv.html').get_data(as_text=True)
         self.assertIn('/api/v1/settings', cgv)
         self.assertIn('legal-name', cgv)

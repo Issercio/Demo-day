@@ -1057,7 +1057,7 @@
 
         <div class="admin-section" id="shop-settings">
             <h2>Identité et livraison</h2>
-            <p class="admin-vitrine-lead">Nom, adresse, SIREN (si vous en avez un), tarif et départements livrés, jours de fermeture. Ces infos apparaissent sur les CGV et le paiement.</p>
+            <p class="admin-vitrine-lead">Nom, adresse, SIREN (si vous en avez un), tarif, zone de livraison (FR = toute la France), jours de fermeture. Ces infos apparaissent sur les CGV et le paiement.</p>
             <form id="settings-form">
                 <div class="settings-grid">
                     <div class="form-group">
@@ -1089,8 +1089,9 @@
                         <input type="number" id="setting-fee" min="0" max="200" step="0.01">
                     </div>
                     <div class="form-group">
-                        <label for="setting-prefixes">Départements livrés</label>
-                        <input type="text" id="setting-prefixes" placeholder="75,77,78,91,92,93,94,95">
+                        <label for="setting-prefixes">Zone de livraison</label>
+                        <input type="text" id="setting-prefixes" placeholder="FR = toute la France, ou 75,13,33">
+                        <p class="admin-vitrine-lead">FR = métropole et DOM. Pour limiter, listez les départements (ex. 75,13,33).</p>
                     </div>
                     <div class="form-group" style="grid-column:1 / -1;">
                         <label>Jours fermés</label>

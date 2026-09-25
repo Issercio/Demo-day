@@ -123,12 +123,12 @@ def put_settings_route():
     denied = admin_required_response()
     if denied:
         return denied
-    from app.services.shop_commerce import update_settings
+    from app.services.shop_commerce import update_settings, public_settings
     try:
-        row = update_settings(request.get_json(silent=True) or {})
+        update_settings(request.get_json(silent=True) or {})
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
-    return jsonify(row.to_public_dict())
+    return jsonify(public_settings())
 
 
 @ops_bp.route('/shipping', methods=['GET'])

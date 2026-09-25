@@ -200,9 +200,13 @@
           extra.textContent = ' — ' + settings.email;
         }
         const delivery = document.getElementById('legal-delivery');
-        if (settings.delivery_prefixes) {
+        if (delivery) {
           const fee = Number(settings.delivery_fee || 0).toFixed(2);
-          delivery.textContent = 'départements ' + settings.delivery_prefixes + ', ' + fee + ' €';
+          if (settings.delivery_nationwide || settings.delivery_prefixes === 'FR') {
+            delivery.textContent = 'France entière, ' + fee + ' €';
+          } else if (settings.delivery_prefixes) {
+            delivery.textContent = 'départements ' + settings.delivery_prefixes + ', ' + fee + ' €';
+          }
         }
       } catch (e) {}
     });
