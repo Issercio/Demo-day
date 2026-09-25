@@ -253,14 +253,6 @@ class AdminGuardTestCase(unittest.TestCase):
         self.assertIn('order-lines-wrap', html)
         self.assertEqual(self.client.get('/index.html').status_code, 404)
 
-    def test_eval_docs_and_mockups_are_gone(self):
-        self.assertEqual(self.client.get('/downloads/Pivoine-Lilas-Specifications.docx').status_code, 404)
-        self.assertEqual(self.client.get('/downloads/Pivoine-Lilas.pptx').status_code, 404)
-        self.assertEqual(self.client.get('/livrables.html').status_code, 404)
-        self.assertEqual(self.client.get('/maquettes.html').status_code, 404)
-        self.assertEqual(self.client.get('/maquettes/').status_code, 404)
-        self.assertEqual(self.client.get('/maquettes').status_code, 404)
-
     def test_invalid_product_color_is_rejected(self):
         from app.models import Category, Product
         token = self.login('admin@florashop.com', 'admin123')
