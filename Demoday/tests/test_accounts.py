@@ -268,8 +268,15 @@ class AccountsTestCase(unittest.TestCase):
         payload = self.client.get('/api/v1/products').get_json()
         pivoine = next(item for item in payload if item.get('name') == 'Bouquet Pivoine')
         self.assertTrue((pivoine.get('image') or '').startswith('/static/img/products/'))
+        self.assertIn('pivoines', (pivoine.get('description') or '').lower())
+        self.assertIn('kraft', (pivoine.get('description') or '').lower())
         stored = Product.query.filter_by(name='Bouquet Pivoine').first()
         self.assertEqual(stored.image, pivoine.get('image'))
+
+        mariée = next(item for item in payload if item.get('name') == 'Bouquet de mariée')
+        self.assertIn('mariée', (mariée.get('description') or '').lower())
+        lys = next(item for item in payload if item.get('name') == 'Lis blancs')
+        self.assertIn('lys', (lys.get('description') or '').lower())
 
     def test_vitrine_is_admin_only_and_updates_shop(self):
         from pathlib import Path

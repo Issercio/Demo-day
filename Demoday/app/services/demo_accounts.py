@@ -208,7 +208,86 @@ def ensure_product_image_column():
 
 
 def default_product_description(name):
-    return f'{name} — composition d’atelier, fleurs de saison, prêt à offrir.'
+    return PRODUCT_DESCRIPTIONS.get(name) or (
+        f'{name} — pièce d’atelier, fleurs de saison, composition à la main.'
+    )
+
+
+# Textes d’atelier : ce que le fleuriste prépare vraiment, pas un légume générique.
+PRODUCT_DESCRIPTIONS = {
+    'Bouquet Pivoine': 'Bouquet rond pivoines Sarah Bernhardt, feuillage d’eucalyptus, ficelé à la main, papier kraft et ruban satin.',
+    'Bouquet Lilas': 'Lilas de printemps en botte d’atelier, tiges lignifiées, papier de soie parme, lien de raphia.',
+    'Roses jardin': 'Roses de jardin David Austin en vase d’atelier, têtes ouvertes, quelques boutons, feuillage d’origine.',
+    'Bouquet hortensia': 'Hortensias à têtes pleines, bouquet spiralé, papier cristal, collerette de pittosporum.',
+    'Botte de tulipes': 'Botte de tulipes françaises, 15 tiges, élastique d’atelier, sans papier : à mettre au vase dès l’arrivée.',
+    'Tournesols du jardin': 'Tournesols à cœur sombre, botte rustique, papier kraft brun, brins d’avoine.',
+    'Pivoines blanches': 'Pivoines blanches Duchesse de Nemours, vase céramique crème, quelques boutons encore fermés.',
+    'Roses garden antique': 'Roses garden rose ancien, bouquet spiral, papier recyclé blush, ruban vintage FloraShop.',
+    'Bouquet printanier': 'Mélange de saison : tulipes, renoncules, muscari et feuillage tendre, papier rayé d’atelier.',
+    'Gerbera soleil': 'Gerberas jaunes et corail, bouquet gai, papier coloré, collerette de ruscus.',
+    'Lis blancs': 'Lys casablanca blancs, 7 hampes, vase cylindre haut, étamines pincées pour le pollen.',
+    'Anémones': 'Anémones à cœur noir, petit bouquet rond, papier noir et ficelle, 12 tiges.',
+    'Freesias parfumés': 'Freesias parfumés jaune crème, botte légère, papier de soie, lien coton.',
+    'Renoncules': 'Renoncules pastel (corail, crème, blush), bouquet compact d’atelier, papier kraft clair.',
+    'Dahlias d\'été': 'Dahlias dîner-plate d’été, bouquet structuré, papier kraft, feuillage de dahlia.',
+    'Bouquet champêtre': 'Composition champêtre : ombelles, graminées, eucalyptus, cosmos, papier journal d’atelier.',
+    'Centre de table': 'Centre bas pour table : coupe basse, pivoines et roses, feuillage retombant, hauteur sous le regard.',
+    'Couronne champêtre': 'Couronne murale ou table, base mousse, blé, olivier, roses de jardin, lien de jute.',
+    'Composition pivoine': 'Composition haute pivoines en pique-mousse, vase cache-pot lin, pour buffet ou comptoir.',
+    'Jardinière de saison': 'Jardinière caisse bois, plantes et fleurs coupées de saison, prête à poser en entrée.',
+    'Bouquet structuré': 'Bouquet architectural : hortensia, roses, aspidistra, montage en spirale serrée.',
+    'Couronne de porte': 'Couronne de porte 30 cm, base osier, eucalyptus, hortensia séché, ruban gros-grain.',
+    'Composition rose ancienne': 'Montage en coupe : roses garden, feuillage sombre, quelques baies, pour table d’honneur.',
+    'Centre hortensia': 'Centre de table hortensias bleus et crème, vase bas transparent, 5 têtes, bougie au milieu possible.',
+    'Gerbe cérémonie': 'Gerbe à main cérémonie, dos feuillu, face fleurs, lien large satin, à déposer au monument ou à l’autel.',
+    'Composition eucalyptus': 'Composition feuillue eucalyptus cinerea et parvifolia, quelques roses, vase haut mat.',
+    'Bouquet cascade': 'Bouquet retombant, gypsophile et roses, montage à la main, ruban long, pour cortège.',
+    'Coupe fruits et fleurs': 'Coupe d’atelier fruits de saison et fleurs comestibles d’ornement, pour brunch ou buffet.',
+    'Botte de lavande': 'Botte de lavande vraie, séchée à l’atelier, ficelle naturelle, 80 tiges environ.',
+    'Bouquet séché blé': 'Blé, avoine et statice, bouquet séché, papier kraft, tient des mois sans eau.',
+    'Couronne séchée': 'Couronne séchée murale, graminées, immortelles, eucalyptus, à suspendre à l’année.',
+    'Gypsophile séché': 'Nuage de gypsophile séché, botte légère, papier calque, pour vase haut.',
+    'Eucalyptus séché': 'Branches d’eucalyptus séché, botte verticale, parfum résineux, déco durable.',
+    'Immortelles': 'Immortelles jaunes d’Helichrysum, bouquet soleil, papier kraft, couleurs stables.',
+    'Bouquet nude séché': 'Palette nude : pampas, blé, roses séchées pêche, papier écru, style contemporain.',
+    'Herbes de la grange': 'Gerbe de grange : blé, orge, avoine, rumex, ficelle de lin.',
+    'Monstera deliciosa': 'Monstera en cache-pot terre cuite, 3–4 feuilles, tuteur bambou, plante d’intérieur.',
+    'Pilea peperomioides': 'Pilea « plante à monnaie », pot grès, boutures possibles, lumière vive sans soleil direct.',
+    'Sansevieria': 'Langue de belle-mère, pot cylindre, entretien rare, coin peu lumineux.',
+    'Orchidée blanche': 'Phalaenopsis blanc, 2 hampes, cache-pot céramique, bâtonnet et mousse.',
+    'Orchidée rose': 'Phalaenopsis rose, hampe arquée, cache-pot, prêt à offrir.',
+    'Calathea': 'Calathea à feuillage graphique, pot, aime l’humidité d’intérieur.',
+    'Ficus lyrata': 'Ficus lyrata jeune plant, tuteur, cache-pot osier, pièce lumineuse.',
+    'Anthurium': 'Anthurium rouge, spathes cirées, cache-pot, plante fleurie d’intérieur.',
+    'Succulente soleil': 'Composition succulentes en coupe basse, cailloux, peu d’arrosage.',
+    'Bonsaï': 'Bonsaï d’intérieur, pot émaillé, plateau, notice d’arrosage atelier.',
+    'Bouquet de mariée': 'Bouquet de mariée rond ivoire, roses garden, stephanotis, ruban long, pic floral de sécurité.',
+    'Bouquet demoiselle': 'Petit bouquet demoiselle d’honneur, tons blush, papier soie, à tenir à une main.',
+    'Composition cérémonie': 'Composition d’autel ou de pupitre, mousse piquée, lys, roses, retombée de feuillage.',
+    'Centre de table mariage': 'Centre bas mariage, bougie au centre, hortensia et roses, hauteur conversation.',
+    'Gerbe d\'honneur': 'Gerbe d’honneur à déposer, montage dos plat, ruban cérémonie, fleurs de saison.',
+    'Couronne de mariée': 'Couronne de tête mariée, fil floral, roses miniatures, gypsophile, élastiques invisibles.',
+    'Bouquet cascade mariage': 'Bouquet cascade mariée, roses, stéphanotis, lierre, montage léger mais dense.',
+    'Déco église': 'Décor de bout de banc ou de chœur, nœud de pétales et feuillage, attache ruban.',
+    'Arche florale': 'Module d’arche (panneau ou arche) : eucalyptus, hortensia, roses, à installer sur site.',
+    'Boutonnières (lot de 6)': 'Lot de 6 boutonnières : rose ou ranoncule, feuillage, épingle, boîte d’atelier.',
+    'Gerbe de deuil': 'Gerbe de deuil traditionnelle, montage piqué, tons lavande et blanc, ruban de condoléances.',
+    'Coussin blanc': 'Coussin de fleurs blanc, base mousse, lys et roses, forme carrée, à déposer.',
+    'Composition lys': 'Composition deuil lys blancs, vase ou pique, feuillage sobre, message possible.',
+    'Bouquet de sympathie': 'Bouquet rond de sympathie, lilas, roses pâles, papier kraft, à offrir en main.',
+    'Couronne de deuil': 'Couronne mortuaire ronde, mousse, chrysanthèmes et lys, ruban, chevalet en option.',
+    'Gerbe rose pâle': 'Gerbe allongée rose pâle, montage cérémonie funéraire, dos feuillu.',
+    'Composition verte': 'Composition feuillue verte, peu de fleurs, sobre, vase bas, recueillement.',
+    'Bouquet blanc et lilas': 'Bouquet blanc et lilas, papier discret, pour rendre visite ou un hommage simple.',
+    'Rose unique': 'Rose unique tige longue, collerette, voile, nœud satin, carte jointe.',
+    'Mini bouquet': 'Mini bouquet 7 tiges, papier d’atelier, à glisser dans un sac.',
+    'Pot-fleur surprise': 'Petite composition en pot, terre et fleurs, nœud, prêt à poser sur un bureau.',
+    'Carte et rose': 'Une rose et une carte calligraphiée, sachet kraft, nœud raphia.',
+    'Bouquet merci': 'Bouquet « merci » compact, tons corail, papier, étiquette d’atelier.',
+    'Composition bureau': 'Petite coupe pour bureau, hortensia ou roses, hauteur basse, eau cachée.',
+    'Fleurs en boîte': 'Boîte ronde, mousse, têtes de roses et hortensia, couvercle, nœud.',
+    'Duo de succulentes': 'Deux succulentes en pots assortis, plateau, ruban, cadeau durable.',
+}
 
 
 def ensure_demo_catalog():
@@ -240,8 +319,7 @@ def ensure_demo_catalog():
                 product.category_id = category.id
                 product.color = color
                 product.image = image
-                if not product.description:
-                    product.description = default_product_description(product_name)
+                product.description = default_product_description(product_name)
     db.session.commit()
     from app.services.shop_themes import ensure_shop_themes
     ensure_shop_themes()
