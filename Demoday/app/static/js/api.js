@@ -387,7 +387,8 @@ class ApiService {
             ordersLink.id = 'orders-link';
             ordersLink.href = 'commandes.html';
             ordersLink.className = 'cta-btn';
-            ordersLink.textContent = 'Mes commandes';
+        ordersLink.textContent = this.user ? 'Mes commandes' : 'Suivre une commande';
+        ordersLink.style.display = 'block';
             const logoutBtn = document.getElementById('logout-btn');
             if (logoutBtn) {
                 panel.insertBefore(ordersLink, logoutBtn);
@@ -395,7 +396,7 @@ class ApiService {
                 panel.appendChild(ordersLink);
             }
         }
-        ordersLink.style.display = this.user ? 'block' : 'none';
+        ordersLink.style.display = 'block';
 
         let adminBtn = document.getElementById('admin-btn');
         if (!adminBtn) {

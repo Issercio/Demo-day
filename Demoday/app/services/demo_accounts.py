@@ -210,9 +210,11 @@ def ensure_product_image_column():
 def ensure_demo_catalog():
     """Remplit le shop au démarrage : 7 catégories, prix Decimal, photos, couleurs filtre."""
     from app.models import Category, Product
+    from app.services.shop_extras import DEMO_STOCK, DEFAULT_STOCK, ensure_shop_extra_columns
 
     ensure_product_color_column()
     ensure_product_image_column()
+    ensure_shop_extra_columns()
     for category_name, items in DEMO_CATALOG:
         category = Category.query.filter_by(name=category_name).first()
         if category is None:
@@ -222,6 +224,7 @@ def ensure_demo_catalog():
         for product_name, price, color in items:
             image = product_image_path(product_name)
             product = Product.query.filter_by(name=product_name).first()
+            seeded_stock = DEMO_STOCK.get(product_name, DEFAULT_STOCK)
             if product is None:
                 db.session.add(Product(
                     name=product_name,
@@ -229,12 +232,15 @@ def ensure_demo_catalog():
                     category_id=category.id,
                     color=color,
                     image=image,
+                    stock_qty=seeded_stock,
                 ))
             else:
                 product.price = price
                 product.category_id = category.id
                 product.color = color
                 product.image = image
+                if product.stock_qty is None:
+                    product.stock_qty = seeded_stock
     db.session.commit()
     from app.services.shop_themes import ensure_shop_themes
     ensure_shop_themes()

@@ -109,6 +109,10 @@ def ensure_runtime_schema():
         'prep_status': 'VARCHAR(32)',
         'phone': 'VARCHAR(20)',
         'address': 'VARCHAR(255)',
+        'fulfillment_type': 'VARCHAR(16)',
+        'fulfillment_date': 'VARCHAR(10)',
+        'fulfillment_slot': 'VARCHAR(16)',
+        'card_message': 'VARCHAR(280)',
     }
     for name, ddl in additions.items():
         if name not in existing:
@@ -122,10 +126,12 @@ def ensure_runtime_schema():
     from app.services.demo_accounts import ensure_product_color_column, ensure_product_image_column
     from app.services.login_lockout import ensure_login_lockout_columns
     from app.services.account_verification import ensure_verification_columns
+    from app.services.shop_extras import ensure_shop_extra_columns
     ensure_product_color_column()
     ensure_product_image_column()
     ensure_login_lockout_columns()
     ensure_verification_columns()
+    ensure_shop_extra_columns()
     ensure_subscription_catalog()
 
 
@@ -328,6 +334,7 @@ def _guest_contact(data, user_id):
 def _persist_order(
     email, name, user_id, total, method, status, card_last4, reference, stripe_id, lines,
     prep_status=None, deposit_amount=None, phone=None, address=None,
+    fulfillment_type=None, fulfillment_date=None, fulfillment_slot=None, card_message=None,
 ):
     order = Order(
         user_id=user_id,
@@ -343,6 +350,10 @@ def _persist_order(
         card_last4=card_last4,
         payment_reference=reference,
         stripe_payment_intent_id=stripe_id,
+        fulfillment_type=fulfillment_type,
+        fulfillment_date=fulfillment_date,
+        fulfillment_slot=fulfillment_slot,
+        card_message=card_message,
     )
     db.session.add(order)
     db.session.flush()
@@ -363,6 +374,8 @@ def checkout(data, user_id=None):
     name = (data.get('customer_name') or data.get('name') or '').strip()
     method = (data.get('payment_method') or 'card').lower()
     phone, address = _guest_contact(data, user_id)
+    from app.services.shop_extras import consume_stock, notify_order_placed, parse_fulfillment
+    fulfillment_type, fulfillment_date, fulfillment_slot, card_message = parse_fulfillment(data)
 
     if not email or '@' not in email:
         raise ValueError('Email invalide.')
@@ -406,6 +419,8 @@ def checkout(data, user_id=None):
             None, f'FAIL-{uuid.uuid4().hex[:10].upper()}', None, lines,
             prep_status=None, deposit_amount=None,  # refus : pas d'atelier
             phone=phone, address=address,
+            fulfillment_type=fulfillment_type, fulfillment_date=fulfillment_date,
+            fulfillment_slot=fulfillment_slot, card_message=card_message,
         )
         raise PaymentDeclined(str(error), order=order) from error
 
@@ -414,9 +429,14 @@ def checkout(data, user_id=None):
         status = 'deposit'
         deposit_amount = deposit_of(total)
 
-    return _persist_order(
+    consume_stock(lines)
+    order = _persist_order(
         email, name, user_id, total, method, status,
         card_last4, reference, stripe_id, lines,
         prep_status=prep_status, deposit_amount=deposit_amount,
         phone=phone, address=address,
+        fulfillment_type=fulfillment_type, fulfillment_date=fulfillment_date,
+        fulfillment_slot=fulfillment_slot, card_message=card_message,
     )
+    order.track_notice = notify_order_placed(order)
+    return order

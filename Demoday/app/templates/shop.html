@@ -72,6 +72,7 @@
     <!-- Zone produits -->
     <div class="products-column">
       <div id="theme-banner" class="shop-theme-banner" hidden></div>
+      <div id="wedding-pack" class="shop-pack-card" hidden></div>
       <main class="products-area" id="products-area">
       <!-- Les catégories et produits seront chargés depuis l'API -->
       <div style="text-align: center; color: #bc6288; padding: 60px 20px;">
@@ -310,6 +311,7 @@
         allCategories = categories.filter((category) => category.name !== 'Abonnements');
         allProducts = products.filter((product) => !(product.category && product.category.name === 'Abonnements'));
         await applyShopTheme();
+        await renderWeddingPack();
         renderCategoryFilters();
         syncCategoryChecksToTheme();
 
@@ -355,14 +357,14 @@
           <div class="products-grid" id="category-${category.id}">
               ${categoryProducts.length > 0 ? 
                 categoryProducts.map(product => {
-                  // Récupérer le statut de stock depuis localStorage
-                  const stockStatus = getProductStockStatus(product.id);
+                  const stockStatus = product.stock_status || getProductStockStatus(product.id);
                   const stockBanner = getStockBanner(stockStatus);
                   const isOutOfStock = stockStatus === 'out';
                   
                   const hex = pickProductColor(product);
                   const photo = productImage(product);
                   const blurb = categoryBlurb(category.name);
+                  const related = relatedLinks(product);
                   
                   return `
                     <div class="product-card">
@@ -375,6 +377,7 @@
                         <h3>${escapeHtml(product.name)}</h3>
                         <p class="product-blurb">${escapeHtml(blurb)}</p>
                         <p class="product-price">${Number(product.price).toFixed(2)}€</p>
+                        ${related}
                         <button class="add-to-cart" onclick="addToCartById(${Number(product.id)})" 
                                 ${isOutOfStock ? 'disabled style="background:#ccc;cursor:not-allowed;"' : ''}>
                           ${isOutOfStock ? 'Rupture de stock' : 'Commander'}
@@ -458,9 +461,64 @@
       }
     }
 
+    async function renderWeddingPack() {
+      const box = document.getElementById('wedding-pack');
+      if (!box) {
+        return;
+      }
+      try {
+        const response = await fetch('/api/v1/packs');
+        if (!response.ok) {
+          box.hidden = true;
+          return;
+        }
+        const payload = await response.json();
+        const pack = (payload.packs || [])[0];
+        if (!pack || !pack.products || pack.products.length < 2) {
+          box.hidden = true;
+          return;
+        }
+        box.hidden = false;
+        const names = pack.products.map((product) => escapeHtml(product.name)).join(' + ');
+        box.innerHTML = `
+          <p><strong>${escapeHtml(pack.label)}</strong> — ${escapeHtml(pack.blurb)}</p>
+          <p class="shop-pack-names">${names} · ${Number(pack.total).toFixed(2)}€</p>
+          <button type="button" id="add-wedding-pack">Ajouter le pack au panier</button>
+        `;
+        const button = document.getElementById('add-wedding-pack');
+        if (button) {
+          button.addEventListener('click', () => addWeddingPack(pack));
+        }
+      } catch (err) {
+        box.hidden = true;
+      }
+    }
+
+    function addWeddingPack(pack) {
+      (pack.products || []).forEach((product) => addToCart(product));
+    }
+
+    function relatedLinks(product) {
+      const names = product.related_names || [];
+      const links = names.map((name) => {
+        const related = allProducts.find((item) => item.name === name);
+        if (!related) {
+          return '';
+        }
+        return `<button type="button" class="related-link" onclick="addToCartById(${Number(related.id)})">+ ${escapeHtml(related.name)}</button>`;
+      }).filter(Boolean);
+      if (!links.length) {
+        return '';
+      }
+      return `<p class="related-label">Pour compléter</p><p class="related-row">${links.join('')}</p>`;
+    }
+
     function getProductStockStatus(productId) {
-      const stockData = JSON.parse(localStorage.getItem('productStock') || '{}');  // stock démo UI, pas une vérité serveur
-      return stockData[productId] || 'available';
+      const product = allProducts.find((item) => Number(item.id) === Number(productId));
+      if (product && product.stock_status) {
+        return product.stock_status;
+      }
+      return 'available';
     }
 
     function getStockBanner(status) {
@@ -477,6 +535,10 @@
     function addToCartById(productId) {
       const product = allProducts.find((item) => Number(item.id) === Number(productId));
       if (!product) {
+        return;
+      }
+      if ((product.stock_status || getProductStockStatus(product.id)) === 'out') {
+        showCartToast(`${product.name} est en rupture de stock`);
         return;
       }
       addToCart(product);
@@ -576,6 +638,44 @@
       background: #f8d7da;
       color: #721c24;
       border: 1px solid #f5c6cb;
+    }
+
+    .shop-pack-card {
+      margin: 0 0 18px;
+      padding: 16px 18px;
+      border: 1.5px solid #e7d6d6;
+      border-radius: 12px;
+      background: #fff8fb;
+      color: #5a3d48;
+    }
+    .shop-pack-card[hidden] { display: none; }
+    .shop-pack-card p { margin: 0 0 8px; }
+    .shop-pack-names { font-size: 0.92rem; color: #6c4a58; }
+    .shop-pack-card button {
+      border: 0;
+      background: #bc6288;
+      color: #fff;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .related-label {
+      margin: 0 0 4px;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #9a7a86;
+    }
+    .related-row { margin: 0 0 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .related-link {
+      border: 1px solid #e7d6d6;
+      background: #fff;
+      color: #ab597c;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 0.78rem;
+      cursor: pointer;
     }
 
     .cart-toast {

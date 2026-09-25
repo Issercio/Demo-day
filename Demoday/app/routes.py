@@ -14,6 +14,7 @@ from app.services.shop_themes import (
     filter_products_by_theme,
     set_applied_theme_id,
     set_applied_vitrine,
+    set_auto_vitrine,
     themes_payload,
 )
 
@@ -467,6 +468,12 @@ def products():
                 color=normalize_hex_color(data.get('color') or data.get('hex_color')),
                 image=image_url,
             )
+            from app.services.shop_extras import parse_stock_qty
+            if data.get('stock_qty') not in (None, ''):
+                try:
+                    product.stock_qty = parse_stock_qty(data.get('stock_qty'))
+                except ValueError as exc:
+                    return jsonify({'error': str(exc)}), 400
             db.session.add(product)
             db.session.flush()
             
@@ -537,6 +544,12 @@ def update_product(product_id):
             product.category_id = int(data['category_id'])
         if 'color' in data or 'hex_color' in data:
             product.color = normalize_hex_color(data.get('color') or data.get('hex_color'))
+        if data.get('stock_qty') not in (None, ''):
+            from app.services.shop_extras import parse_stock_qty
+            try:
+                product.stock_qty = parse_stock_qty(data.get('stock_qty'))
+            except ValueError as exc:
+                return jsonify({'error': str(exc)}), 400
         if image_file and image_file.filename:
             try:
                 product.image = save_product_image(image_file, product.name)
@@ -598,8 +611,10 @@ def shop_themes():
             return denied
         data = request.get_json(silent=True) or {}
         try:
-            if 'season' in data:
-                # Combo : une saison ET/OU un thème événement.
+            if data.get('auto') is True or data.get('id') in ('auto', 'calendrier'):
+                set_auto_vitrine()
+            elif 'season' in data:
+                # Combo : une saison et 0 à N thèmes événement (liste ou virgules).
                 set_applied_vitrine(data.get('season'), data.get('theme'))
             else:
                 theme_id = data.get('id')
@@ -610,13 +625,23 @@ def shop_themes():
             return jsonify({'error': 'Thème inconnu'}), 400
         payload = themes_payload()
         payload['message'] = (
-            'Catalogue complet affiché dans le shop.'
-            if not payload.get('applied_ids')
-            else f'Vitrine du shop : {payload["label"]}.'
+            'Vitrine automatique selon le calendrier.'
+            if payload.get('auto')
+            else (
+                'Catalogue complet affiché dans le shop.'
+                if not payload.get('applied_ids')
+                else f'Vitrine du shop : {payload["label"]}.'
+            )
         )
         return jsonify(payload)
 
     return jsonify(themes_payload())  # GET public : le shop lit la vitrine sans JWT
+
+
+@api_bp.route('/packs', methods=['GET'])
+def shop_packs():
+    from app.services.shop_extras import wedding_pack_payload
+    return jsonify({'packs': [wedding_pack_payload()]})
 
 
 @api_bp.route('/themes/<theme_id>', methods=['DELETE'])

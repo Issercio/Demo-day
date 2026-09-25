@@ -97,7 +97,7 @@ def create_app():
                 return redirect(https_url, code=301)
 
     # Import des modèles pour l'initialisation
-    from .models import Category, Product, User, Order, OrderItem, ShopTheme, ShopVitrine, ThemeProduct
+    from .models import Category, Product, User, Order, OrderItem, OrderTrackCode, ShopTheme, ShopVitrine, ShopVitrineTheme, ThemeProduct
 
     # Swagger UI : ajout du header Authorization
     authorizations = {
