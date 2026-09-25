@@ -19,7 +19,7 @@ python3 -m coverage report -m
 
 Dernière capture : [test-evidence/unittest-output.txt](test-evidence/unittest-output.txt), [test-evidence/coverage-report.txt](test-evidence/coverage-report.txt).
 
-Dernière exécution enregistrée : **109 tests, OK**.
+Dernière exécution enregistrée : **110 tests, OK**.
 
 ## Fichiers
 
