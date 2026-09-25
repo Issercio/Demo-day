@@ -1,7 +1,7 @@
 from .category import Category
 from .user import User
 from .order import Order, OrderItem
-from .shop_theme import ShopTheme, ShopVitrine, ThemeProduct
+from .shop_theme import ShopTheme, ShopVitrine, ShopVitrineTheme, ThemeProduct
 from app.extensions import db
 
 # Définition du modèle Product directement dans __init__.py

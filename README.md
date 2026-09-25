@@ -201,11 +201,11 @@ Open, none of them block a purchase:
 
 The browser renders server templates and calls `/api/v1`. Checkout never uses a price from the client: `checkout_service.build_order_lines` loads `Product.price` from the database and totals with `Decimal`.
 
-The public shop does not auto-filter `GET /api/v1/products`. After load it reads `GET /api/v1/themes` (`applied_ids`, `product_names`) and shows the florist’s vitrine. A combo is the union of the season list and the event list. Applied ids are stored as a comma-separated string (`printemps,mariage`), not with `+`, so they stay URL-safe.
+The public shop does not auto-filter `GET /api/v1/products`. After load it reads `GET /api/v1/themes` (`applied_ids`, `product_names`) and shows the florist’s vitrine. A combo is the union of one season list and any number of event lists. Applied ids are stored as a comma-separated string (`printemps,mariage,cadeau`), not with `+`, so they stay URL-safe.
 
 **Frontend.** Templates in `Demoday/app/templates/` (home, shop, cart, checkout, account, admin, subscription). Shared CSS in `static/css/style.css`. Cart and session in `static/js/api.js`. Vanilla JavaScript and Jinja — no React.
 
-**Backend.** `create_app()` in `app/__init__.py` wires CORS, SQLAlchemy, Flask-RESTX namespaces (`auth`, `products`, `categories`, `users`) and the payments blueprint. Domain logic lives in `app/services/` (`checkout_service.py`, `demo_accounts.py`, `shop_themes.py`, `product_images.py`, `stripe_service.py`). Seasons, event themes and the applied vitrine are SQL tables (`shop_themes`, `theme_products`, `shop_vitrine`) linked to `products`.
+**Backend.** `create_app()` in `app/__init__.py` wires CORS, SQLAlchemy, Flask-RESTX namespaces (`auth`, `products`, `categories`, `users`) and the payments blueprint. Domain logic lives in `app/services/` (`checkout_service.py`, `demo_accounts.py`, `shop_themes.py`, `product_images.py`, `stripe_service.py`). Seasons, event themes and the applied vitrine are SQL tables (`shop_themes`, `theme_products`, `shop_vitrine`, `shop_vitrine_themes`) linked to `products`.
 
 ---
 
@@ -225,7 +225,9 @@ erDiagram
   products ||--o{ prices : optional_history
   shop_themes ||--o{ theme_products : lists
   products ||--o{ theme_products : featured_in
-  shop_themes ||--o| shop_vitrine : season_or_theme
+  shop_themes ||--o| shop_vitrine : season
+  shop_vitrine ||--o{ shop_vitrine_themes : events
+  shop_themes ||--o{ shop_vitrine_themes : applied
 
   users {
     int id PK
@@ -267,6 +269,11 @@ erDiagram
     string season_id FK
     string theme_id FK
   }
+  shop_vitrine_themes {
+    int vitrine_id FK
+    string theme_id FK
+    int position
+  }
   orders {
     int id PK
     int user_id FK
@@ -289,7 +296,7 @@ erDiagram
   }
 ```
 
-`reviews` and `prices` exist as models but are not on the purchase path. Product `color` is a hex code (`VARCHAR(7)`). Product `image` is a path under `/static/img/products/`. Card numbers are not stored; `card_last4` is at most four digits. Each vitrine theme stores an ordered list of `product_id` rows in `theme_products`. The live shop selection is one `shop_vitrine` row (`season_id`, `theme_id`).
+`reviews` and `prices` exist as models but are not on the purchase path. Product `color` is a hex code (`VARCHAR(7)`). Product `image` is a path under `/static/img/products/`. Card numbers are not stored; `card_last4` is at most four digits. Each vitrine theme stores an ordered list of `product_id` rows in `theme_products`. The live shop selection is one `shop_vitrine` row (`season_id`, plus `theme_id` as the first event) and ordered event rows in `shop_vitrine_themes`.
 
 ### UML
 
@@ -386,7 +393,7 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | GET | `/api/v1/payments/orders/<id>` | owner or admin JWT | Order detail |
 | GET | `/api/v1/payments/orders` | admin JWT | List every order |
 
-`GET /api/v1/themes` returns `applied`, `applied_ids`, `applied_season`, `applied_theme`, `label`, `blurb`, `product_names`, and the full theme list with `is_applied` and `can_delete`. A customer token cannot change the vitrine.
+`GET /api/v1/themes` returns `applied`, `applied_ids`, `applied_season`, `applied_theme` (comma-separated events), `applied_themes` (event id list), `label`, `blurb`, `product_names`, and the full theme list with `is_applied` and `can_delete`. PUT `{season, theme}` replaces the event list (`theme` may be a string, comma-separated ids, or an array). PUT `{id}` toggles one season or adds/removes one event. A customer token cannot change the vitrine.
 
 ---
 

@@ -829,7 +829,7 @@
 
         <div class="admin-section" id="vitrine-section">
             <h2>Vitrine du shop</h2>
-            <p class="admin-vitrine-lead">Choisissez une saison, un thème, ou les deux ensemble. Le shop affiche le combo appliqué.</p>
+            <p class="admin-vitrine-lead">Choisissez une saison et autant de thèmes que vous voulez. Le shop affiche l'union des bouquets.</p>
             <p id="vitrine-status" class="admin-vitrine-status">En vitrine : catalogue complet</p>
             <div class="theme-groups">
                 <div>
@@ -1083,27 +1083,41 @@
             }
         }
 
+        function appliedEventIds(payload) {
+            if (payload && Array.isArray(payload.applied_themes)) {
+                return payload.applied_themes.slice();
+            }
+            const theme = payload && payload.applied_theme;
+            if (!theme) {
+                return [];
+            }
+            return String(theme).split(',').map((part) => part.trim()).filter(Boolean);
+        }
+
         function toggleVitrineChip(themeId, kind, payload) {
             const season = payload && payload.applied_season;
-            const theme = payload && payload.applied_theme;
+            const themes = appliedEventIds(payload);
             if (kind === 'saison') {
                 applyVitrine({
-                    season: season === themeId ? null : themeId,  // combo : saison et thème indépendants
-                    theme: theme || null
+                    season: season === themeId ? null : themeId,  // une saison à la fois
+                    theme: themes
                 });
                 return;
             }
+            const next = themes.includes(themeId)
+                ? themes.filter((id) => id !== themeId)
+                : themes.concat(themeId);
             applyVitrine({
                 season: season || null,
-                theme: theme === themeId ? null : themeId
+                theme: next
             });
         }
 
         async function applyVitrine(selection) {
-            // PUT admin : saison et/ou thème. Le shop public relit GET /api/v1/themes.
+            // PUT admin : une saison + N thèmes. Le shop public relit GET /api/v1/themes.
             const body = {
                 season: selection && selection.season ? selection.season : null,
-                theme: selection && selection.theme ? selection.theme : null
+                theme: selection && selection.theme ? selection.theme : []
             };
             try {
                 const response = await fetch('/api/v1/themes', {
@@ -1163,7 +1177,7 @@
                 renderVitrine(await response.json());
                 const clearBtn = document.getElementById('vitrine-clear');
                 if (clearBtn) {
-                    clearBtn.addEventListener('click', () => applyVitrine({ season: null, theme: null }));
+                    clearBtn.addEventListener('click', () => applyVitrine({ season: null, theme: [] }));
                 }
                 bindThemeCreateControls();
             } catch (error) {

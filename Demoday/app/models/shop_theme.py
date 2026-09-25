@@ -55,8 +55,28 @@ class ThemeProduct(db.Model):
     product = db.relationship('Product', back_populates='theme_links')
 
 
+class ShopVitrineTheme(db.Model):
+    """Thèmes événement actuellement posés sur la vitrine (0 à N, ordre conservé)."""
+    __tablename__ = 'shop_vitrine_themes'
+
+    vitrine_id = db.Column(
+        db.Integer,
+        db.ForeignKey('shop_vitrine.id', ondelete='CASCADE'),
+        primary_key=True,
+    )
+    theme_id = db.Column(
+        db.String(80),
+        db.ForeignKey('shop_themes.id', ondelete='CASCADE'),
+        primary_key=True,
+    )
+    position = db.Column(db.Integer, nullable=False, default=0)
+
+    vitrine = db.relationship('ShopVitrine', back_populates='event_links')
+    theme = db.relationship('ShopTheme')
+
+
 class ShopVitrine(db.Model):
-    """Une seule ligne : saison et/ou thème actuellement affichés dans le shop."""
+    """Une seule ligne : une saison, plus 0 à N thèmes événement."""
     __tablename__ = 'shop_vitrine'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -69,7 +89,13 @@ class ShopVitrine(db.Model):
         db.String(80),
         db.ForeignKey('shop_themes.id', ondelete='SET NULL'),
         nullable=True,
-    )
+    )  # premier thème événement, pour rester compatible avec l'ancienne colonne
 
     season = db.relationship('ShopTheme', foreign_keys=[season_id])
     theme = db.relationship('ShopTheme', foreign_keys=[theme_id])
+    event_links = db.relationship(
+        'ShopVitrineTheme',
+        back_populates='vitrine',
+        cascade='all, delete-orphan',
+        order_by='ShopVitrineTheme.position',
+    )
