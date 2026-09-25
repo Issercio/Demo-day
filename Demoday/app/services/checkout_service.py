@@ -122,10 +122,12 @@ def ensure_runtime_schema():
     from app.services.demo_accounts import ensure_product_color_column, ensure_product_image_column
     from app.services.login_lockout import ensure_login_lockout_columns
     from app.services.account_verification import ensure_verification_columns
+    from app.services.shop_commerce import ensure_commerce_schema
     ensure_product_color_column()
     ensure_product_image_column()
     ensure_login_lockout_columns()
     ensure_verification_columns()
+    ensure_commerce_schema()
     ensure_subscription_catalog()
     from app.services.shop_ops import ensure_ops_schema
     ensure_ops_schema()

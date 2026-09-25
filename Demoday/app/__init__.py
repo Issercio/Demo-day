@@ -159,10 +159,10 @@ def create_app():
             from app.services.demo_accounts import ensure_demo_accounts, ensure_demo_catalog
             from app.services.shop_ops import ensure_ops_schema
             from app.services.shop_commerce import ensure_commerce_schema
-            # SQLite fraîche : colonnes paiement/photo + comptes démo + catalogue.
+            # SQLite existante : d'abord les colonnes commerce, puis le catalogue.
+            ensure_commerce_schema()
             ensure_runtime_schema()
             ensure_ops_schema()
-            ensure_commerce_schema()
             ensure_demo_accounts()
             ensure_demo_catalog()
         except Exception as exc:
