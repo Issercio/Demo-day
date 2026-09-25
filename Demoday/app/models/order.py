@@ -40,6 +40,9 @@ class Order(db.Model):
     payment_reference = db.Column(db.String(64), nullable=True)
     status = db.Column(db.String(50), default='pending')  # pending, deposit, paid, failed, cancelled
     prep_status = db.Column(db.String(32), nullable=True)  # a_preparer → remise
+    fulfillment_type = db.Column(db.String(20), nullable=True)
+    fulfillment_date = db.Column(db.Date, nullable=True)
+    fulfillment_slot = db.Column(db.String(20), nullable=True)
     created_at = db.Column(db.DateTime, default=utc_now)
     
     # Relations
@@ -82,6 +85,9 @@ class Order(db.Model):
             'payment_label': self.payment_label(),
             'prep_status': self.prep_status,
             'prep_label': self.prep_label(),
+            'fulfillment_type': self.fulfillment_type,
+            'fulfillment_date': self.fulfillment_date.isoformat() if self.fulfillment_date else None,
+            'fulfillment_slot': self.fulfillment_slot,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'items': [item.to_dict() for item in self.order_items]
         }

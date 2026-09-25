@@ -54,6 +54,30 @@
             border: 1px solid #e7d6d6;
         }
 
+        .atelier-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin: 0 0 18px 0;
+        }
+        .atelier-card {
+            background: #fff6f2;
+            border: 1px solid #e7d6d6;
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+        .atelier-card span { color: #6c4a58; font-size: 0.88rem; }
+        .atelier-card strong { display: block; font-size: 1.55rem; color: #7f3f5a; margin-top: 4px; }
+        .atelier-lists { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 720px) { .atelier-lists { grid-template-columns: 1fr; } }
+        .atelier-lists h3 { color: #bc6288; font-size: 1rem; margin: 8px 0; }
+        .atelier-lists ul { margin: 0; padding-left: 18px; color: #6c4a58; }
+        .contact-inbox { display: grid; gap: 10px; }
+        .contact-card { border: 1px solid #e7d6d6; border-radius: 10px; padding: 12px 14px; background: #fff; }
+        .contact-card.is-nouveau { border-color: #bc6288; background: #fff6f2; }
+        .contact-card p { margin: 8px 0 0; color: #3a2a30; white-space: pre-wrap; }
+        .contact-card menu { display: flex; gap: 8px; margin: 10px 0 0; padding: 0; }
+
         .profile-icon-btn:hover,
         .profile-icon-btn:focus {
             background: transparent;
@@ -789,7 +813,7 @@
 </head>
 <body class="admin-page">
     <header class="admin-header">
-        <img class="logo" src="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6~mv2.png/v1/crop/x_748,y_1016,w_3355,h_2788/fill/w_239,h_198,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20P%26L%20Rond%20neutre%20pour%20fond%20clairsans%20fond%20-%20by%20fadamentalpics.png" alt="Logo pivoine & lilas, artisan fleuriste" width="120" height="100">
+        <img class="logo" src="/static/img/logo.png" alt="Logo pivoine & lilas, artisan fleuriste" width="120" height="100">
         <nav>
             <ul>
                 <li><a href="accueil.html">ACCUEIL</a></li>
@@ -826,6 +850,27 @@
     <div class="admin-container">
         <h1 style="text-align: center; color: #bc6288; margin-bottom: 18px;">Administration du catalogue</h1>
         <p id="admin-notice" class="admin-notice" hidden></p>
+
+        <div class="admin-section" id="atelier-today">
+            <h2>Tableau du jour</h2>
+            <div class="atelier-board" id="atelier-board">
+                <div class="atelier-card"><span>À préparer</span><strong id="stat-to-prep">—</strong></div>
+                <div class="atelier-card"><span>En préparation</span><strong id="stat-in-prep">—</strong></div>
+                <div class="atelier-card"><span>Prêtes</span><strong id="stat-ready">—</strong></div>
+                <div class="atelier-card"><span>Payées aujourd’hui</span><strong id="stat-paid-today">—</strong></div>
+                <div class="atelier-card"><span>Nouveaux messages</span><strong id="stat-contacts">—</strong></div>
+            </div>
+            <div class="atelier-lists">
+                <div>
+                    <h3>Prochains retraits / livraisons</h3>
+                    <ul id="atelier-pickups"><li>Chargement…</li></ul>
+                </div>
+                <div>
+                    <h3>Stock bas / rupture</h3>
+                    <ul id="atelier-stock"><li>Chargement…</li></ul>
+                </div>
+            </div>
+        </div>
 
         <div class="admin-section" id="vitrine-section">
             <h2>Vitrine du shop</h2>
@@ -921,6 +966,10 @@
                     <input type="number" id="product-price" placeholder="Prix" step="0.01" min="0">
                 </div>
                 <div class="form-group">
+                    <label for="product-stock">Stock :</label>
+                    <input type="number" id="product-stock" placeholder="12" min="0" max="9999" value="12">
+                </div>
+                <div class="form-group">
                     <label for="product-category">Catégorie :</label>
                     <select id="product-category">
                         <option value="">Choisir une catégorie</option>
@@ -951,15 +1000,22 @@
                         <th>Nom</th>
                         <th>Prix</th>
                         <th>Catégorie</th>
+                        <th>Stock</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="products-list">
                     <tr>
-                        <td colspan="6" style="text-align: center; color: #bc6288;">Chargement...</td>
+                        <td colspan="7" style="text-align: center; color: #bc6288;">Chargement...</td>
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <div class="admin-section">
+            <h2>Demandes contact</h2>
+            <p style="margin-bottom: 12px; color: #6c4a58;">Les messages du formulaire Contact arrivent ici.</p>
+            <div id="contact-inbox" class="contact-inbox"><p class="order-empty">Chargement…</p></div>
         </div>
 
         <div class="admin-section">
@@ -971,7 +1027,7 @@
         </div>
     </div>
 
-    <script src="../static/js/api.js?v=20260925-profile"></script>
+    <script src="../static/js/api.js?v=20260925-ops"></script>
     <script>
         let categories = [];
         let products = [];
@@ -1343,11 +1399,92 @@
                 updateCategoryOptions();
                 fillThemeProductPicker();
                 await loadOrders();
+                await loadAtelierToday();
+                await loadContactInbox();
                 
                 console.log('=== FIN CHARGEMENT ===');
             } catch (error) {
                 console.error('Erreur lors du chargement des données:', error);
                 showNotice('Erreur lors du chargement des données: ' + error.message, 'error');
+            }
+        }
+
+        async function loadAtelierToday() {
+            try {
+                const response = await fetch('/api/v1/atelier/today', { headers: getAdminHeaders() });
+                if (!response.ok) {
+                    return;
+                }
+                const data = await response.json();
+                const setText = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.textContent = String(value);
+                    }
+                };
+                setText('stat-to-prep', data.to_prep);
+                setText('stat-in-prep', data.in_prep);
+                setText('stat-ready', data.ready);
+                setText('stat-paid-today', data.paid_today);
+                setText('stat-contacts', data.new_contacts);
+                const pickups = document.getElementById('atelier-pickups');
+                if (pickups) {
+                    pickups.innerHTML = (data.upcoming_pickups || []).length
+                        ? data.upcoming_pickups.map((row) => `<li>#${row.id} ${escapeHtml(row.name)} — ${escapeHtml(row.date)} ${escapeHtml(row.slot)} (${escapeHtml(row.type)})</li>`).join('')
+                        : '<li>Aucun retrait prévu cette semaine.</li>';
+                }
+                const stock = document.getElementById('atelier-stock');
+                if (stock) {
+                    const rows = [...(data.out_stock || []).map((row) => `<li><strong>Rupture</strong> ${escapeHtml(row.name)}</li>`), ...(data.low_stock || []).map((row) => `<li>${escapeHtml(row.name)} : ${row.stock_qty}</li>`)];
+                    stock.innerHTML = rows.length ? rows.join('') : '<li>Stock OK</li>';
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function loadContactInbox() {
+            const box = document.getElementById('contact-inbox');
+            if (!box) {
+                return;
+            }
+            try {
+                const response = await fetch('/api/v1/contact', { headers: getAdminHeaders() });
+                if (!response.ok) {
+                    box.innerHTML = '<p class="order-empty">Impossible de charger les demandes.</p>';
+                    return;
+                }
+                const data = await response.json();
+                const rows = data.requests || [];
+                if (!rows.length) {
+                    box.innerHTML = '<p class="order-empty">Aucune demande pour le moment.</p>';
+                    return;
+                }
+                box.innerHTML = rows.map((row) => `
+                    <article class="contact-card${row.status === 'nouveau' ? ' is-nouveau' : ''}" data-contact-id="${row.id}">
+                        <strong>${escapeHtml(row.name)}</strong> · ${escapeHtml(row.email)}
+                        <small> · ${escapeHtml((row.created_at || '').replace('T', ' ').slice(0, 16))} · ${escapeHtml(row.status)}</small>
+                        <p>${escapeHtml(row.message)}</p>
+                        <menu>
+                            <button type="button" class="btn" data-contact-status="lu">Marquer lu</button>
+                            <button type="button" class="btn" data-contact-status="traite">Traité</button>
+                        </menu>
+                    </article>
+                `).join('');
+                box.querySelectorAll('[data-contact-status]').forEach((button) => {
+                    button.addEventListener('click', async () => {
+                        const card = button.closest('[data-contact-id]');
+                        await fetch('/api/v1/contact/' + card.getAttribute('data-contact-id'), {
+                            method: 'PATCH',
+                            headers: getAdminHeaders(),
+                            body: JSON.stringify({ status: button.getAttribute('data-contact-status') })
+                        });
+                        await loadContactInbox();
+                        await loadAtelierToday();
+                    });
+                });
+            } catch (error) {
+                box.innerHTML = '<p class="order-empty">Erreur de chargement.</p>';
             }
         }
 
@@ -1554,6 +1691,10 @@
                             <dt>Client</dt>
                             <dd>${contactBits.map((line) => escapeHtml(line)).join('<br>')}</dd>
                         </div>
+                        ${order.fulfillment_date ? `<div>
+                            <dt>${order.fulfillment_type === 'livraison' ? 'Livraison' : 'Retrait'}</dt>
+                            <dd>${escapeHtml(order.fulfillment_date)}${order.fulfillment_slot ? `<br>${escapeHtml(order.fulfillment_slot === 'apres-midi' ? 'Après-midi' : 'Matin')}` : ''}</dd>
+                        </div>` : ''}
                     </dl>
                     <div class="order-lines-wrap">
                     <table class="order-lines">
@@ -1756,6 +1897,7 @@
         function resetProductForm() {
             document.getElementById('product-name').value = '';
             document.getElementById('product-price').value = '';
+            document.getElementById('product-stock').value = '12';
             document.getElementById('product-category').value = '';
             document.getElementById('product-color').value = '';
             document.getElementById('product-image').value = '';
@@ -1771,6 +1913,7 @@
         async function createProduct() {
             const name = document.getElementById('product-name').value.trim();
             const price = document.getElementById('product-price').value;
+            const stock = document.getElementById('product-stock').value;
             const categoryId = document.getElementById('product-category').value;
             const color = document.getElementById('product-color').value;
             const imageInput = document.getElementById('product-image');
@@ -1786,6 +1929,9 @@
                 formData.append('name', name);
                 formData.append('price', price);
                 formData.append('category_id', categoryId);
+                if (stock !== '') {
+                    formData.append('stock_qty', stock);
+                }
                 if (color) {
                     formData.append('color', color);
                 }
@@ -1862,7 +2008,7 @@
         function renderProducts() {
             const tbody = document.getElementById('products-list');
             if (products.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #bc6288;">Aucun produit trouvé</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #bc6288;">Aucun produit trouvé</td></tr>';
                 return;
             }
             
@@ -1889,6 +2035,10 @@
                         <select class="edit-input product-category-edit" style="display:none;">
                             ${categories.map(cat => `<option value="${cat.id}" ${prod.category && prod.category.id === cat.id ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`).join('')}
                         </select>
+                    </td>
+                    <td>
+                        <span class="product-stock">${prod.stock_qty == null ? '—' : prod.stock_qty}</span>
+                        <input type="number" class="edit-input product-stock-edit" value="${prod.stock_qty == null ? 12 : prod.stock_qty}" min="0" max="9999" style="display:none;">
                     </td>
                     <td>
                         <div class="btn-group">
@@ -1993,6 +2143,8 @@
             row.querySelector('.product-price-edit').style.display = 'block';
             row.querySelector('.product-category').style.display = 'none';
             row.querySelector('.product-category-edit').style.display = 'block';
+            row.querySelector('.product-stock').style.display = 'none';
+            row.querySelector('.product-stock-edit').style.display = 'block';
             row.querySelector('.product-image-edit').style.display = 'block';
             row.querySelector('.btn-edit').style.display = 'none';
             row.querySelector('.btn-delete').style.display = 'none';
@@ -2005,6 +2157,7 @@
             const newName = row.querySelector('.product-name-edit').value;
             const newPrice = row.querySelector('.product-price-edit').value;
             const newCategoryId = row.querySelector('.product-category-edit').value;
+            const newStock = row.querySelector('.product-stock-edit').value;
             const imageInput = row.querySelector('.product-image-edit');
             const imageFile = imageInput && imageInput.files && imageInput.files[0];
             
@@ -2013,6 +2166,7 @@
                 formData.append('name', newName);
                 formData.append('price', newPrice);
                 formData.append('category_id', newCategoryId);
+                formData.append('stock_qty', newStock);
                 if (imageFile) {
                     formData.append('image', imageFile, imageFile.name);
                 }
@@ -2073,6 +2227,8 @@
             row.querySelector('.product-price-edit').style.display = 'none';
             row.querySelector('.product-category').style.display = 'block';
             row.querySelector('.product-category-edit').style.display = 'none';
+            row.querySelector('.product-stock').style.display = 'block';
+            row.querySelector('.product-stock-edit').style.display = 'none';
             row.querySelector('.product-image-edit').style.display = 'none';
             row.querySelector('.btn-edit').style.display = 'inline-block';
             row.querySelector('.btn-delete').style.display = 'inline-block';

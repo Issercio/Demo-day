@@ -477,6 +477,25 @@
                         <input type="text" id="address" name="address" placeholder="Numéro, rue, code postal, ville" autocomplete="street-address">
                     </div>
                     <p id="guest-contact-hint" style="display:none;margin:-12px 0 18px;color:#6c4a58;font-size:0.9rem;">Invité : indiquez un téléphone <strong>ou</strong> une adresse (les deux si vous voulez).</p>
+
+                    <div class="form-group">
+                        <label for="fulfillment-type">Retrait ou livraison</label>
+                        <select id="fulfillment-type" name="fulfillment_type">
+                            <option value="retrait">Retrait à l’atelier</option>
+                            <option value="livraison">Livraison</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fulfillment-date">Date</label>
+                        <input type="date" id="fulfillment-date" name="fulfillment_date">
+                    </div>
+                    <div class="form-group">
+                        <label for="fulfillment-slot">Créneau</label>
+                        <select id="fulfillment-slot" name="fulfillment_slot">
+                            <option value="matin">Matin</option>
+                            <option value="apres-midi">Après-midi</option>
+                        </select>
+                    </div>
                     
                     <div class="form-group" id="card-fields">
                         <label for="card-number">💳 Numéro de carte</label>
@@ -922,6 +941,9 @@
                 address,
                 payment_method: selectedPaymentMethod,
                 deposit: depositWanted(),
+                fulfillment_type: document.getElementById('fulfillment-type').value,
+                fulfillment_date: document.getElementById('fulfillment-date').value,
+                fulfillment_slot: document.getElementById('fulfillment-slot').value,
                 items: checkoutItemsPayload()
             };
 
@@ -940,6 +962,9 @@
             const token = localStorage.getItem('auth_token');
             if (token) {
                 headers.Authorization = `Bearer ${token}`;  // optionnel : checkout invité autorisé
+            }
+            if (window.FloraCart && FloraCart.guestToken) {
+                headers['X-Cart-Token'] = FloraCart.guestToken();
             }
 
             try {
@@ -1052,6 +1077,17 @@
         document.addEventListener('DOMContentLoaded', async () => {
             selectedPaymentMethod = getPaymentMethodFromContext();
             setupIdentity();
+            const dateInput = document.getElementById('fulfillment-date');
+            if (dateInput) {
+                const today = new Date().toISOString().slice(0, 10);
+                dateInput.min = today;
+                if (!dateInput.value) {
+                    dateInput.value = today;
+                }
+            }
+            if (window.FloraCart && FloraCart.refresh) {
+                await FloraCart.refresh();
+            }
 
             const cardNumber = document.getElementById('card-number');
             const cardExpiry = document.getElementById('card-expiry');

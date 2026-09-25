@@ -8,7 +8,7 @@
 </head>
 <body>
   <header>
-    <img class="logo" src="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6~mv2.png/v1/crop/x_748,y_1016,w_3355,h_2788/fill/w_239,h_198,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20P%26L%20Rond%20neutre%20pour%20fond%20clairsans%20fond%20-%20by%20fadamentalpics.png" alt="Logo pivoine & lilas, artisan fleuriste" width="120" height="100">
+    <img class="logo" src="/static/img/logo.png" alt="Logo pivoine & lilas, artisan fleuriste" width="120" height="100">
     <nav>
       <ul>
         <li><a href="accueil.html">ACCUEIL</a></li>
@@ -86,7 +86,7 @@
     <a href="cgv.html">Conditions générales de vente</a>
   </footer>
   <div id="cart-toast" class="cart-toast" aria-live="polite" role="status"></div>
-  <script src="../static/js/api.js?v=20260925-profile"></script>
+  <script src="../static/js/api.js?v=20260925-ops"></script>
   <script>
     let selectedColors = [];
     let allCategories = [];
@@ -355,8 +355,7 @@
           <div class="products-grid" id="category-${category.id}">
               ${categoryProducts.length > 0 ? 
                 categoryProducts.map(product => {
-                  // Récupérer le statut de stock depuis localStorage
-                  const stockStatus = getProductStockStatus(product.id);
+                  const stockStatus = getProductStockStatus(product);
                   const stockBanner = getStockBanner(stockStatus);
                   const isOutOfStock = stockStatus === 'out';
                   
@@ -458,9 +457,18 @@
       }
     }
 
-    function getProductStockStatus(productId) {
-      const stockData = JSON.parse(localStorage.getItem('productStock') || '{}');  // stock démo UI, pas une vérité serveur
-      return stockData[productId] || 'available';
+    function getProductStockStatus(product) {
+      if (product && product.stock_status) {
+        return product.stock_status;
+      }
+      const qty = Number(product && product.stock_qty);
+      if (Number.isFinite(qty) && qty <= 0) {
+        return 'out';
+      }
+      if (Number.isFinite(qty) && qty <= 3) {
+        return 'low';
+      }
+      return 'available';
     }
 
     function getStockBanner(status) {
@@ -483,6 +491,10 @@
     }
 
     function addToCart(product) {
+      if (getProductStockStatus(product) === 'out') {
+        showCartToast(`${product.name} n’est plus en stock`);
+        return;
+      }
       FloraCart.add({ ...product, quantity: 1 });
       updateCartCount();
       showCartToast(`${product.name} a été ajouté au panier`);

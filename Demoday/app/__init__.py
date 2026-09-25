@@ -50,7 +50,7 @@ def resolve_secret_key():
 def create_app():
     app = Flask(__name__)
     
-    # CORS limité à localhost : la démo n'est pas un site public.
+    # Pages servies par Flask : same-origin. CORS sert au front local (8000 / 5000).
     CORS(app, resources={
         r"/api/*": {
             "origins": [
@@ -60,8 +60,8 @@ def create_app():
                 "https://localhost:5000",
                 "https://127.0.0.1:5000",
             ],
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"]
+            "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization", "X-Cart-Token"]
         }
     })
     
@@ -97,7 +97,7 @@ def create_app():
                 return redirect(https_url, code=301)
 
     # Import des modèles pour l'initialisation
-    from .models import Category, Product, User, Order, OrderItem, ShopTheme, ShopVitrine, ThemeProduct
+    from .models import Category, Product, User, Order, OrderItem, ShopTheme, ShopVitrine, ThemeProduct, ContactRequest, Cart
 
     # Swagger UI : ajout du header Authorization
     authorizations = {
@@ -128,6 +128,8 @@ def create_app():
     # Enregistrement du blueprint des paiements
     from app.api.v1.payments import payments_bp
     app.register_blueprint(payments_bp, url_prefix='/api/v1/payments')
+    from app.api.v1.ops import ops_bp
+    app.register_blueprint(ops_bp, url_prefix='/api/v1')
 
     # Enregistrement des namespaces
     from app.api.v1.products_restx import api as products_ns
@@ -147,8 +149,10 @@ def create_app():
         try:
             from app.services.checkout_service import ensure_runtime_schema
             from app.services.demo_accounts import ensure_demo_accounts, ensure_demo_catalog
+            from app.services.shop_ops import ensure_ops_schema
             # SQLite fraîche : colonnes paiement/photo + comptes démo + catalogue.
             ensure_runtime_schema()
+            ensure_ops_schema()
             ensure_demo_accounts()
             ensure_demo_catalog()
         except Exception as exc:

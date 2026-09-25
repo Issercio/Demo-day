@@ -6,6 +6,7 @@ from app.api.v1.auth_utils import admin_required_response, self_or_admin_require
 from app.services.checkout_service import parse_money
 from app.services.demo_accounts import normalize_hex_color
 from app.services.product_images import payload_from_request, save_product_image
+from app.services.shop_ops import parse_stock_qty
 from app.services.shop_themes import (
     create_custom_theme,
     delete_custom_theme,
@@ -412,7 +413,7 @@ def delete_category(category_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# Routes pour les produits - SANS STOCK
+# Routes pour les produits
 @api_bp.route('/products', methods=['GET', 'POST'])
 def products():
     if request.method == 'POST':
@@ -438,6 +439,7 @@ def products():
 
             try:
                 price = parse_money(data['price'])
+                stock_qty = parse_stock_qty(data.get('stock_qty'), default=12)
             except ValueError as exc:
                 return jsonify({'error': str(exc)}), 400
 
@@ -447,6 +449,7 @@ def products():
                 category_id=int(data['category_id']),
                 color=normalize_hex_color(data.get('color') or data.get('hex_color')),
                 image=image_url,
+                stock_qty=stock_qty,
             )
             db.session.add(product)
             db.session.flush()
@@ -483,7 +486,7 @@ def products():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Route PUT pour produit - CORRIGÉE SANS STOCK
+# Route PUT pour produit
 @api_bp.route('/products/<int:product_id>', methods=['PUT'])
 def update_product(product_id):
     denied = admin_required_response()
@@ -503,7 +506,7 @@ def update_product(product_id):
         if not product:
             return jsonify({'error': 'Produit non trouvé'}), 404
             
-        # Mise à jour des champs fournis SANS STOCK
+        # Mise à jour des champs fournis
         if data.get('name') not in (None, ''):
             product.name = str(data['name'])
         if data.get('price') not in (None, ''):
@@ -516,6 +519,11 @@ def update_product(product_id):
             if not category:
                 return jsonify({'error': 'Catégorie non trouvée'}), 404
             product.category_id = int(data['category_id'])
+        if data.get('stock_qty') not in (None, ''):
+            try:
+                product.stock_qty = parse_stock_qty(data.get('stock_qty'))
+            except ValueError as exc:
+                return jsonify({'error': str(exc)}), 400
         if 'color' in data or 'hex_color' in data:
             product.color = normalize_hex_color(data.get('color') or data.get('hex_color'))
         if image_file and image_file.filename:

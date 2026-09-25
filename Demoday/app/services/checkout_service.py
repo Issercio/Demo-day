@@ -10,7 +10,7 @@ from sqlalchemy import inspect, text
 
 from app.extensions import db
 from app.models import Category, Order, OrderItem, Product
-from app.models.order import PAID_LIKE
+from app.services.shop_ops import consume_stock, parse_fulfillment
 
 
 SUBSCRIPTION_PLANS = {
@@ -127,6 +127,8 @@ def ensure_runtime_schema():
     ensure_login_lockout_columns()
     ensure_verification_columns()
     ensure_subscription_catalog()
+    from app.services.shop_ops import ensure_ops_schema
+    ensure_ops_schema()
 
 
 def ensure_subscription_catalog():
@@ -328,6 +330,7 @@ def _guest_contact(data, user_id):
 def _persist_order(
     email, name, user_id, total, method, status, card_last4, reference, stripe_id, lines,
     prep_status=None, deposit_amount=None, phone=None, address=None,
+    fulfillment_type=None, fulfillment_date=None, fulfillment_slot=None,
 ):
     order = Order(
         user_id=user_id,
@@ -343,6 +346,9 @@ def _persist_order(
         card_last4=card_last4,
         payment_reference=reference,
         stripe_payment_intent_id=stripe_id,
+        fulfillment_type=fulfillment_type,
+        fulfillment_date=fulfillment_date,
+        fulfillment_slot=fulfillment_slot,
     )
     db.session.add(order)
     db.session.flush()
@@ -363,6 +369,7 @@ def checkout(data, user_id=None):
     name = (data.get('customer_name') or data.get('name') or '').strip()
     method = (data.get('payment_method') or 'card').lower()
     phone, address = _guest_contact(data, user_id)
+    ftype, fdate, fslot = parse_fulfillment(data)
 
     if not email or '@' not in email:
         raise ValueError('Email invalide.')
@@ -374,7 +381,13 @@ def checkout(data, user_id=None):
     if method not in ('card', 'paypal', 'saved'):
         raise ValueError('Méthode de paiement non supportée.')
 
-    lines, total = build_order_lines(data.get('items') or [])
+    items = list(data.get('items') or [])
+    if not items:
+        from flask import request
+        from app.services.shop_ops import guest_token_from, load_cart_items
+        token = guest_token_from(request.headers.get('X-Cart-Token'))
+        items = load_cart_items(user_id=user_id, token=None if user_id else token)
+    lines, total = build_order_lines(items)
     card_last4 = None
     reference = f'{method.upper()}-{uuid.uuid4().hex[:10].upper()}'
     stripe_id = None
@@ -414,9 +427,15 @@ def checkout(data, user_id=None):
         status = 'deposit'
         deposit_amount = deposit_of(total)
 
-    return _persist_order(
+    consume_stock(lines)
+    order = _persist_order(
         email, name, user_id, total, method, status,
         card_last4, reference, stripe_id, lines,
         prep_status=prep_status, deposit_amount=deposit_amount,
         phone=phone, address=address,
+        fulfillment_type=ftype, fulfillment_date=fdate, fulfillment_slot=fslot,
     )
+    from flask import request
+    from app.services.shop_ops import clear_cart, guest_token_from
+    clear_cart(user_id=user_id, token=guest_token_from(request.headers.get('X-Cart-Token')))
+    return order

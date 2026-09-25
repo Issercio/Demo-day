@@ -2,6 +2,8 @@ from .category import Category
 from .user import User
 from .order import Order, OrderItem
 from .shop_theme import ShopTheme, ShopVitrine, ThemeProduct
+from .contact import ContactRequest
+from .cart import Cart
 from app.extensions import db
 
 # Définition du modèle Product directement dans __init__.py
@@ -15,13 +17,16 @@ class Product(db.Model):
     is_on_sale = db.Column(db.Boolean, default=False)
     color = db.Column(db.String(7), nullable=True)  # hex #rrggbb pour le filtre boutique
     image = db.Column(db.String(255), nullable=True)  # chemin /static/img/products/...
+    stock_qty = db.Column(db.Integer, nullable=False, default=12)
 
     category = db.relationship('Category', back_populates='products')
     theme_links = db.relationship('ThemeProduct', back_populates='product', cascade='all, delete-orphan')
 
     def to_dict(self):
+        from app.services.shop_ops import stock_status
         category = self.category
         color = str(self.color).lower() if self.color else None
+        qty = int(self.stock_qty if self.stock_qty is not None else 12)
         return {
             'id': int(self.id),
             'name': str(self.name),
@@ -32,6 +37,8 @@ class Product(db.Model):
             'color': color,
             'hex_color': color,
             'image': str(self.image) if self.image else None,
+            'stock_qty': qty,
+            'stock_status': stock_status(qty),
             'category': {
                 'id': int(category.id),
                 'name': str(category.name)

@@ -10,15 +10,19 @@ Boutique florale en ligne : le client choisit un bouquet, paie, et suit sa comma
 - Compte (inscription, vérification, mot de passe) ou achat en invité
 - Catalogue photo : 7 univers (fleurs fraîches, compositions, séchées, plantes, mariage, deuil, cadeaux)
 - Filtres par catégorie, couleur et prix
-- Panier isolé par compte
+- Panier serveur, fusionné au compte à la connexion
 - Paiement en ligne (cartes de test, ou Stripe si les clés sont renseignées)
 - Acompte 30 % ou règlement intégral
+- Date de retrait ou de livraison au paiement
 - Abonnements mensuel, semestriel et annuel
 - Suivi de commande et facture
+- Formulaire Contact : le message arrive dans l’inbox du fleuriste
 
 **Côté fleuriste**
-- Catalogue : créer, modifier, supprimer, photo produit
+- Catalogue : créer, modifier, supprimer, photo produit, stock
 - Vitrine du shop : une saison, un thème, ou les deux
+- Tableau du jour : à préparer, stock bas / rupture, prochains retraits
+- Demandes contact : nouveau → lu → traité
 - Commandes : statut de paiement, préparation (`À préparer` → `Remise`), facture imprimable
 - Accès admin réservé : un client ne peut pas ouvrir le back-office
 
@@ -49,6 +53,7 @@ Le shop écoute sur [http://localhost:5000](http://localhost:5000). HTTPS local 
 | Panier | http://localhost:5000/panier.html |
 | Paiement | http://localhost:5000/checkout.html |
 | Commandes | http://localhost:5000/commandes.html |
+| Contact | http://localhost:5000/contact.html |
 | Admin | http://localhost:5000/admin.html |
 | API | http://localhost:5000/api/v1 |
 
@@ -67,6 +72,19 @@ Refusé : `4000 0000 0000 0002`. Fonds insuffisants : `4000 0000 0000 9995`.
 
 Les totaux viennent de la base, jamais du navigateur. Les numéros de carte ne sont pas stockés (au plus les 4 derniers chiffres).
 
+## Mettre en ligne
+
+Le dépôt n’expose pas d’URL publique tant qu’un hébergeur n’est pas connecté. Deux chemins prêts :
+
+**Docker**
+
+```bash
+docker build -t pivoine-lilas .
+docker run -p 5000:5000 pivoine-lilas
+```
+
+**Render** — le fichier `render.yaml` décrit le service. Relier le dépôt GitHub à Render, déployer, et l’URL Render devient l’adresse du shop. Poser `SECRET_KEY` (générée) et éventuellement les clés Stripe.
+
 ## Technique
 
 | Couche | Choix |
@@ -76,8 +94,9 @@ Les totaux viennent de la base, jamais du navigateur. Les numéros de carte ne s
 | Auth | JWT, mots de passe hashés, verrouillage après 5 échecs |
 | Données | SQLAlchemy 2, `Numeric(10, 2)` pour l’argent |
 | Paiement | Processeur de test, Stripe optionnel |
+| Prod | gunicorn, Docker, Render |
 
-Le navigateur affiche les pages et appelle `/api/v1`. La vitrine lue par le shop est celle posée par le fleuriste (`GET /api/v1/themes`).
+Le navigateur affiche les pages et appelle `/api/v1`. La vitrine lue par le shop est celle posée par le fleuriste (`GET /api/v1/themes`). Le logo est servi en local (`/static/img/logo.png`), pas depuis un CDN.
 
 ## API principale
 
@@ -87,6 +106,10 @@ Documentation interactive : [http://localhost:5000/api/v1](http://localhost:5000
 | --- | --- | --- |
 | POST | `/api/v1/auth/register` · `/login` · `/verify` | public |
 | GET | `/api/v1/products` · `/categories` · `/themes` | public |
+| GET / PUT / DELETE | `/api/v1/cart` | public (header `X-Cart-Token`) ou JWT |
+| POST | `/api/v1/contact` | public |
+| GET / PATCH | `/api/v1/contact` | fleuriste |
+| GET | `/api/v1/atelier/today` | fleuriste |
 | POST | `/api/v1/payments/checkout` | public ou JWT |
 | GET | `/api/v1/payments/my-orders` | client |
 | GET / PATCH | `/api/v1/payments/orders` | fleuriste |

@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: pivoine-lilas
+    runtime: python
+    plan: free
+    buildCommand: pip install -r Demoday/requirements.txt
+    startCommand: cd Demoday && gunicorn -b 0.0.0.0:$PORT run:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+      - key: DATABASE_URL
+        value: sqlite:///florashop.db
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FORCE_HTTPS
+        value: "1"

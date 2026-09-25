@@ -511,14 +511,36 @@ window.FloraCart = {
             return null;
         }
     },
-    // Une clé par compte : Marie ne voit pas le panier de Client, et inversement.
-    // Visiteur non connecté → cart:guest.
     storageKey() {
         const user = this.currentUser();
         if (user && user.id) {
             return 'cart:user:' + user.id;
         }
         return 'cart:guest';
+    },
+    guestToken() {
+        let token = localStorage.getItem('cart_token') || '';
+        token = String(token).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+        if (token.length < 8) {
+            token = (window.crypto && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : ('g' + Date.now() + Math.random().toString(16).slice(2));
+            token = String(token).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+        }
+        localStorage.setItem('cart_token', token);
+        return token;
+    },
+    cartHeaders() {
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Cart-Token': this.guestToken()
+        };
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            headers.Authorization = 'Bearer ' + token;
+        }
+        return headers;
     },
     migrateLegacyCart() {
         const legacy = localStorage.getItem('cart');
@@ -527,7 +549,7 @@ window.FloraCart = {
         }
         const key = this.storageKey();
         if (!localStorage.getItem(key)) {
-            localStorage.setItem(key, legacy);  // ancien 'cart' unique → clé par compte
+            localStorage.setItem(key, legacy);
         }
         localStorage.removeItem('cart');
     },
@@ -540,20 +562,46 @@ window.FloraCart = {
             return [];
         }
     },
-    save(cart) {
+    saveLocal(cart) {
         localStorage.setItem(this.storageKey(), JSON.stringify(cart));
+    },
+    save(cart) {
+        this.saveLocal(cart);
+        fetch('/api/v1/cart', {
+            method: 'PUT',
+            headers: this.cartHeaders(),
+            body: JSON.stringify({ items: cart })
+        }).catch(() => {});
+        return cart;
+    },
+    async refresh() {
+        this.migrateLegacyCart();
+        try {
+            const response = await fetch('/api/v1/cart', { headers: this.cartHeaders() });
+            const data = await response.json();
+            if (response.ok && Array.isArray(data.items)) {
+                this.saveLocal(data.items);
+                if (typeof updateCartCount === 'function') {
+                    updateCartCount();
+                }
+                return data.items;
+            }
+        } catch (error) {
+            // hors-ligne : on garde le cache local
+        }
+        return this.get();
     },
     clear() {
         localStorage.removeItem(this.storageKey());
         localStorage.removeItem('selected_payment_method');
         localStorage.removeItem('subscription_cart');
+        fetch('/api/v1/cart', { method: 'DELETE', headers: this.cartHeaders() }).catch(() => {});
     },
     onAccountChanged() {
-        // Relit la clé du compte courant (login / logout). Ne fusionne jamais les paniers.
         this.migrateLegacyCart();
+        this.refresh();
     },
     snapshotForCheckout() {
-        // Copie de secours : après changement de clé panier, /checkout.html n'arrive pas vide.
         const cart = this.get();
         sessionStorage.setItem('checkout_cart', JSON.stringify(cart));
         return cart;
@@ -577,7 +625,7 @@ window.FloraCart = {
         if (item.type === 'subscription' || String(item.id || '').startsWith('subscription_')) {
             return `sub:${item.id || item.plan || item.name}`;
         }
-        return `p:${item.id || item.product_id}`;  // ne pas fusionner un bouquet et un abonnement
+        return `p:${item.id || item.product_id}`;
     },
     count(cart) {
         const items = cart || this.get();
@@ -588,7 +636,7 @@ window.FloraCart = {
         const incomingQty = Number(product.quantity) || 1;
         if (product.type === 'subscription') {
             const withoutOld = cart.filter((item) => item.type !== 'subscription');
-            withoutOld.push({ ...product, quantity: 1 });  // un seul abonnement à la fois
+            withoutOld.push({ ...product, quantity: 1 });
             this.save(withoutOld);
             return withoutOld;
         }
@@ -645,7 +693,13 @@ document.addEventListener('DOMContentLoaded', () => {
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', () => {
     apiService.updateProfileUI();
-    if (typeof updateCartCount === 'function') {
+    if (window.FloraCart && window.FloraCart.refresh) {
+        window.FloraCart.refresh().then(() => {
+            if (typeof updateCartCount === 'function') {
+                updateCartCount();
+            }
+        });
+    } else if (typeof updateCartCount === 'function') {
         updateCartCount();
     }
     
