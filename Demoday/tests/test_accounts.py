@@ -601,6 +601,74 @@ class AccountsTestCase(unittest.TestCase):
             'password': 'nina1234',
         })
         self.assertEqual(login.status_code, 200, login.get_json())
+        by_username = self.client.post('/api/v1/auth/login', json={
+            'username': 'nina',
+            'password': 'nina1234',
+        })
+        self.assertEqual(by_username.status_code, 200, by_username.get_json())
+        self.assertEqual(by_username.get_json()['data']['user']['username'], 'nina')
+
+    def test_customer_can_update_own_profile(self):
+        ensure_demo_accounts()
+        login = self.client.post('/api/v1/auth/login', json={
+            'email': 'marie@test.com',
+            'password': 'marie123',
+        })
+        token = login.get_json()['data']['token']
+        marie = User.query.filter_by(email='marie@test.com').first()
+        headers = {'Authorization': f'Bearer {token}'}
+
+        updated = self.client.put(
+            f'/api/v1/users/{marie.id}',
+            json={'username': 'Marie Fleur', 'phone': '+33612345678'},
+            headers=headers,
+        )
+        self.assertEqual(updated.status_code, 200, updated.get_json())
+        payload = updated.get_json()
+        self.assertEqual(payload.get('username'), 'Marie Fleur')
+        self.assertEqual(payload.get('phone'), '+33612345678')
+        db.session.refresh(marie)
+        self.assertEqual(marie.username, 'Marie Fleur')
+        self.assertEqual(marie.phone, '+33612345678')
+        self.assertFalse(marie.is_admin)
+
+        stolen = self.client.put(
+            f'/api/v1/users/{marie.id}',
+            json={'is_admin': True, 'username': 'Marie Admin'},
+            headers=headers,
+        )
+        self.assertEqual(stolen.status_code, 200, stolen.get_json())
+        db.session.refresh(marie)
+        self.assertFalse(marie.is_admin)
+        self.assertEqual(marie.username, 'Marie Admin')
+
+        lea = User.query.filter_by(email='client@test.com').first()
+        clash = self.client.put(
+            f'/api/v1/users/{marie.id}',
+            json={'username': lea.username},
+            headers=headers,
+        )
+        self.assertEqual(clash.status_code, 409)
+
+        other = self.client.put(
+            f'/api/v1/users/{lea.id}',
+            json={'username': 'Hack'},
+            headers=headers,
+        )
+        self.assertEqual(other.status_code, 403)
+        db.session.refresh(lea)
+        self.assertNotEqual(lea.username, 'Hack')
+
+        self.client.post('/api/v1/auth/login', json={
+            'username': 'Marie Admin',
+            'password': 'marie123',
+        })
+        named = self.client.post('/api/v1/auth/login', json={
+            'email': 'Marie Admin',
+            'password': 'marie123',
+        })
+        self.assertEqual(named.status_code, 200, named.get_json())
+        self.assertEqual(named.get_json()['data']['user']['username'], 'Marie Admin')
 
     def test_resend_code_sms_channel(self):
         created = self.client.post('/api/v1/auth/register', json={
@@ -678,6 +746,7 @@ class AccountsTestCase(unittest.TestCase):
         self.assertTrue(marie.email_verified)
 
     def test_verify_and_password_pages_are_wired(self):
+        from pathlib import Path
         verify = self.client.get('/verify-code.html')
         self.assertEqual(verify.status_code, 200)
         self.assertIn('verify-form', verify.get_data(as_text=True))
@@ -686,6 +755,12 @@ class AccountsTestCase(unittest.TestCase):
         html = account.get_data(as_text=True)
         self.assertIn('password-form', html)
         self.assertIn('changePassword', html)
+        self.assertIn('profile-form', html)
+        self.assertIn('updateProfile', html)
+        self.assertIn("Nom d'utilisateur ou email", html)
+        js = Path(__file__).resolve().parents[1].joinpath('app/static/js/api.js').read_text()
+        self.assertIn('this.displayName()', js)
+        self.assertIn("user.username || user.email", js)
         forgot = self.client.get('/forgot-password.html')
         self.assertIn('reset-fields', forgot.get_data(as_text=True))
 

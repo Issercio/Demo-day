@@ -2,7 +2,8 @@ from flask_restx import Namespace, Resource, fields
 from flask import request
 from app.extensions import db
 from app.models.user import User
-from app.api.v1.auth_utils import require_admin_token, require_self_or_admin
+from app.api.v1.auth_utils import load_current_user, require_admin_token, require_self_or_admin
+from app.services.profile_service import apply_profile_update
 
 api = Namespace('users', description='Gestion des utilisateurs')
 
@@ -10,6 +11,7 @@ user_public_model = api.model('UserPublic', {
     'id': fields.Integer(readOnly=True),
     'username': fields.String(description='Nom d\'utilisateur'),
     'email': fields.String(required=True, description='Adresse email'),
+    'phone': fields.String(description='Téléphone'),
     'is_admin': fields.Boolean(description='Administrateur')
 })
 
@@ -23,7 +25,8 @@ user_create_model = api.model('UserCreate', {
 user_update_model = api.model('UserUpdate', {
     'username': fields.String(description='Nom d\'utilisateur'),
     'email': fields.String(description='Adresse email'),
-    'password': fields.String(description='Mot de passe', min_length=6),
+    'phone': fields.String(description='Téléphone'),
+    'password': fields.String(description='Mot de passe (admin uniquement)', min_length=6),
 })
 
 
@@ -75,20 +78,16 @@ class UserResource(Resource):
 
     @api.expect(user_update_model)
     @api.marshal_with(user_public_model)
-    @require_admin_token
+    @require_self_or_admin
     def put(self, user_id):
         user = db.session.get(User, user_id)
         if user is None:
             api.abort(404, 'Utilisateur introuvable')
-        data = api.payload or {}
-        if 'username' in data:
-            user.username = data['username']
-        if 'email' in data:
-            user.email = data['email']
-        if 'password' in data:
-            user.set_password(data['password'])
-        # Pas de data['is_admin'] : un PUT ne change pas le rôle fleuriste.
-        db.session.commit()
+        actor, _error = load_current_user()
+        failed = apply_profile_update(user, api.payload or {}, actor=actor)
+        if failed:
+            body, status = failed
+            api.abort(status, body.get('message') or 'Mise à jour impossible')
         return user
 
     @require_self_or_admin

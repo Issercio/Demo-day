@@ -31,6 +31,7 @@
                 <div id="user-email" style="margin-bottom: 10px; color: #bc6288; font-size: 0.9em; text-align: center; display: none;"></div>
                 <button id="login-btn" class="cta-btn" style="width:100%; margin-bottom: 5px;">Se connecter</button>
                 <button id="logout-btn" class="cta-btn" style="width:100%; margin-bottom: 5px; display: none;">Déconnexion</button>
+                <button id="profile-btn" class="cta-btn" style="width:100%; margin-bottom: 5px; display: none;">Modifier le profil</button>
                 <button id="password-btn" class="cta-btn" style="width:100%; margin-bottom: 5px; display: none;">Changer le mot de passe</button>
                 <button id="delete-btn" class="cta-btn" style="width:100%; background: #fff; color: #bc6288; border: 1.5px solid #bc6288; display: none;">Supprimer le compte</button>
             </div>
@@ -43,8 +44,8 @@
             <h1>Connexion</h1>
             
             <div class="form-group">
-                <label for="email">Adresse email</label>
-                <input type="email" id="email" required>
+                <label for="email">Nom d'utilisateur ou email</label>
+                <input type="text" id="email" required autocomplete="username">
             </div>
 
             <div class="form-group">
@@ -59,6 +60,28 @@
                 <a href="register.html" class="text-muted">Vous n'avez pas de compte ? Créez-en un !</a>
                 <a href="forgot-password.html" class="text-muted">J'ai oublié mon mot de passe</a>
                 <a href="verify-code.html" class="text-muted">J'ai un code de vérification</a>
+            </div>
+        </form>
+
+        <form class="login-form" id="profile-form" style="display:none;">
+            <h1>Mon profil</h1>
+            <p class="text-muted" style="text-align:center;">Connecté en tant que <span id="profile-username"></span></p>
+            <div class="form-group">
+                <label for="profile-name">Nom d'utilisateur</label>
+                <input type="text" id="profile-name" required maxlength="50">
+            </div>
+            <div class="form-group">
+                <label for="profile-email">Email</label>
+                <input type="email" id="profile-email" required>
+            </div>
+            <div class="form-group">
+                <label for="profile-phone">Téléphone</label>
+                <input type="tel" id="profile-phone" placeholder="+33612345678">
+            </div>
+            <button type="submit" class="login-button">Enregistrer</button>
+            <p id="profile-feedback" class="text-muted" style="display:none;margin-top:8px;text-align:center;"></p>
+            <div class="help-links">
+                <a href="#password" id="goto-password" class="text-muted">Changer le mot de passe</a>
             </div>
         </form>
 
@@ -79,9 +102,12 @@
             </div>
             <button type="submit" class="login-button">Enregistrer</button>
             <p id="password-feedback" class="text-muted" style="display:none;margin-top:8px;text-align:center;"></p>
+            <div class="help-links">
+                <a href="#profile" id="goto-profile" class="text-muted">Modifier le profil</a>
+            </div>
         </form>
     </div>
-    <script src="../static/js/api.js?v=20260922-auth"></script>
+    <script src="../static/js/api.js?v=20260925-profile"></script>
     <script>
         // Fonction pour mettre à jour l'interface utilisateur après connexion/déconnexion
         function updateUIAfterLogin(userData) {
@@ -91,7 +117,7 @@
             const deleteBtn = document.getElementById('delete-btn');
 
             if (userData) {
-                userEmail.textContent = userData.email;
+                userEmail.textContent = (userData.username || userData.email || '');
                 userEmail.style.display = 'block';
                 loginBtn.style.display = 'none';
                 logoutBtn.style.display = 'block';
@@ -121,6 +147,24 @@
             }
         });
 
+        document.getElementById('profile-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const feedback = document.getElementById('profile-feedback');
+            feedback.style.display = 'block';
+            const result = await apiService.updateProfile({
+                username: document.getElementById('profile-name').value.trim(),
+                email: document.getElementById('profile-email').value.trim(),
+                phone: document.getElementById('profile-phone').value.trim()
+            });
+            feedback.textContent = result.success
+                ? 'Profil enregistré.'
+                : (result.error || 'Impossible de modifier le profil');
+            if (result.success) {
+                fillProfileForm(result.data);
+                updateUIAfterLogin(result.data);
+            }
+        });
+
         document.getElementById('password-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const currentPassword = document.getElementById('current-password').value;
@@ -144,16 +188,30 @@
             window.location.reload();
         });
 
+        function fillProfileForm(userData) {
+            if (!userData) return;
+            const name = userData.username || '';
+            document.getElementById('profile-username').textContent = name;
+            document.getElementById('password-email').textContent = name;
+            document.getElementById('profile-name').value = name;
+            document.getElementById('profile-email').value = userData.email || '';
+            document.getElementById('profile-phone').value = userData.phone || '';
+        }
+
         function showAccountPanels(userData) {
             const loginForm = document.getElementById('login-form');
             const passwordForm = document.getElementById('password-form');
+            const profileForm = document.getElementById('profile-form');
             if (userData) {
                 loginForm.style.display = 'none';
-                passwordForm.style.display = 'flex';
-                document.getElementById('password-email').textContent = userData.email || '';
+                fillProfileForm(userData);
+                const showPassword = window.location.hash === '#password';
+                passwordForm.style.display = showPassword ? 'flex' : 'none';
+                profileForm.style.display = showPassword ? 'none' : 'flex';
             } else {
                 loginForm.style.display = 'flex';
                 passwordForm.style.display = 'none';
+                profileForm.style.display = 'none';
             }
         }
 
@@ -187,7 +245,10 @@
                 updateUIAfterLogin(userData);
             }
             showAccountPanels(userData);
-            if (window.location.hash === '#password' && !userData) {
+            window.addEventListener('hashchange', function() {
+                showAccountPanels(JSON.parse(localStorage.getItem('user')));
+            });
+            if ((window.location.hash === '#password' || window.location.hash === '#profile') && !userData) {
                 window.location.href = 'account.html';
             }
         });

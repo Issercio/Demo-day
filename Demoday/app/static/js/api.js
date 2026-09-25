@@ -195,6 +195,37 @@ class ApiService {
         }
     }
 
+    displayName(user = this.user) {
+        if (!user) return '';
+        return String(user.username || user.email || '').trim();
+    }
+
+    async updateProfile(fields) {
+        if (!this.user || !this.user.id) {
+            return { success: false, error: 'Aucun compte connecté' };
+        }
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${this.user.id}`, {
+                method: 'PUT',
+                headers: this.getHeaders(),
+                body: JSON.stringify(fields)
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data && (data.id || data.username || data.email)) {
+                this.user = { ...this.user, ...data };
+                localStorage.setItem('user', JSON.stringify(this.user));
+                this.updateProfileUI();
+                return { success: true, data: this.user };
+            }
+            return {
+                success: false,
+                error: data.message || data.error || 'Impossible de modifier le profil'
+            };
+        } catch (error) {
+            return { success: false, error: 'Erreur de communication avec le serveur' };
+        }
+    }
+
     async deleteAccount() {
         if (!this.user || !this.user.id) {
             return { success: false, error: 'Aucun compte connecté' };
@@ -244,10 +275,11 @@ class ApiService {
         const logoutBtn = document.getElementById('logout-btn');
         const deleteBtn = document.getElementById('delete-btn');
         const passwordBtn = document.getElementById('password-btn');
+        const profileBtn = document.getElementById('profile-btn');
 
         if (this.user) {
             if (userEmail) {
-                userEmail.textContent = this.user.email;
+                userEmail.textContent = this.displayName();
                 userEmail.style.display = 'block';
             }
             if (loginBtn) {
@@ -261,6 +293,9 @@ class ApiService {
             }
             if (passwordBtn) {
                 passwordBtn.style.display = 'block';
+            }
+            if (profileBtn) {
+                profileBtn.style.display = 'block';
             }
         } else {
             if (userEmail) {
@@ -277,6 +312,9 @@ class ApiService {
             }
             if (passwordBtn) {
                 passwordBtn.style.display = 'none';
+            }
+            if (profileBtn) {
+                profileBtn.style.display = 'none';
             }
         }
         this.syncAdminControls();
@@ -608,6 +646,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (passwordBtn) {
         passwordBtn.addEventListener('click', () => {
             window.location.href = 'account.html#password';
+        });
+    }
+
+    const profileBtn = document.getElementById('profile-btn');
+    if (profileBtn) {
+        profileBtn.addEventListener('click', () => {
+            window.location.href = 'account.html#profile';
         });
     }
 

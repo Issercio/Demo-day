@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mot de passe — maquette Pivoine &amp; Lilas</title>
+  <title>Profil — maquette Pivoine &amp; Lilas</title>
   <link rel="stylesheet" href="screens.css">
 </head>
 <body>
   <div class="proto-bar">
     <a href="index.html">← Système visuel</a>
-    <span class="proto-flow">Compte connecté → changer le mot de passe</span>
+    <span class="proto-flow">Compte connecté → modifier le profil</span>
   </div>
   <header class="site-header">
     <img class="logo" src="https://static.wixstatic.com/media/8010bb_ce18a16c3f664b8ab22c97455e707ce6~mv2.png/v1/crop/x_748,y_1016,w_3355,h_2788/fill/w_239,h_198,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20P%26L%20Rond%20neutre%20pour%20fond%20clairsans%20fond%20-%20by%20fadamentalpics.png" alt="Pivoine &amp; Lilas">
@@ -23,15 +23,16 @@
   </header>
   <main class="wrap">
     <article class="card form">
-      <h1 class="center serif">Changer le mot de passe</h1>
+      <h1 class="center serif">Mon profil</h1>
       <p class="muted center">Connecté en tant que Marie Dupont</p>
-      <label>Mot de passe actuel</label>
-      <input type="password" value="marie123" readonly>
-      <label>Nouveau mot de passe</label>
-      <input type="password" value="marie999" readonly>
-      <label>Confirmer</label>
-      <input type="password" value="marie999" readonly>
+      <label>Nom d'utilisateur</label>
+      <input value="Marie Dupont" readonly>
+      <label>Email</label>
+      <input value="marie@test.com" readonly>
+      <label>Téléphone</label>
+      <input value="+33612345678" readonly>
       <a class="btn" href="shop.html" style="display:block;text-align:center;margin-top:16px;">Enregistrer</a>
+      <p class="center" style="margin-top:14px;"><a href="password.html">Changer le mot de passe</a></p>
     </article>
   </main>
   <footer class="site-footer">© 2024 by Pivoine &amp; Lilas - Siren 522 234 871</footer>

@@ -22,7 +22,8 @@ from datetime import datetime, timedelta, timezone
 api = Namespace('auth', description='Authentification')
 
 login_model = api.model('Login', {
-    'email': fields.String(required=True),
+    'email': fields.String(description="Email ou nom d'utilisateur"),
+    'username': fields.String(description="Nom d'utilisateur (alternative à email)"),
     'password': fields.String(required=True)
 })
 
@@ -91,12 +92,17 @@ class Login(Resource):
     def post(self):
         try:
             data = request.json or {}
-            email = (data.get('email') or '').strip()
+            identifier = (data.get('email') or data.get('username') or '').strip()
             password = data.get('password') or ''
-            if not email or not password:
-                return {'success': False, 'message': 'Email et mot de passe requis'}, 400
+            if not identifier or not password:
+                return {'success': False, 'message': 'Identifiant et mot de passe requis'}, 400
 
-            user = User.query.filter(func.lower(User.email) == email.lower()).first()  # casse ignorée
+            # Après inscription on se connecte au nom d'utilisateur ; l'email reste accepté.
+            user = User.query.filter(func.lower(User.email) == identifier.lower()).first()
+            if user is None:
+                user = User.query.filter_by(username=identifier).first()
+            if user is None:
+                user = User.query.filter(func.lower(User.username) == identifier.lower()).first()
             if user:
                 blocked = lockout_error(user)
                 if blocked:

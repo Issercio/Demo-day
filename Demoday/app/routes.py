@@ -130,14 +130,9 @@ def api_index():
 # Route GET / DELETE / PUT spécifique pour un utilisateur
 @api_bp.route('/users/<int:user_id>', methods=['GET', 'PUT', 'DELETE'])
 def get_user(user_id):
-    if request.method == 'PUT':
-        denied = admin_required_response()  # PUT profil : fleuriste only
-        if denied:
-            return denied
-    else:
-        denied = self_or_admin_required_response(user_id)  # GET/DELETE : soi-même ou fleuriste
-        if denied:
-            return denied
+    denied = self_or_admin_required_response(user_id)  # GET/PUT/DELETE : soi-même ou fleuriste
+    if denied:
+        return denied
 
     user = db.session.get(User, user_id)
     if not user:
@@ -149,21 +144,22 @@ def get_user(user_id):
         return jsonify({'success': True, 'message': 'Utilisateur supprimé'}), 200
 
     if request.method == 'PUT':
-        data = request.get_json() or {}
-        if 'username' in data:
-            user.username = data['username']
-        if 'email' in data:
-            user.email = data['email']
-        if 'password' in data:
-            user.set_password(data['password'])
+        from app.api.v1.auth_utils import load_current_user
+        from app.services.profile_service import apply_profile_update
+        actor, _error = load_current_user()
+        failed = apply_profile_update(user, request.get_json() or {}, actor=actor)
+        if failed:
+            body, status = failed
+            return jsonify(body), status
         # `is_admin` du JSON est ignoré : on ne promeut personne par PUT.
-        db.session.commit()
 
     return jsonify({
         'id': user.id,
         'username': user.username,
         'email': user.email,
-        'is_admin': user.is_admin
+        'phone': user.phone,
+        'is_admin': user.is_admin,
+        'email_verified': bool(user.email_verified),
     })
 
 # Route GET spécifique pour un produit
