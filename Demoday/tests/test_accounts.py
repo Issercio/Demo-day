@@ -182,7 +182,7 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('id="admin-access"', html)
         self.assertNotIn("adminAccess.style.display = 'none'", html)
         account = Path(__file__).resolve().parents[1].joinpath('app/templates/account.html').read_text()
-        self.assertIn("window.location.href = 'accueil.html'", account)
+        self.assertIn("consumeAuthNext('accueil.html')", account)
         self.assertNotIn("user.is_admin ? 'admin.html'", account)
 
     def test_admin_session_hides_marketing_nav_and_compacts_profile(self):

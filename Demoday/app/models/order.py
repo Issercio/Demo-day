@@ -30,6 +30,8 @@ class Order(db.Model):
     user = db.relationship('User', back_populates='orders')
     email = db.Column(db.String(120), nullable=False)  # Email du client
     customer_name = db.Column(db.String(120), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)  # invité : téléphone et/ou adresse
+    address = db.Column(db.String(255), nullable=True)
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
     deposit_amount = db.Column(db.Numeric(10, 2), nullable=True)  # acompte 30 % si status=deposit
     stripe_payment_intent_id = db.Column(db.String(255), nullable=True)  # ID du paiement Stripe
@@ -65,6 +67,9 @@ class Order(db.Model):
             'user_id': self.user_id,
             'email': self.email,
             'customer_name': self.customer_name,
+            'phone': self.phone,
+            'address': self.address,
+            'guest': self.user_id is None,
             'total_amount': float(self.total_amount),  # affichage JSON ; colonne Numeric(10, 2)
             'deposit_amount': deposit,
             'remaining_amount': float(remaining) if remaining is not None else None,

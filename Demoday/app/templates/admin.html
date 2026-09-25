@@ -1485,6 +1485,13 @@
             const account = order.user_id
                 ? `Compte client #${Number(order.user_id)}`
                 : 'Commande invitée';
+            const contactBits = [
+                order.customer_name || '—',
+                order.email || '',
+                order.phone || '',
+                order.address || '',
+                account,
+            ].filter(Boolean);
             const lines = items.map((item) => {
                 const name = (item.product && item.product.name) || `Produit #${item.product_id}`;
                 const category = item.product && item.product.category && item.product.category.name;
@@ -1545,7 +1552,7 @@
                         </div>
                         <div>
                             <dt>Client</dt>
-                            <dd>${escapeHtml(order.customer_name || '—')}<br>${escapeHtml(order.email || '')}<br><small>${escapeHtml(account)}</small></dd>
+                            <dd>${contactBits.map((line) => escapeHtml(line)).join('<br>')}</dd>
                         </div>
                     </dl>
                     <div class="order-lines-wrap">

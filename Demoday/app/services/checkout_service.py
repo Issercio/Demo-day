@@ -107,6 +107,8 @@ def ensure_runtime_schema():
         'payment_reference': 'VARCHAR(64)',
         'deposit_amount': 'NUMERIC(10, 2)',
         'prep_status': 'VARCHAR(32)',
+        'phone': 'VARCHAR(20)',
+        'address': 'VARCHAR(255)',
     }
     for name, ddl in additions.items():
         if name not in existing:
@@ -309,14 +311,30 @@ def build_order_lines(items):
     return lines, money(total)
 
 
+def _guest_contact(data, user_id):
+    """Invité : email + téléphone et/ou adresse. Compte connecté : contact optionnel."""
+    from app.services.account_verification import normalize_phone
+    phone = normalize_phone(data.get('phone'))
+    if phone is False:
+        raise ValueError('Numéro de téléphone invalide.')
+    address = (data.get('address') or data.get('shipping_address') or '').strip()
+    if len(address) > 255:
+        raise ValueError('Adresse trop longue.')
+    if not user_id and not phone and not address:
+        raise ValueError('En invité, indiquez un téléphone ou une adresse.')
+    return phone, (address or None)
+
+
 def _persist_order(
     email, name, user_id, total, method, status, card_last4, reference, stripe_id, lines,
-    prep_status=None, deposit_amount=None,
+    prep_status=None, deposit_amount=None, phone=None, address=None,
 ):
     order = Order(
         user_id=user_id,
         email=email,
         customer_name=name,
+        phone=phone,
+        address=address,
         total_amount=total,
         deposit_amount=deposit_amount,
         payment_method=method,
@@ -344,11 +362,15 @@ def checkout(data, user_id=None):
     email = (data.get('email') or '').strip()
     name = (data.get('customer_name') or data.get('name') or '').strip()
     method = (data.get('payment_method') or 'card').lower()
+    phone, address = _guest_contact(data, user_id)
 
     if not email or '@' not in email:
         raise ValueError('Email invalide.')
     if not name:
-        raise ValueError('Nom du client requis.')
+        if user_id is None:
+            name = 'Invité'
+        else:
+            raise ValueError('Nom du client requis.')
     if method not in ('card', 'paypal', 'saved'):
         raise ValueError('Méthode de paiement non supportée.')
 
@@ -383,6 +405,7 @@ def checkout(data, user_id=None):
             email, name, user_id, total, method, 'failed',
             None, f'FAIL-{uuid.uuid4().hex[:10].upper()}', None, lines,
             prep_status=None, deposit_amount=None,  # refus : pas d'atelier
+            phone=phone, address=address,
         )
         raise PaymentDeclined(str(error), order=order) from error
 
@@ -395,4 +418,5 @@ def checkout(data, user_id=None):
         email, name, user_id, total, method, status,
         card_last4, reference, stripe_id, lines,
         prep_status=prep_status, deposit_amount=deposit_amount,
+        phone=phone, address=address,
     )

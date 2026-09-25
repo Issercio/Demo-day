@@ -76,7 +76,7 @@
             </div>
         </form>
     </div>
-    <script src="../static/js/api.js?v=20260925-profile"></script>
+    <script src="../static/js/api.js?v=20260925-guest"></script>
     <script>
         document.getElementById('register-form').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -98,7 +98,9 @@
             const result = await apiService.register(username, email, password, extra);
             
             if (result.success) {
+                const next = new URLSearchParams(window.location.search).get('next') || sessionStorage.getItem('auth_next') || '';
                 const params = new URLSearchParams({ email: email });
+                if (next) params.set('next', next);
                 window.location.href = 'verify-code.html?' + params.toString();
             } else {
                 alert(result.error || 'Erreur lors de la création du compte');
@@ -113,7 +115,11 @@
             badge.style.display = (window.FloraCart ? FloraCart.count(cart) : cart.reduce((s, i) => s + (Number(i.quantity) || 1), 0)) > 0 ? 'inline-block' : 'none';
           }
         }
-        document.addEventListener('DOMContentLoaded', updateCartCount);
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCartCount();
+            const next = new URLSearchParams(window.location.search).get('next');
+            if (next) rememberAuthNext(next);
+        });
 
         document.addEventListener('DOMContentLoaded', function() {
           const profileLink = document.getElementById('profile-link');

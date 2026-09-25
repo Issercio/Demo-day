@@ -11,6 +11,29 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+function safeAuthNext(raw) {
+    const value = String(raw || '').trim();
+    if (!/^[A-Za-z0-9._-]+\.html(?:\?[A-Za-z0-9._=&%-]*)?(?:#[A-Za-z0-9._-]*)?$/.test(value)) {
+        return '';
+    }
+    return value;
+}
+
+function rememberAuthNext(raw) {
+    const next = safeAuthNext(raw);
+    if (next) {
+        sessionStorage.setItem('auth_next', next);
+    }
+    return next;
+}
+
+function consumeAuthNext(fallback) {
+    const params = new URLSearchParams(window.location.search);
+    const next = safeAuthNext(params.get('next')) || safeAuthNext(sessionStorage.getItem('auth_next'));
+    sessionStorage.removeItem('auth_next');
+    return next || fallback || 'accueil.html';
+}
+
 // Classe pour gérer les appels à l'API
 class ApiService {
     constructor() {

@@ -56,6 +56,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -75,12 +76,16 @@ class CheckoutTestCase(unittest.TestCase):
         self.assertEqual(order['payment_method'], 'card')
         self.assertEqual(len(order['items']), 1)
         self.assertEqual(order['items'][0]['quantity'], 2)
+        self.assertTrue(order['guest'])
+        self.assertEqual(order['phone'], '+33612345678')
+        self.assertIsNone(order['user_id'])
         self.assertEqual(Order.query.filter_by(status='paid').count(), 1)
 
     def test_prices_come_from_database_not_client(self):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242 4242 4242 4242',
             'card_expiry': '12/34',
@@ -94,6 +99,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4000000000000002',
             'card_expiry': '12/34',
@@ -112,6 +118,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4000000000009995',
             'card_expiry': '12/34',
@@ -125,6 +132,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '1234',
             'card_expiry': '12/34',
@@ -137,6 +145,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -156,6 +165,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'paypal',
             'items': [{'product_id': self.product.id, 'quantity': 1}],
         })
@@ -174,6 +184,7 @@ class CheckoutTestCase(unittest.TestCase):
         self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -200,6 +211,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -213,6 +225,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4111111111111111',
             'card_expiry': '12/34',
@@ -247,6 +260,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -326,6 +340,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -338,6 +353,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -350,6 +366,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'saved',
             'items': [{'product_id': self.product.id, 'quantity': 1}],
         })
@@ -372,6 +389,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -411,6 +429,7 @@ class CheckoutTestCase(unittest.TestCase):
         created = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -430,6 +449,7 @@ class CheckoutTestCase(unittest.TestCase):
         created = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -445,6 +465,7 @@ class CheckoutTestCase(unittest.TestCase):
         created = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -491,6 +512,7 @@ class CheckoutTestCase(unittest.TestCase):
         failed = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4000000000000002',
             'card_expiry': '12/34',
@@ -532,6 +554,7 @@ class CheckoutTestCase(unittest.TestCase):
         created = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Dupont',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -547,6 +570,33 @@ class CheckoutTestCase(unittest.TestCase):
         self.assertEqual(mine.status_code, 200)
         ids = [order['id'] for order in mine.get_json()['orders']]
         self.assertIn(order_id, ids)
+
+    def test_guest_checkout_requires_phone_or_address(self):
+        missing = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'invite@test.com',
+            'name': 'Invité Test',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        self.assertEqual(missing.status_code, 400, missing.get_json())
+        by_address = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'invite@test.com',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'address': '12 rue des Lilas, 74140 Sciez',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        self.assertEqual(by_address.status_code, 201, by_address.get_json())
+        order = by_address.get_json()['order']
+        self.assertTrue(order['guest'])
+        self.assertEqual(order['customer_name'], 'Invité')
+        self.assertEqual(order['address'], '12 rue des Lilas, 74140 Sciez')
+        self.assertIsNone(order['phone'])
 
     def test_client_order_json_hides_stripe_id(self):
         order_id, token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')
@@ -596,11 +646,15 @@ class CheckoutTestCase(unittest.TestCase):
         self.assertIn('Suivre ma commande', checkout)
         self.assertIn('commandes.html#order-', checkout)
         self.assertIn('success-actions', checkout)
+        self.assertIn('identity-gate', checkout)
+        self.assertIn('Continuer en invité', checkout)
+        self.assertIn('Créer un compte', checkout)
 
     def test_checkout_rejects_payment_intent_id(self):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
@@ -648,6 +702,7 @@ class CheckoutTestCase(unittest.TestCase):
         response = self.client.post('/api/v1/payments/checkout', json={
             'email': 'marie@test.com',
             'name': 'Marie Test',
+            'phone': '+33612345678',
             'payment_method': 'card',
             'card_number': '4242424242424242',
             'card_expiry': '12/34',

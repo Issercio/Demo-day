@@ -45,11 +45,17 @@
           <p style="display:flex;justify-content:space-between;font-weight:700;margin-top:8px;"><span>Total</span><span>45.00 €</span></p>
         </section>
         <section class="form" style="max-width:none;">
-          <h2>Informations de paiement</h2>
-          <label>Email de confirmation</label>
-          <input value="marie@test.com" readonly>
-          <label>Nom complet</label>
-          <input value="marie" readonly>
+          <h2>Comment voulez-vous commander ?</h2>
+          <p class="muted">Sans compte : créez-en un, ou continuez en invité.</p>
+          <a class="btn" href="register.html" style="display:block;text-align:center;margin-top:12px;">Créer un compte</a>
+          <a class="btn ghost" href="login.html" style="display:block;text-align:center;margin-top:10px;">J'ai déjà un compte</a>
+          <p class="muted center" style="margin:18px 0 8px;">ou commande invitée</p>
+          <label>Email</label>
+          <input value="invite@test.com" readonly>
+          <label>Téléphone</label>
+          <input value="+33612345678" readonly>
+          <label>Adresse</label>
+          <input value="12 rue des Lilas, 74140 Sciez" readonly>
           <label>Numéro de carte</label>
           <input value="4242 4242 4242 4242" readonly>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -57,8 +63,7 @@
             <div><label>CVC</label><input value="123" readonly></div>
           </div>
           <p class="hint">Cartes de test : 4242…4242 (acceptée), 4000…0002 (refusée), 4000…9995 (fonds insuffisants).</p>
-          <a class="btn" href="commandes.html" style="display:block;text-align:center;">Payer avec Carte bancaire 45.00 €</a>
-          <p class="center" style="margin-top:10px;"><a href="commandes.html">Payer un acompte de 30 %</a></p>
+          <a class="btn" href="commandes.html" style="display:block;text-align:center;">Payer en invité 45.00 €</a>
         </section>
       </div>
     </article>

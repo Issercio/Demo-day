@@ -107,7 +107,7 @@
             </div>
         </form>
     </div>
-    <script src="../static/js/api.js?v=20260925-profile"></script>
+    <script src="../static/js/api.js?v=20260925-guest"></script>
     <script>
         // Fonction pour mettre à jour l'interface utilisateur après connexion/déconnexion
         function updateUIAfterLogin(userData) {
@@ -137,10 +137,13 @@
             const feedback = document.getElementById('login-feedback');
             const result = await apiService.login(email, password);
             if (result.success) {
-                window.location.href = 'accueil.html';
+                window.location.href = consumeAuthNext('accueil.html');
             } else if (result.needs_verification) {
                 sessionStorage.setItem('verify_email', result.email || email);
-                window.location.href = 'verify-code.html?email=' + encodeURIComponent(result.email || email);
+                const next = new URLSearchParams(window.location.search).get('next') || sessionStorage.getItem('auth_next') || '';
+                const params = new URLSearchParams({ email: result.email || email });
+                if (next) params.set('next', next);
+                window.location.href = 'verify-code.html?' + params.toString();
             } else {
                 feedback.style.display = 'block';
                 feedback.textContent = result.error;
@@ -244,6 +247,8 @@
             if (userData) {
                 updateUIAfterLogin(userData);
             }
+            const next = new URLSearchParams(window.location.search).get('next');
+            if (next) rememberAuthNext(next);
             showAccountPanels(userData);
             window.addEventListener('hashchange', function() {
                 showAccountPanels(JSON.parse(localStorage.getItem('user')));

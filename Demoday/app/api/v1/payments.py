@@ -53,6 +53,8 @@ def create_checkout():
             data['email'] = user.email
             if not (data.get('name') or data.get('customer_name')):
                 data['name'] = user.username
+            if not data.get('phone') and user.phone:
+                data['phone'] = user.phone
         # Invité : user_id null ; connecté : la commande est liée au compte JWT.
         order = checkout(data, user_id=user.id if user else None)
         return jsonify({

@@ -196,6 +196,77 @@
             color: #6a5200;
             font-size: 0.9rem;
         }
+
+        .identity-gate {
+            background: #fff8f4;
+            border: 2px solid #f1d5df;
+            border-radius: 15px;
+            padding: 22px;
+            margin-bottom: 24px;
+        }
+
+        .identity-gate h3 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 1.35em;
+        }
+
+        .identity-gate p {
+            color: #6c4a58;
+            margin-bottom: 16px;
+            line-height: 1.45;
+        }
+
+        .identity-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .identity-actions button,
+        .identity-actions a {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .identity-actions .primary {
+            background: linear-gradient(45deg, #bc6288, #d4819f);
+            color: #fff;
+        }
+
+        .identity-actions .secondary {
+            background: #fff;
+            color: #bc6288;
+            border: 2px solid #bc6288;
+        }
+
+        .identity-status {
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: #eef7ff;
+            border: 1px solid #d4e8ff;
+            color: #234;
+        }
+
+        .guest-badge {
+            display: inline-block;
+            margin-bottom: 12px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #fff0f5;
+            color: #7f3f5a;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
         
         .pay-button {
             background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
@@ -368,19 +439,44 @@
             </div>
             
             <div class="payment-form">
+                <div id="identity-gate" class="identity-gate" style="display:none;">
+                    <h3>Comment voulez-vous commander ?</h3>
+                    <p>Sans compte, créez-en un pour valider et suivre la commande, ou continuez en <strong>invité</strong> avec un email et un téléphone ou une adresse.</p>
+                    <div class="identity-actions">
+                        <button type="button" class="primary" id="choose-account">Créer un compte</button>
+                        <a class="secondary" id="choose-login" href="account.html">J'ai déjà un compte</a>
+                        <button type="button" class="secondary" id="choose-guest">Continuer en invité</button>
+                    </div>
+                </div>
+
+                <div id="identity-status" class="identity-status" style="display:none;"></div>
+
+                <div id="payment-panel">
                 <h3>💳 Informations de paiement</h3>
                 <div id="payment-method-note" style="margin: 0 0 16px 0; padding: 12px 14px; border-radius: 10px; background: #eef7ff; border: 1px solid #d4e8ff; color: #234; font-size: 0.95rem;"></div>
                 
                 <form id="payment-form" novalidate>
+                    <span class="guest-badge" id="guest-badge" style="display:none;">Compte invité</span>
                     <div class="form-group">
                         <label for="email">📧 Email de confirmation</label>
                         <input type="email" id="email" name="email" placeholder="votre.email@exemple.com" autocomplete="email">
                     </div>
                     
-                    <div class="form-group">
+                    <div class="form-group" id="name-group">
                         <label for="name">👤 Nom complet</label>
                         <input type="text" id="name" name="customer_name" placeholder="Votre nom complet" autocomplete="name">
                     </div>
+
+                    <div class="form-group">
+                        <label for="phone">📱 Téléphone</label>
+                        <input type="tel" id="phone" name="phone" placeholder="+33612345678" autocomplete="tel">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="address">🏠 Adresse de livraison</label>
+                        <input type="text" id="address" name="address" placeholder="Numéro, rue, code postal, ville" autocomplete="street-address">
+                    </div>
+                    <p id="guest-contact-hint" style="display:none;margin:-12px 0 18px;color:#6c4a58;font-size:0.9rem;">Invité : indiquez un téléphone <strong>ou</strong> une adresse (les deux si vous voulez).</p>
                     
                     <div class="form-group" id="card-fields">
                         <label for="card-number">💳 Numéro de carte</label>
@@ -417,6 +513,7 @@
                         🔒 Payer <span id="pay-amount">0.00 €</span>
                     </button>
                 </form>
+                </div>
                 
                 <div id="payment-result"></div>
             </div>
@@ -434,7 +531,7 @@
         <a href="cgv.html">Conditions générales de vente</a>
     </footer>
 
-    <script src="../static/js/api.js?v=20260925-profile"></script>
+    <script src="../static/js/api.js?v=20260925-guest"></script>
     <script>
         let cartItems = [];
         let selectedPaymentMethod = 'card';
@@ -558,6 +655,8 @@
                     <p><strong>Méthode :</strong> ${escapeHtml(methodLabel)}${last4}</p>
                     <p>Merci ${escapeHtml(order.customer_name || 'client')} pour votre achat !</p>
                     <p>Confirmation : <strong>${escapeHtml(order.email)}</strong></p>
+                    ${order.phone ? `<p>Téléphone : <strong>${escapeHtml(order.phone)}</strong></p>` : ''}
+                    ${order.address ? `<p>Adresse : <strong>${escapeHtml(order.address)}</strong></p>` : ''}
                     <p>Montant : <strong>${Number(order.total_amount).toFixed(2)} €</strong></p>
                     ${depositLine}
                     ${prepLine}
@@ -794,10 +893,21 @@
             const payButton = document.getElementById('pay-button');
             const email = document.getElementById('email').value.trim();
             const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const address = document.getElementById('address').value.trim();
             const resultBox = document.getElementById('payment-result');
+            const loggedIn = !!(localStorage.getItem('auth_token'));
 
-            if (!email || !name) {
-                resultBox.innerHTML = '<div class="error"><p>Email et nom sont requis.</p></div>';
+            if (!email) {
+                resultBox.innerHTML = '<div class="error"><p>Email requis.</p></div>';
+                return;
+            }
+            if (!loggedIn && !phone && !address) {
+                resultBox.innerHTML = '<div class="error"><p>En invité, indiquez un téléphone ou une adresse.</p></div>';
+                return;
+            }
+            if (loggedIn && !name) {
+                resultBox.innerHTML = '<div class="error"><p>Nom requis.</p></div>';
                 return;
             }
 
@@ -807,7 +917,9 @@
 
             const payload = {
                 email,
-                name,
+                name: name || 'Invité',
+                phone,
+                address,
                 payment_method: selectedPaymentMethod,
                 deposit: depositWanted(),
                 items: checkoutItemsPayload()
@@ -863,17 +975,83 @@
             restorePayButton();
         });
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            selectedPaymentMethod = getPaymentMethodFromContext();
+        function checkoutReturnUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const method = params.get('method');
+            return method ? `checkout.html?method=${method}` : 'checkout.html';
+        }
+
+        function setupIdentity() {
+            const gate = document.getElementById('identity-gate');
+            const status = document.getElementById('identity-status');
+            const panel = document.getElementById('payment-panel');
+            const badge = document.getElementById('guest-badge');
+            const hint = document.getElementById('guest-contact-hint');
+            const token = localStorage.getItem('auth_token');
+            let storedUser = null;
             try {
-                const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
-                if (storedUser && storedUser.email) {
-                    document.getElementById('email').value = storedUser.email;
-                    if (storedUser.username) {
-                        document.getElementById('name').value = storedUser.username;
+                storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+            } catch (e) {
+                storedUser = null;
+            }
+
+            function showPayment(mode) {
+                gate.style.display = 'none';
+                panel.style.display = 'block';
+                if (mode === 'guest') {
+                    sessionStorage.setItem('checkout_as', 'guest');
+                    status.style.display = 'block';
+                    status.textContent = 'Commande en invité — email + téléphone ou adresse.';
+                    badge.style.display = 'inline-block';
+                    hint.style.display = 'block';
+                    document.getElementById('email').readOnly = false;
+                    document.getElementById('name').placeholder = 'Optionnel — sinon « Invité »';
+                } else {
+                    sessionStorage.removeItem('checkout_as');
+                    badge.style.display = 'none';
+                    hint.style.display = 'none';
+                    if (storedUser && storedUser.email) {
+                        status.style.display = 'block';
+                        status.textContent = 'Connecté en tant que ' + (storedUser.username || storedUser.email);
+                        document.getElementById('email').value = storedUser.email;
+                        document.getElementById('email').readOnly = true;
+                        if (storedUser.username) {
+                            document.getElementById('name').value = storedUser.username;
+                        }
+                        if (storedUser.phone) {
+                            document.getElementById('phone').value = storedUser.phone;
+                        }
+                    } else {
+                        status.style.display = 'none';
                     }
                 }
-            } catch (e) {}
+            }
+
+            document.getElementById('choose-guest').addEventListener('click', () => showPayment('guest'));
+            document.getElementById('choose-account').addEventListener('click', () => {
+                rememberAuthNext(checkoutReturnUrl());
+                window.location.href = 'register.html?next=' + encodeURIComponent(checkoutReturnUrl());
+            });
+            document.getElementById('choose-login').addEventListener('click', (event) => {
+                event.preventDefault();
+                rememberAuthNext(checkoutReturnUrl());
+                window.location.href = 'account.html?next=' + encodeURIComponent(checkoutReturnUrl());
+            });
+
+            if (token && storedUser) {
+                showPayment('account');
+            } else if (sessionStorage.getItem('checkout_as') === 'guest') {
+                showPayment('guest');
+            } else {
+                gate.style.display = 'block';
+                panel.style.display = 'none';
+                status.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            selectedPaymentMethod = getPaymentMethodFromContext();
+            setupIdentity();
 
             const cardNumber = document.getElementById('card-number');
             const cardExpiry = document.getElementById('card-expiry');

@@ -45,11 +45,12 @@
       &copy; 2024 by Pivoine &amp; Lilas - Siren 522 234 871 -
       <a href="cgv.html">Conditions générales de vente</a>
     </footer>
-    <script src="../static/js/api.js?v=20260925-profile"></script>
+    <script src="../static/js/api.js?v=20260925-guest"></script>
     <script>
       const params = new URLSearchParams(window.location.search);
       const emailInput = document.getElementById('verify-email');
       emailInput.value = params.get('email') || sessionStorage.getItem('verify_email') || '';
+      if (params.get('next')) rememberAuthNext(params.get('next'));
 
       function showDemoCode() {
         const hint = document.getElementById('demo-code-hint');
@@ -82,7 +83,7 @@
         feedback.style.display = 'block';
         const result = await apiService.verifyAccount(emailInput.value.trim(), readCode());
         if (result.success) {
-          window.location.href = 'accueil.html';
+          window.location.href = consumeAuthNext('accueil.html');
         } else {
           feedback.textContent = result.error || 'Code invalide';
         }

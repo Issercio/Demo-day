@@ -340,7 +340,7 @@
           </div>
           <div>
             <dt>Destinataire</dt>
-            <dd>${escapeHtml(order.customer_name || '—')}<br><small>${escapeHtml(order.email || '')}</small></dd>
+            <dd>${escapeHtml(order.customer_name || (order.guest ? 'Invité' : '—'))}<br><small>${escapeHtml(order.email || '')}</small>${order.phone ? `<br><small>${escapeHtml(order.phone)}</small>` : ''}${order.address ? `<br><small>${escapeHtml(order.address)}</small>` : ''}</dd>
           </div>
           ${deposit}
         </dl>
