@@ -14,3 +14,13 @@ services:
         generateValue: true
       - key: FORCE_HTTPS
         value: "1"
+      - key: MAIL_SERVER
+        value: ""
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_STARTTLS
+        value: "1"
+      - key: MAIL_FROM
+        value: ""
+      - key: MAIL_TO
+        value: ""

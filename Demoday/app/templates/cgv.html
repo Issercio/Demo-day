@@ -68,11 +68,12 @@
     </p>
 
     <h2>1. Identite du vendeur</h2>
-    <p>
-      FloraShop — boutique florale en ligne.
+    <p id="legal-identity">
+      <span id="legal-name">FloraShop</span> — boutique florale en ligne.
       Les mentions legales (forme juridique, capital, SIREN, siege)
       sont a completer par l'exploitant avant une mise en production.
     </p>
+    <div class="legal-box" id="legal-contact" hidden></div>
 
     <h2>2. Objet</h2>
     <p>
@@ -96,7 +97,8 @@
 
     <h2>5. Livraison</h2>
     <p>
-      Les zones, delais et frais de livraison sont precises lors de la commande.
+      Les zones, delais et frais de livraison sont precises lors de la commande
+      (<span id="legal-delivery">zone et tarif indiques au paiement</span>).
       Les delais sont indicatifs et peuvent varier selon l'activite florale,
       la saisonnalite et les conditions logistiques.
     </p>
@@ -130,7 +132,7 @@
     <div class="legal-box">
       <strong>Formulaire type de retractation</strong>
       <p style="margin-top:8px;">
-        A l'attention de: FloraShop — boutique florale en ligne<br>
+        A l'attention de: <span id="legal-retract-name">FloraShop</span> — boutique florale en ligne<span id="legal-retract-extra"></span><br>
         Je vous notifie par la presente ma retractation du contrat portant sur la vente
         du bien / la prestation de service ci-dessous:<br>
         Commande le: __________ / Recu le: __________<br>
@@ -172,5 +174,38 @@
     &copy; 2026 FloraShop —
     <a href="cgv.html" style="color:#fff;text-decoration:underline;">Conditions generales de vente</a>
   </footer>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const response = await fetch('/api/v1/settings');
+        if (!response.ok) {
+          return;
+        }
+        const settings = await response.json();
+        const name = settings.legal_name || 'FloraShop';
+        document.getElementById('legal-name').textContent = name;
+        document.getElementById('legal-retract-name').textContent = name;
+        const bits = [];
+        if (settings.address) bits.push(settings.address);
+        if (settings.email) bits.push(settings.email);
+        if (settings.phone) bits.push(settings.phone);
+        if (settings.siren) bits.push('SIREN ' + settings.siren);
+        const box = document.getElementById('legal-contact');
+        if (bits.length) {
+          box.hidden = false;
+          box.textContent = bits.join(' · ');
+        }
+        const extra = document.getElementById('legal-retract-extra');
+        if (settings.email) {
+          extra.textContent = ' — ' + settings.email;
+        }
+        const delivery = document.getElementById('legal-delivery');
+        if (settings.delivery_prefixes) {
+          const fee = Number(settings.delivery_fee || 0).toFixed(2);
+          delivery.textContent = 'départements ' + settings.delivery_prefixes + ', ' + fee + ' €';
+        }
+      } catch (e) {}
+    });
+  </script>
 </body>
 </html>

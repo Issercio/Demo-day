@@ -207,6 +207,10 @@ def ensure_product_image_column():
         db.session.commit()
 
 
+def default_product_description(name):
+    return f'{name} — composition d’atelier, fleurs de saison, prêt à offrir.'
+
+
 def ensure_demo_catalog():
     """Remplit le shop au démarrage : 7 catégories, prix Decimal, photos, couleurs filtre."""
     from app.models import Category, Product
@@ -229,12 +233,15 @@ def ensure_demo_catalog():
                     category_id=category.id,
                     color=color,
                     image=image,
+                    description=default_product_description(product_name),
                 ))
             else:
                 product.price = price
                 product.category_id = category.id
                 product.color = color
                 product.image = image
+                if not product.description:
+                    product.description = default_product_description(product_name)
     db.session.commit()
     from app.services.shop_themes import ensure_shop_themes
     ensure_shop_themes()

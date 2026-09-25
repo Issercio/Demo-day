@@ -7,6 +7,7 @@ from app.services.checkout_service import parse_money
 from app.services.demo_accounts import normalize_hex_color
 from app.services.product_images import payload_from_request, save_product_image
 from app.services.shop_ops import parse_stock_qty
+from app.services.shop_commerce import parse_description
 from app.services.shop_themes import (
     create_custom_theme,
     delete_custom_theme,
@@ -156,15 +157,10 @@ def get_product(product_id):
         if not category:
             return jsonify({'error': 'Catégorie non trouvée'}), 404
             
-        return jsonify({
-            'id': product.id,
-            'name': product.name,
-            'price': product.price,
-            'category': {
-                'id': category.id,
-                'name': category.name
-            }
-        })
+        payload = product.to_dict()
+        if category and not payload.get('category'):
+            payload['category'] = {'id': category.id, 'name': category.name}
+        return jsonify(payload)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -440,6 +436,7 @@ def products():
             try:
                 price = parse_money(data['price'])
                 stock_qty = parse_stock_qty(data.get('stock_qty'), default=12)
+                description = parse_description(data.get('description'))
             except ValueError as exc:
                 return jsonify({'error': str(exc)}), 400
 
@@ -450,6 +447,7 @@ def products():
                 color=normalize_hex_color(data.get('color') or data.get('hex_color')),
                 image=image_url,
                 stock_qty=stock_qty,
+                description=description,
             )
             db.session.add(product)
             db.session.flush()
@@ -522,6 +520,11 @@ def update_product(product_id):
         if data.get('stock_qty') not in (None, ''):
             try:
                 product.stock_qty = parse_stock_qty(data.get('stock_qty'))
+            except ValueError as exc:
+                return jsonify({'error': str(exc)}), 400
+        if 'description' in data:
+            try:
+                product.description = parse_description(data.get('description'))
             except ValueError as exc:
                 return jsonify({'error': str(exc)}), 400
         if 'color' in data or 'hex_color' in data:

@@ -4,159 +4,111 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FloraShop - Finaliser votre commande</title>
+    <link rel="stylesheet" href="../static/css/style.css?v=20260925-commerce">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .checkout-container {
-            max-width: 1000px;
+        .checkout-page {
+            max-width: 1100px;
+            width: 100%;
             margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
+            padding: 0 18px 80px;
+            flex: 1 0 auto;
         }
-        
+        .checkout-container {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(188,98,136,0.07);
+            overflow: hidden;
+            border: 1.5px solid #e7d6d6;
+        }
         .header {
-            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
-            color: white;
-            padding: 30px;
+            background: #bc6288;
+            color: #fff;
+            padding: 28px 24px;
             text-align: center;
         }
-        
         .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: 2rem;
+            margin-bottom: 8px;
         }
-        
         .content {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            padding: 40px;
+            gap: 32px;
+            padding: 32px;
         }
-        
         .order-summary {
-            background: #f8f9fa;
-            padding: 30px;
-            border-radius: 15px;
-            border: 2px solid #e9ecef;
+            background: #fff6f2;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1.5px solid #e7d6d6;
         }
-        
-        .order-summary h3 {
-            color: #495057;
-            margin-bottom: 20px;
-            font-size: 1.5em;
+        .order-summary h3,
+        .payment-form h3 {
+            color: #ab597c;
+            margin-bottom: 18px;
+            font-size: 1.35rem;
         }
-        
         .cart-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px;
-            background: white;
+            padding: 12px;
+            background: #fff;
             border-radius: 10px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 12px;
+            border: 1px solid #f0e4e8;
         }
-        
-        .item-details {
-            flex-grow: 1;
-        }
-        
-        .item-name {
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-        
-        .item-price {
-            color: #7f8c8d;
-            font-size: 0.9em;
-        }
-        
+        .item-name { font-weight: 700; color: #3a2a30; margin-bottom: 4px; }
+        .item-price { color: #7a5a66; font-size: 0.9em; }
         .item-quantity {
-            background: #3498db;
-            color: white;
-            padding: 5px 10px;
+            background: #bc6288;
+            color: #fff;
+            padding: 4px 10px;
             border-radius: 20px;
-            font-size: 0.9em;
+            font-size: 0.85rem;
             margin-right: 10px;
         }
-        
         .total-section {
-            border-top: 2px solid #dee2e6;
-            padding-top: 20px;
-            margin-top: 20px;
+            border-top: 2px solid #eadfe2;
+            padding-top: 16px;
+            margin-top: 16px;
         }
-        
         .total-line {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #5a3d48;
         }
-        
         .total-final {
-            font-weight: bold;
-            font-size: 1.3em;
-            color: #2c3e50;
-            border-top: 1px solid #dee2e6;
+            font-weight: 700;
+            font-size: 1.2em;
+            color: #ab597c;
+            border-top: 1px solid #eadfe2;
             padding-top: 10px;
         }
-        
-        .payment-form {
-            background: #fff;
-        }
-        
-        .payment-form h3 {
-            color: #495057;
-            margin-bottom: 25px;
-            font-size: 1.5em;
-        }
-        
-        .form-group {
-            margin-bottom: 25px;
-        }
-        
+        .form-group { margin-bottom: 18px; }
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 600;
-            color: #495057;
+            color: #bc6288;
         }
-        
-        .form-group input {
+        .form-group input,
+        .form-group select {
             width: 100%;
-            padding: 15px;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
+            padding: 12px;
+            border: 1.5px solid #bc6288;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            background: #fff;
         }
-        
-        .form-group input:focus {
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
-            border-color: #4ECDC4;
-            box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+            box-shadow: 0 0 0 3px rgba(188, 98, 136, 0.18);
         }
-        
-        .card-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
+        .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .test-cards {
             margin-top: 10px;
             padding: 12px;
@@ -167,7 +119,6 @@
             font-size: 0.9rem;
             line-height: 1.45;
         }
-
         .deposit-option {
             margin: 0 0 8px;
             padding: 14px;
@@ -175,7 +126,6 @@
             border: 1px solid #f1d48a;
             border-radius: 10px;
         }
-
         .deposit-option label {
             display: flex;
             align-items: flex-start;
@@ -184,19 +134,13 @@
             color: #495057;
             cursor: pointer;
         }
-
-        .deposit-option input[type="checkbox"] {
-            width: auto;
-            margin-top: 3px;
-        }
-
+        .deposit-option input[type="checkbox"] { width: auto; margin-top: 3px; }
         .deposit-option p {
             display: none;
             margin: 8px 0 0 26px;
             color: #6a5200;
             font-size: 0.9rem;
         }
-
         .identity-gate {
             background: #fff8f4;
             border: 2px solid #f1d5df;
@@ -204,25 +148,9 @@
             padding: 22px;
             margin-bottom: 24px;
         }
-
-        .identity-gate h3 {
-            color: #495057;
-            margin-bottom: 10px;
-            font-size: 1.35em;
-        }
-
-        .identity-gate p {
-            color: #6c4a58;
-            margin-bottom: 16px;
-            line-height: 1.45;
-        }
-
-        .identity-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
+        .identity-gate h3 { color: #ab597c; margin-bottom: 10px; font-size: 1.35em; }
+        .identity-gate p { color: #6c4a58; margin-bottom: 16px; line-height: 1.45; }
+        .identity-actions { display: flex; flex-direction: column; gap: 10px; }
         .identity-actions button,
         .identity-actions a {
             display: block;
@@ -236,27 +164,20 @@
             border: none;
             cursor: pointer;
         }
-
-        .identity-actions .primary {
-            background: linear-gradient(45deg, #bc6288, #d4819f);
-            color: #fff;
-        }
-
+        .identity-actions .primary { background: linear-gradient(45deg, #bc6288, #d4819f); color: #fff; }
         .identity-actions .secondary {
             background: #fff;
             color: #bc6288;
             border: 2px solid #bc6288;
         }
-
         .identity-status {
             margin-bottom: 18px;
             padding: 12px 14px;
             border-radius: 10px;
-            background: #eef7ff;
-            border: 1px solid #d4e8ff;
-            color: #234;
+            background: #f8f0f4;
+            border: 1px solid #eadfe2;
+            color: #5a3d48;
         }
-
         .guest-badge {
             display: inline-block;
             margin-bottom: 12px;
@@ -267,88 +188,51 @@
             font-size: 0.85rem;
             font-weight: 700;
         }
-        
         .pay-button {
-            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
-            color: white;
-            padding: 18px 40px;
+            background: #bc6288;
+            color: #fff;
+            padding: 16px 32px;
             border: none;
-            border-radius: 50px;
-            font-size: 18px;
-            font-weight: 600;
+            border-radius: 999px;
+            font-size: 1.1rem;
+            font-weight: 700;
             cursor: pointer;
             width: 100%;
-            margin-top: 30px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-top: 18px;
         }
-        
-        .pay-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        }
-        
-        .pay-button:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        
+        .pay-button:hover { background: #ab597c; }
+        .pay-button:disabled { background: #d2a0b5; cursor: not-allowed; }
         .error {
-            color: #e74c3c;
-            background: #fadbd8;
-            padding: 15px;
+            color: #8a1f2b;
+            background: #fdecee;
+            padding: 14px;
             border-radius: 10px;
-            margin-top: 15px;
-            border: 1px solid #f1948a;
+            margin-top: 12px;
+            border: 1px solid #f3c1c7;
         }
-        
         .success {
-            color: #27ae60;
-            background: #d5f4e6;
-            padding: 25px;
-            border-radius: 15px;
-            margin-top: 20px;
-            border: 1px solid #82e3aa;
+            color: #1e5a32;
+            background: #e8f6ed;
+            padding: 22px;
+            border-radius: 12px;
+            margin-top: 16px;
+            border: 1px solid #b7e0c2;
             text-align: center;
         }
-        
-        .success h3 {
-            margin-bottom: 15px;
-            font-size: 1.8em;
-        }
-        
-        .loading {
-            text-align: center;
-            color: #3498db;
-            padding: 20px;
-        }
-        
+        .success h3 { margin-bottom: 12px; font-size: 1.6em; }
+        .loading { text-align: center; color: #bc6288; padding: 20px; }
         .spinner {
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(52, 152, 219, 0.3);
+            border: 3px solid rgba(188, 98, 136, 0.3);
             border-radius: 50%;
-            border-top-color: #3498db;
+            border-top-color: #bc6288;
             animation: spin 1s ease-in-out infinite;
         }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .empty-cart {
-            text-align: center;
-            padding: 50px;
-            color: #7f8c8d;
-        }
-        
-        .empty-cart h3 {
-            margin-bottom: 20px;
-            font-size: 2em;
-        }
-        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .empty-cart { text-align: center; padding: 50px; color: #7a5a66; }
+        .empty-cart h3 { margin-bottom: 16px; font-size: 1.8em; color: #ab597c; }
         .success-actions {
             display: flex;
             flex-wrap: wrap;
@@ -356,62 +240,64 @@
             justify-content: center;
             margin-top: 16px;
         }
-        .success-actions .back-to-shop {
-            margin-top: 0;
-            margin-left: 0;
-        }
+        .success-actions .back-to-shop { margin-top: 0; margin-left: 0; }
         .back-to-shop {
-            background: #3498db;
-            color: white;
-            padding: 15px 30px;
+            background: #bc6288;
+            color: #fff;
+            padding: 12px 22px;
             border: none;
             border-radius: 25px;
             text-decoration: none;
             display: inline-block;
-            margin-top: 20px;
-            transition: background 0.3s ease;
+            margin-top: 16px;
         }
-        
-        .back-to-shop:hover {
-            background: #2980b9;
-        }
-
-        .site-footer {
-            text-align: center;
-            color: #f9edf2;
-            font-size: 16px;
-            margin-top: 24px;
-            padding: 18px 12px;
-            background: linear-gradient(90deg, #7f3f5a 0%, #bc6288 100%);
-            border-top: 2px solid #d7a9bd;
-            letter-spacing: 0.01em;
-            font-weight: 600;
-        }
-
-        .site-footer a {
-            color: #fff;
-            text-decoration: underline;
-            text-underline-offset: 3px;
-            font-weight: 700;
-        }
-        
+        .back-to-shop:hover { background: #ab597c; }
+        .promo-hint { margin: 6px 0 0; font-size: 0.88rem; color: #6c4a58; }
         @media (max-width: 768px) {
-            .content {
-                grid-template-columns: 1fr;
-                gap: 20px;
-                padding: 20px;
-            }
-            
-            .header h1 {
-                font-size: 1.8em;
-            }
+            .content { grid-template-columns: 1fr; gap: 20px; padding: 18px; }
+            .header h1 { font-size: 1.6em; }
         }
     </style>
 </head>
 <body>
+    <header>
+        <img class="logo" src="/static/img/logo.png" alt="Logo FloraShop, artisan fleuriste" width="120" height="100">
+        <nav>
+            <ul>
+                <li><a href="accueil.html">ACCUEIL</a></li>
+                <li><a href="shop.html">SHOP</a></li>
+                <li><a href="evenementiel.html">ÉVÈNEMENTIEL</a></li>
+                <li><a href="entreprises.html">ENTREPRISES</a></li>
+                <li><a href="portfolio.html">PORTFOLIO</a></li>
+                <li><a href="contact.html">CONTACT</a></li>
+                <li><a href="subscription.html">ABONNEMENT</a></li>
+                <li>
+                    <a href="panier.html" id="cart-link" style="position:relative;">
+                        <span style="font-size:22px;vertical-align:middle;">🛒</span>
+                        <span id="cart-count" style="position:absolute;top:0;right:-10px;background:#bc6288;color:#fff;font-size:13px;padding:1px 6px;border-radius:10px;display:none;">0</span>
+                    </a>
+                </li>
+                <li id="admin-access" style="display:none;">
+                    <a href="admin.html" class="admin-nav-link" title="Administration">ADMIN</a>
+                </li>
+                <li style="position:relative;">
+                    <button type="button" id="profile-link" class="profile-icon-btn" aria-label="Compte">👤</button>
+                    <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;min-width:200px;">
+                        <div id="user-email" style="margin-bottom: 15px; color: #bc6288; font-size: 0.9em; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; display: none;"></div>
+                        <button id="login-btn" class="cta-btn" style="width:100%; margin-bottom: 8px;">Se connecter</button>
+                        <button id="logout-btn" class="cta-btn" style="width:100%; margin-bottom: 8px; display: none;">Déconnexion</button>
+                        <button id="profile-btn" class="cta-btn" style="width:100%; margin-bottom: 8px; display: none;">Modifier le profil</button>
+                        <button id="password-btn" class="cta-btn" style="width:100%; margin-bottom: 8px; display: none;">Changer le mot de passe</button>
+                        <button id="delete-btn" class="cta-btn" style="width:100%; background: #fff; color: #bc6288; border: 1.5px solid #bc6288; display: none;">Supprimer le compte</button>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+    </header>
+    <main class="checkout-page">
     <div class="checkout-container">
         <div class="header">
-            <h1>🌸 Finaliser votre commande</h1>
+            <h1>Finaliser votre commande</h1>
             <p>Paiement sécurisé — les prix sont recalculés par le serveur</p>
         </div>
         
@@ -427,9 +313,13 @@
                         <span>Sous-total:</span>
                         <span id="subtotal">0.00 €</span>
                     </div>
+                    <div class="total-line" id="discount-line" style="display:none;">
+                        <span>Code promo:</span>
+                        <span id="discount-amount">− 0.00 €</span>
+                    </div>
                     <div class="total-line">
                         <span>Livraison:</span>
-                        <span>Gratuite 🚚</span>
+                        <span id="shipping-amount">Offerte au retrait</span>
                     </div>
                     <div class="total-line total-final">
                         <span>Total:</span>
@@ -473,10 +363,17 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="address">🏠 Adresse de livraison</label>
+                        <label for="address">Adresse (obligatoire pour une livraison)</label>
                         <input type="text" id="address" name="address" placeholder="Numéro, rue, code postal, ville" autocomplete="street-address">
                     </div>
                     <p id="guest-contact-hint" style="display:none;margin:-12px 0 18px;color:#6c4a58;font-size:0.9rem;">Invité : indiquez un téléphone <strong>ou</strong> une adresse (les deux si vous voulez).</p>
+                    <p id="pickup-note" style="margin:-8px 0 16px;color:#6c4a58;font-size:0.9rem;"></p>
+
+                    <div class="form-group">
+                        <label for="promo-code">Code promo</label>
+                        <input type="text" id="promo-code" name="promo_code" placeholder="Ex. WELCOME10" autocomplete="off">
+                        <p class="promo-hint" id="promo-hint" hidden></p>
+                    </div>
 
                     <div class="form-group">
                         <label for="fulfillment-type">Retrait ou livraison</label>
@@ -545,6 +442,7 @@
             <a href="shop.html" class="back-to-shop">Retourner à la boutique</a>
         </div>
     </div>
+    </main>
     <footer class="site-footer">
         &copy; 2026 FloraShop —
         <a href="cgv.html">Conditions générales de vente</a>
@@ -556,6 +454,9 @@
         let selectedPaymentMethod = 'card';
         let paymentMode = 'test';
         let lastCartTotal = 0;
+        let shippingFee = 0;
+        let discountAmount = 0;
+        let shopSettings = null;
 
         function depositWanted() {
             const box = document.getElementById('pay-deposit');
@@ -563,18 +464,23 @@
         }
 
         function payableCents(total) {
-            const cents = Math.round(Number(total) * 100);
+            const cents = Math.round(Number(payableTotal(total)) * 100);
             if (!depositWanted()) {
                 return cents;
             }
             return Math.round(cents * 30 / 100);  // UI 30 % : le serveur recalcule DEPOSIT_RATE
         }
 
+        function payableTotal(subtotal) {
+            const due = Number(subtotal || 0) + Number(shippingFee || 0) - Number(discountAmount || 0);
+            return due > 0 ? due : 0;
+        }
+
         function refreshDepositUi() {
             const hint = document.getElementById('deposit-hint');
             const payAmount = document.getElementById('pay-amount');
             const due = payableCents(lastCartTotal);
-            const rest = Math.round(lastCartTotal * 100) - due;
+            const rest = Math.round(payableTotal(lastCartTotal) * 100) - due;
             if (payAmount) {
                 payAmount.textContent = `${(due / 100).toFixed(2)} €`;
             }
@@ -676,6 +582,8 @@
                     <p>Confirmation : <strong>${escapeHtml(order.email)}</strong></p>
                     ${order.phone ? `<p>Téléphone : <strong>${escapeHtml(order.phone)}</strong></p>` : ''}
                     ${order.address ? `<p>Adresse : <strong>${escapeHtml(order.address)}</strong></p>` : ''}
+                    ${order.shipping_amount ? `<p>Livraison : <strong>${Number(order.shipping_amount).toFixed(2)} €</strong></p>` : ''}
+                    ${order.discount_amount ? `<p>Promo ${escapeHtml(order.promo_code || '')} : <strong>− ${Number(order.discount_amount).toFixed(2)} €</strong></p>` : ''}
                     <p>Montant : <strong>${Number(order.total_amount).toFixed(2)} €</strong></p>
                     ${depositLine}
                     ${prepLine}
@@ -692,6 +600,12 @@
             } else {
                 localStorage.removeItem('cart');
             }
+            try {
+                sessionStorage.setItem('guest_track', JSON.stringify({
+                    email: order.email,
+                    order_id: order.id
+                }));
+            } catch (e) {}
             sessionStorage.removeItem('checkout_cart');
             localStorage.removeItem('selected_payment_method');
             cartItems = [];
@@ -884,9 +798,94 @@
             });
 
             subtotalElement.textContent = `${total.toFixed(2)} €`;
-            totalElement.textContent = `${total.toFixed(2)} €`;
             lastCartTotal = total;
+            const discountLine = document.getElementById('discount-line');
+            const discountEl = document.getElementById('discount-amount');
+            if (discountLine && discountEl) {
+                if (discountAmount > 0) {
+                    discountLine.style.display = 'flex';
+                    discountEl.textContent = `− ${Number(discountAmount).toFixed(2)} €`;
+                } else {
+                    discountLine.style.display = 'none';
+                }
+            }
+            const shippingEl = document.getElementById('shipping-amount');
+            if (shippingEl) {
+                const ftype = (document.getElementById('fulfillment-type') || {}).value;
+                shippingEl.textContent = ftype === 'livraison'
+                    ? `${Number(shippingFee).toFixed(2)} €`
+                    : 'Offerte au retrait';
+            }
+            totalElement.textContent = `${payableTotal(total).toFixed(2)} €`;
             refreshDepositUi();
+        }
+
+        async function quoteExtras() {
+            const ftype = (document.getElementById('fulfillment-type') || {}).value;
+            const address = (document.getElementById('address') || {}).value || '';
+            const promo = (document.getElementById('promo-code') || {}).value || '';
+            const hint = document.getElementById('promo-hint');
+            shippingFee = 0;
+            if (ftype === 'livraison') {
+                try {
+                    const response = await fetch('/api/v1/shipping?type=livraison&address=' + encodeURIComponent(address));
+                    const data = await response.json().catch(() => ({}));
+                    if (response.ok) {
+                        shippingFee = Number(data.shipping || 0);
+                    } else {
+                        shippingFee = 0;
+                        const shippingEl = document.getElementById('shipping-amount');
+                        if (shippingEl) {
+                            shippingEl.textContent = data.error || 'Adresse incomplète';
+                        }
+                    }
+                } catch (e) {
+                    shippingFee = 0;
+                }
+            }
+            discountAmount = 0;
+            if (promo.trim()) {
+                try {
+                    const response = await fetch(
+                        '/api/v1/promo/quote?code=' + encodeURIComponent(promo.trim())
+                        + '&subtotal=' + encodeURIComponent(String(lastCartTotal))
+                    );
+                    const data = await response.json().catch(() => ({}));
+                    if (hint) {
+                        hint.hidden = false;
+                        if (response.ok) {
+                            discountAmount = Number(data.discount || 0);
+                            hint.textContent = discountAmount
+                                ? `Réduction : ${discountAmount.toFixed(2)} €`
+                                : '';
+                            if (!discountAmount) {
+                                hint.hidden = true;
+                            }
+                        } else {
+                            hint.textContent = data.error || 'Code invalide';
+                        }
+                    }
+                } catch (e) {
+                    discountAmount = 0;
+                }
+            } else if (hint) {
+                hint.hidden = true;
+                hint.textContent = '';
+            }
+            displayCartItems();
+        }
+
+        function nextOpenIsoDate(closedSet) {
+            const closed = closedSet || new Set();
+            const day = new Date();
+            day.setHours(12, 0, 0, 0);
+            for (let i = 0; i < 14; i += 1) {
+                if (!closed.has(day.getDay() === 0 ? 6 : day.getDay() - 1)) {
+                    return day.toISOString().slice(0, 10);
+                }
+                day.setDate(day.getDate() + 1);
+            }
+            return new Date().toISOString().slice(0, 10);
         }
 
         function formatCardNumber(value) {
@@ -944,6 +943,7 @@
                 fulfillment_type: document.getElementById('fulfillment-type').value,
                 fulfillment_date: document.getElementById('fulfillment-date').value,
                 fulfillment_slot: document.getElementById('fulfillment-slot').value,
+                promo_code: (document.getElementById('promo-code').value || '').trim(),
                 items: checkoutItemsPayload()
             };
 
@@ -1077,14 +1077,39 @@
         document.addEventListener('DOMContentLoaded', async () => {
             selectedPaymentMethod = getPaymentMethodFromContext();
             setupIdentity();
+            try {
+                const settingsResponse = await fetch('/api/v1/settings');
+                if (settingsResponse.ok) {
+                    shopSettings = await settingsResponse.json();
+                }
+            } catch (e) {}
             const dateInput = document.getElementById('fulfillment-date');
+            const closed = new Set(
+                String((shopSettings && shopSettings.closed_weekdays) || '6')
+                    .split(',')
+                    .map((part) => Number(part.trim()))
+                    .filter((n) => Number.isInteger(n))
+            );
             if (dateInput) {
-                const today = new Date().toISOString().slice(0, 10);
-                dateInput.min = today;
+                const open = nextOpenIsoDate(closed);
+                dateInput.min = open;
                 if (!dateInput.value) {
-                    dateInput.value = today;
+                    dateInput.value = open;
                 }
             }
+            const pickup = document.getElementById('pickup-note');
+            if (pickup && shopSettings && shopSettings.pickup_note) {
+                pickup.textContent = shopSettings.pickup_note;
+            }
+            ['fulfillment-type', 'address', 'promo-code'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener(id === 'promo-code' ? 'blur' : 'change', quoteExtras);
+                    if (id === 'promo-code') {
+                        el.addEventListener('change', quoteExtras);
+                    }
+                }
+            });
             if (window.FloraCart && FloraCart.refresh) {
                 await FloraCart.refresh();
             }
@@ -1129,6 +1154,7 @@
             loadCartFromStorage();
             await loadCartDetails();
             configurePaymentFormForMethod();
+            await quoteExtras();
         });
     </script>
 </body>

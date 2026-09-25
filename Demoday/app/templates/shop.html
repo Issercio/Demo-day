@@ -361,7 +361,8 @@
                   
                   const hex = pickProductColor(product);
                   const photo = productImage(product);
-                  const blurb = categoryBlurb(category.name);
+                  const blurb = (product.description && String(product.description).trim())
+                    || categoryBlurb(category.name);
                   
                   return `
                     <div class="product-card">

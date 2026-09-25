@@ -47,6 +47,14 @@ def resolve_secret_key():
         return os.urandom(32).hex()
 
 
+def database_uri():
+    """Render / Heroku envoient parfois postgres:// ; SQLAlchemy 2 attend postgresql://."""
+    raw = (os.environ.get('DATABASE_URL') or 'sqlite:///florashop.db').strip()
+    if raw.startswith('postgres://'):
+        return 'postgresql://' + raw[len('postgres://'):]
+    return raw
+
+
 def create_app():
     app = Flask(__name__)
     
@@ -67,7 +75,7 @@ def create_app():
     
     # Configuration de la base de données et autres paramètres
     app.config.update(
-        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///florashop.db'),
+        SQLALCHEMY_DATABASE_URI = database_uri(),
         SQLALCHEMY_TRACK_MODIFICATIONS = False,
         JSON_AS_ASCII = False,
         SECRET_KEY = resolve_secret_key(),  # signature JWT + Flask
@@ -97,7 +105,7 @@ def create_app():
                 return redirect(https_url, code=301)
 
     # Import des modèles pour l'initialisation
-    from .models import Category, Product, User, Order, OrderItem, ShopTheme, ShopVitrine, ThemeProduct, ContactRequest, Cart
+    from .models import Category, Product, User, Order, OrderItem, ShopTheme, ShopVitrine, ThemeProduct, ContactRequest, Cart, ShopSettings, PromoCode
 
     # Swagger UI : ajout du header Authorization
     authorizations = {
@@ -150,9 +158,11 @@ def create_app():
             from app.services.checkout_service import ensure_runtime_schema
             from app.services.demo_accounts import ensure_demo_accounts, ensure_demo_catalog
             from app.services.shop_ops import ensure_ops_schema
+            from app.services.shop_commerce import ensure_commerce_schema
             # SQLite fraîche : colonnes paiement/photo + comptes démo + catalogue.
             ensure_runtime_schema()
             ensure_ops_schema()
+            ensure_commerce_schema()
             ensure_demo_accounts()
             ensure_demo_catalog()
         except Exception as exc:

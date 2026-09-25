@@ -160,6 +160,47 @@
     .track-card.is-open .track-detail { display: block; }
     .track-empty { text-align: center; color: #bc6288; padding: 40px 16px; }
     .track-empty a { color: #ab597c; font-weight: 700; }
+    .guest-track {
+      background: #fff;
+      border: 1.5px solid #e7d6d6;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 22px;
+      box-shadow: 0 2px 12px rgba(188,98,136,0.07);
+    }
+    .guest-track h2 {
+      color: #ab597c;
+      font-size: 1.15rem;
+      margin: 0 0 8px;
+    }
+    .guest-track p { color: #6c4a58; margin: 0 0 12px; }
+    .guest-track form {
+      display: grid;
+      grid-template-columns: 1fr 140px auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .guest-track label { display: block; color: #bc6288; font-weight: 600; font-size: 0.88rem; margin-bottom: 4px; }
+    .guest-track input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1.5px solid #bc6288;
+      border-radius: 8px;
+      font: inherit;
+    }
+    .guest-track button {
+      background: #bc6288;
+      color: #fff;
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .guest-track .guest-track-error { color: #8a1f2b; margin: 8px 0 0; }
+    @media (max-width: 640px) {
+      .guest-track form { grid-template-columns: 1fr; }
+    }
     @media (max-width: 640px) {
       .track-head {
         flex-direction: column;
@@ -180,7 +221,7 @@
 </head>
 <body>
   <header>
-    <img class="logo" src="/static/img/logo.png" alt="Logo pivoine &amp; lilas, artisan fleuriste" width="120" height="100">
+    <img class="logo" src="/static/img/logo.png" alt="Logo FloraShop, artisan fleuriste" width="120" height="100">
     <nav>
       <ul>
         <li><a href="accueil.html">ACCUEIL</a></li>
@@ -215,7 +256,23 @@
   </header>
   <main class="orders-page">
     <h1>Suivi de mes commandes</h1>
-    <p class="orders-intro">Cliquez une commande pour voir photos, paiement et le détail des lignes. L’atelier est mis à jour par la fleuriste.</p>
+    <p class="orders-intro">Avec un compte, vos commandes s’affichent ici. En invité, indiquez l’email de la commande et son numéro.</p>
+    <section class="guest-track" id="guest-track">
+      <h2>Suivre une commande invitée</h2>
+      <p>Email utilisé au paiement + numéro indiqué sur la confirmation.</p>
+      <form id="guest-track-form">
+        <div>
+          <label for="guest-email">Email</label>
+          <input type="email" id="guest-email" name="email" autocomplete="email" required>
+        </div>
+        <div>
+          <label for="guest-order">N° commande</label>
+          <input type="text" id="guest-order" name="order_id" inputmode="numeric" required>
+        </div>
+        <button type="submit">Voir</button>
+      </form>
+      <p class="guest-track-error" id="guest-track-error" hidden></p>
+    </section>
     <div id="orders-list"><p class="track-empty">Chargement…</p></div>
   </main>
   <footer class="site-footer">
@@ -347,6 +404,14 @@
             <dt>${escapeHtml(order.fulfillment_type === 'livraison' ? 'Livraison' : 'Retrait')}</dt>
             <dd>${escapeHtml(order.fulfillment_date)}${order.fulfillment_slot ? ` · ${escapeHtml(order.fulfillment_slot === 'apres-midi' ? 'après-midi' : 'matin')}` : ''}</dd>
           </div>` : ''}
+          ${order.shipping_amount ? `<div>
+            <dt>Livraison</dt>
+            <dd>${money(order.shipping_amount)}</dd>
+          </div>` : ''}
+          ${order.discount_amount ? `<div>
+            <dt>Code promo${order.promo_code ? ` ${escapeHtml(order.promo_code)}` : ''}</dt>
+            <dd>− ${money(order.discount_amount)}</dd>
+          </div>` : ''}
         </dl>
         <table class="track-items">
           <thead>
@@ -384,18 +449,21 @@
     }
 
     const detailCache = new Map();  // un seul GET /orders/:id par commande
+    let guestTracked = false;
 
     async function fetchOrderDetail(orderId) {
       if (detailCache.has(orderId)) {
         return detailCache.get(orderId);
       }
       const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Connectez-vous, ou utilisez le suivi invité (email + n°).');
+      }
       const response = await fetch('/api/v1/payments/orders/' + orderId, {
         headers: { Authorization: 'Bearer ' + token }  // le serveur revérifie l'IDOR
       });
       if (response.status === 401) {
-        window.location.replace('account.html');
-        return null;
+        throw new Error('Session expirée. Reconnectez-vous ou utilisez le suivi invité.');
       }
       if (response.status === 403 || response.status === 404) {
         throw new Error('Cette commande n’est pas accessible.');  // pas de fuite sur l'existence d'une commande d'autrui
@@ -454,14 +522,18 @@
       const body = document.getElementById('orders-list');
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        window.location.replace('account.html');  // suivi réservé au compte connecté
+        if (!guestTracked) {
+          body.innerHTML = '<p class="track-empty">Aucune commande affichée. Connectez-vous, ou renseignez le formulaire ci-dessus.</p>';
+        }
         return;
       }
       const response = await fetch('/api/v1/payments/my-orders', {
         headers: { Authorization: 'Bearer ' + token }
       });
       if (response.status === 401) {
-        window.location.replace('account.html');
+        if (!guestTracked) {
+          body.innerHTML = '<p class="track-empty">Session expirée. Utilisez le suivi invité ou reconnectez-vous.</p>';
+        }
         return;
       }
       if (!response.ok) {
@@ -474,7 +546,22 @@
         body.innerHTML = '<p class="track-empty">Aucune commande pour le moment. <a href="shop.html">Commander un bouquet</a></p>';
         return;
       }
-      body.innerHTML = orders.map(renderOrder).join('');
+      renderOrdersList(orders);
+      const match = /^#order-(\d+)$/.exec(location.hash || '');
+      if (match) {
+        const card = document.getElementById('order-' + match[1]);
+        if (card) {
+          await openOrder(card, Number(match[1]), false);
+          card.scrollIntoView({ block: 'start' });
+        }
+      }
+    }
+
+    function bindOrderList(body) {
+      if (body.dataset.bound === '1') {
+        return;
+      }
+      body.dataset.bound = '1';
       body.addEventListener('click', async (event) => {
         const button = event.target.closest('[data-open-order]');
         if (!button || !body.contains(button)) {
@@ -496,17 +583,71 @@
         await openOrder(card, orderId, true);
         card.scrollIntoView({ block: 'start' });
       });
-      const match = /^#order-(\d+)$/.exec(location.hash || '');  // deep-link après « Suivre ma commande »
-      if (match) {
-        const card = document.getElementById('order-' + match[1]);
-        if (card) {
-          await openOrder(card, Number(match[1]), false);
-          card.scrollIntoView({ block: 'start' });
-        }
-      }
     }
 
-    document.addEventListener('DOMContentLoaded', loadMyOrders);
+    function renderOrdersList(orders) {
+      const body = document.getElementById('orders-list');
+      body.innerHTML = orders.map(renderOrder).join('');
+      bindOrderList(body);
+    }
+
+    async function trackGuestOrder(email, orderId, persistHash) {
+      const errorBox = document.getElementById('guest-track-error');
+      errorBox.hidden = true;
+      const response = await fetch('/api/v1/payments/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, order_id: orderId })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        errorBox.hidden = false;
+        errorBox.textContent = payload.error || 'Commande introuvable.';
+        return null;
+      }
+      const order = payload.order;
+      guestTracked = true;
+      detailCache.set(Number(order.id), order);
+      renderOrdersList([order]);
+      const card = document.getElementById('order-' + order.id);
+      if (card) {
+        await openOrder(card, Number(order.id), persistHash);
+        card.scrollIntoView({ block: 'start' });
+      }
+      return order;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const form = document.getElementById('guest-track-form');
+      const hashMatch = /^#order-(\d+)$/.exec(location.hash || '');
+      if (hashMatch) {
+        document.getElementById('guest-order').value = hashMatch[1];
+      }
+      try {
+        const remembered = JSON.parse(sessionStorage.getItem('guest_track') || 'null');
+        if (remembered && remembered.email) {
+          document.getElementById('guest-email').value = remembered.email;
+          if (remembered.order_id) {
+            document.getElementById('guest-order').value = remembered.order_id;
+          }
+        }
+      } catch (e) {}
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await trackGuestOrder(
+          document.getElementById('guest-email').value.trim(),
+          document.getElementById('guest-order').value.trim(),
+          true
+        );
+      });
+      await loadMyOrders();
+      if (!localStorage.getItem('auth_token') && hashMatch) {
+        const email = document.getElementById('guest-email').value.trim();
+        if (email) {
+          await trackGuestOrder(email, hashMatch[1], false);
+        }
+      }
+    });
   </script>
 </body>
 </html>

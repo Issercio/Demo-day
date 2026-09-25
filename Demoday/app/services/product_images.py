@@ -51,7 +51,7 @@ def payload_from_request():
     if 'multipart/form-data' in content_type or request.files:
         form = request.form
         data = {}
-        for key in ('name', 'price', 'category_id', 'color', 'hex_color', 'stock_qty'):
+        for key in ('name', 'price', 'category_id', 'color', 'hex_color', 'stock_qty', 'description'):
             if key in form:
                 data[key] = form.get(key)
         if 'color' not in data and 'hex_color' in data:

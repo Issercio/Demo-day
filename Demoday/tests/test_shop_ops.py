@@ -102,7 +102,7 @@ class ShopOpsTestCase(unittest.TestCase):
             'card_expiry': '12/34',
             'card_cvc': '123',
             'fulfillment_type': 'retrait',
-            'fulfillment_date': date.today().isoformat(),
+            'fulfillment_date': (date.today() if date.today().weekday() != 6 else date.today() + timedelta(days=1)).isoformat(),
             'fulfillment_slot': 'matin',
         }, headers=headers)
         self.assertEqual(paid.status_code, 201, paid.get_json())
@@ -146,6 +146,8 @@ class ShopOpsTestCase(unittest.TestCase):
         html = self.client.get('/admin.html').get_data(as_text=True)
         self.assertIn('atelier-today', html)
         self.assertIn('contact-inbox', html)
+        self.assertIn('shop-settings', html)
+        self.assertIn('promo-section', html)
         self.assertIn('/static/img/logo.png', html)
         self.assertIn('FloraShop', html)
         self.assertNotIn('Pivoine & Lilas', html.replace('&amp;', '&'))

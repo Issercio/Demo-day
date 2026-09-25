@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: florashop
+      POSTGRES_USER: florashop
+      POSTGRES_PASSWORD: change-me-db-password
+    ports:
+      - "5432:5432"
+    volumes:
+      - florashop-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U florashop -d florashop"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql://florashop:change-me-db-password@db:5432/florashop
+      SECRET_KEY: change-me-to-a-long-random-string-min-32-chars
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  florashop-pg:

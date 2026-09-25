@@ -92,7 +92,11 @@ def update_contact(contact_id):
         return denied
     data = request.get_json(silent=True) or {}
     try:
-        row = patch_contact(contact_id, data.get('status'))
+        row = patch_contact(
+            contact_id,
+            status=data.get('status'),
+            reply_text=data.get('reply') if 'reply' in data else data.get('reply_text'),
+        )
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
     except KeyError:
@@ -106,3 +110,85 @@ def atelier_today():
     if denied:
         return denied
     return jsonify(today_dashboard())
+
+
+@ops_bp.route('/settings', methods=['GET'])
+def get_settings_route():
+    from app.services.shop_commerce import public_settings
+    return jsonify(public_settings())
+
+
+@ops_bp.route('/settings', methods=['PUT'])
+def put_settings_route():
+    denied = admin_required_response()
+    if denied:
+        return denied
+    from app.services.shop_commerce import update_settings
+    try:
+        row = update_settings(request.get_json(silent=True) or {})
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    return jsonify(row.to_public_dict())
+
+
+@ops_bp.route('/shipping', methods=['GET'])
+def shipping_quote_route():
+    from app.services.shop_commerce import quote_shipping
+    ftype = (request.args.get('type') or '').strip().lower()
+    address = request.args.get('address') or ''
+    try:
+        fee = quote_shipping(ftype, address)
+    except ValueError as exc:
+        return jsonify({'error': str(exc), 'shipping': None}), 400
+    return jsonify({'shipping': float(fee)})
+
+
+@ops_bp.route('/promo/quote', methods=['GET'])
+def quote_promo_route():
+    from app.services.shop_commerce import apply_promo
+    code = request.args.get('code') or ''
+    subtotal = request.args.get('subtotal') or '0'
+    try:
+        row, discount = apply_promo(code, subtotal)
+    except ValueError as exc:
+        return jsonify({'error': str(exc), 'discount': 0}), 400
+    return jsonify({
+        'discount': float(discount),
+        'code': row.code if row else None,
+    })
+
+
+@ops_bp.route('/promos', methods=['GET'])
+def list_promos_route():
+    denied = admin_required_response()
+    if denied:
+        return denied
+    from app.services.shop_commerce import list_promos
+    return jsonify({'promos': list_promos()})
+
+
+@ops_bp.route('/promos', methods=['POST'])
+def create_promo_route():
+    denied = admin_required_response()
+    if denied:
+        return denied
+    from app.services.shop_commerce import create_promo
+    try:
+        row = create_promo(request.get_json(silent=True) or {})
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    return jsonify({'promo': row.to_dict()}), 201
+
+
+@ops_bp.route('/promos/<int:promo_id>', methods=['PATCH'])
+def patch_promo_route(promo_id):
+    denied = admin_required_response()
+    if denied:
+        return denied
+    from app.services.shop_commerce import set_promo_active
+    data = request.get_json(silent=True) or {}
+    try:
+        row = set_promo_active(promo_id, data.get('active'))
+    except KeyError:
+        return jsonify({'error': 'Code introuvable'}), 404
+    return jsonify({'promo': row.to_dict()})

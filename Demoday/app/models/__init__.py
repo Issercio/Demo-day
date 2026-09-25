@@ -4,6 +4,7 @@ from .order import Order, OrderItem
 from .shop_theme import ShopTheme, ShopVitrine, ThemeProduct
 from .contact import ContactRequest
 from .cart import Cart
+from .settings import ShopSettings, PromoCode
 from app.extensions import db
 
 # Définition du modèle Product directement dans __init__.py
@@ -18,6 +19,7 @@ class Product(db.Model):
     color = db.Column(db.String(7), nullable=True)  # hex #rrggbb pour le filtre boutique
     image = db.Column(db.String(255), nullable=True)  # chemin /static/img/products/...
     stock_qty = db.Column(db.Integer, nullable=False, default=12)
+    description = db.Column(db.Text, nullable=True)
 
     category = db.relationship('Category', back_populates='products')
     theme_links = db.relationship('ThemeProduct', back_populates='product', cascade='all, delete-orphan')
@@ -39,6 +41,7 @@ class Product(db.Model):
             'image': str(self.image) if self.image else None,
             'stock_qty': qty,
             'stock_status': stock_status(qty),
+            'description': str(self.description).strip() if self.description else None,
             'category': {
                 'id': int(category.id),
                 'name': str(category.name)

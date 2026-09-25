@@ -15,14 +15,17 @@ Boutique florale en ligne : le client choisit un bouquet, paie, et suit sa comma
 - Acompte 30 % ou règlement intégral
 - Date de retrait ou de livraison au paiement
 - Abonnements mensuel, semestriel et annuel
-- Suivi de commande et facture
-- Formulaire Contact : le message arrive dans l’inbox du fleuriste
+- Suivi de commande (compte, ou invité avec email + n°) et facture
+- Formulaire Contact : le message arrive dans l’inbox du fleuriste, qui peut répondre
+- Livraison en Île-de-France (tarif et départements réglables) ou retrait atelier
+- Code promo au paiement
 
 **Côté fleuriste**
 - Catalogue : créer, modifier, supprimer, photo produit, stock
 - Vitrine du shop : une saison, un thème, ou les deux
 - Tableau du jour : à préparer, stock bas / rupture, prochains retraits
-- Demandes contact : nouveau → lu → traité
+- Demandes contact : nouveau → lu → traité, réponse au client
+- Identité boutique, zones de livraison, jours fermés, codes promo
 - Commandes : statut de paiement, préparation (`À préparer` → `Remise`), facture imprimable
 - Accès admin réservé : un client ne peut pas ouvrir le back-office
 
@@ -78,12 +81,13 @@ Les totaux viennent de la base, jamais du navigateur. Les numéros de carte ne s
 
 Le dépôt n’expose pas d’URL publique tant qu’un hébergeur n’est pas connecté. Deux chemins prêts :
 
-**Docker**
+**Docker Compose** (Postgres + gunicorn)
 
 ```bash
-docker build -t florashop .
-docker run -p 5000:5000 florashop
+docker compose up --build
 ```
+
+Le shop écoute sur [http://localhost:5000](http://localhost:5000). Le mot de passe Postgres d’exemple est dans `docker-compose.yml` : à changer hors démo.
 
 **Render** — le fichier `render.yaml` décrit le service. Relier le dépôt GitHub à Render, déployer, et l’URL Render devient l’adresse du shop. Poser `SECRET_KEY` (générée) et éventuellement les clés Stripe.
 
@@ -102,7 +106,7 @@ Le navigateur affiche les pages et appelle `/api/v1`. La vitrine lue par le shop
 
 ## Tests
 
-La suite reste dans `Demoday/tests/` (`test_accounts.py`, `test_admin_guard.py`, `test_checkout.py`, `test_shop_ops.py`).
+La suite reste dans `Demoday/tests/` (`test_accounts.py`, `test_admin_guard.py`, `test_checkout.py`, `test_shop_ops.py`, `test_shop_commerce.py`).
 
 ```bash
 ./run-tests.sh
@@ -122,7 +126,11 @@ Documentation interactive : [http://localhost:5000/api/v1](http://localhost:5000
 | POST | `/api/v1/contact` | public |
 | GET / PATCH | `/api/v1/contact` | fleuriste |
 | GET | `/api/v1/atelier/today` | fleuriste |
+| GET / PUT | `/api/v1/settings` | public / fleuriste |
+| GET | `/api/v1/shipping` · `/promo/quote` | public |
+| GET / POST / PATCH | `/api/v1/promos` | fleuriste |
 | POST | `/api/v1/payments/checkout` | public ou JWT |
+| POST | `/api/v1/payments/track` | public (email + n°) |
 | GET | `/api/v1/payments/my-orders` | client |
 | GET / PATCH | `/api/v1/payments/orders` | fleuriste |
 | POST / PUT / DELETE | `/api/v1/products` · `/themes` · `/categories` | fleuriste |

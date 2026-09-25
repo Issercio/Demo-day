@@ -331,6 +331,7 @@ def _persist_order(
     email, name, user_id, total, method, status, card_last4, reference, stripe_id, lines,
     prep_status=None, deposit_amount=None, phone=None, address=None,
     fulfillment_type=None, fulfillment_date=None, fulfillment_slot=None,
+    shipping_amount=None, discount_amount=None, promo_code=None,
 ):
     order = Order(
         user_id=user_id,
@@ -349,6 +350,9 @@ def _persist_order(
         fulfillment_type=fulfillment_type,
         fulfillment_date=fulfillment_date,
         fulfillment_slot=fulfillment_slot,
+        shipping_amount=shipping_amount,
+        discount_amount=discount_amount,
+        promo_code=promo_code,
     )
     db.session.add(order)
     db.session.flush()
@@ -370,6 +374,10 @@ def checkout(data, user_id=None):
     method = (data.get('payment_method') or 'card').lower()
     phone, address = _guest_contact(data, user_id)
     ftype, fdate, fslot = parse_fulfillment(data)
+    from app.services.shop_commerce import assert_open_day, quote_shipping, apply_promo, bump_promo, notify_order
+    assert_open_day(fdate)
+    if ftype == 'livraison' and not address:
+        raise ValueError('Pour une livraison, indiquez une adresse avec le code postal.')
 
     if not email or '@' not in email:
         raise ValueError('Email invalide.')
@@ -388,6 +396,11 @@ def checkout(data, user_id=None):
         token = guest_token_from(request.headers.get('X-Cart-Token'))
         items = load_cart_items(user_id=user_id, token=None if user_id else token)
     lines, total = build_order_lines(items)
+    shipping = quote_shipping(ftype, address)
+    promo_row, discount = apply_promo(data.get('promo_code') or data.get('promo'), total)
+    payable = total + shipping - discount
+    if payable < Decimal('0.00'):
+        payable = Decimal('0.00')
     card_last4 = None
     reference = f'{method.upper()}-{uuid.uuid4().hex[:10].upper()}'
     stripe_id = None
@@ -415,27 +428,37 @@ def checkout(data, user_id=None):
             reference = f'PAYPAL-{uuid.uuid4().hex[:10].upper()}'
     except PaymentDeclined as error:
         order = _persist_order(
-            email, name, user_id, total, method, 'failed',
+            email, name, user_id, payable, method, 'failed',
             None, f'FAIL-{uuid.uuid4().hex[:10].upper()}', None, lines,
             prep_status=None, deposit_amount=None,  # refus : pas d'atelier
             phone=phone, address=address,
+            fulfillment_type=ftype, fulfillment_date=fdate, fulfillment_slot=fslot,
+            shipping_amount=shipping, discount_amount=discount,
+            promo_code=promo_row.code if promo_row else None,
         )
         raise PaymentDeclined(str(error), order=order) from error
 
     # Stripe encaisse le total : on n'enregistre un acompte que sur le processeur de test.
     if want_deposit and not stripe_id:
         status = 'deposit'
-        deposit_amount = deposit_of(total)
+        deposit_amount = deposit_of(payable)
 
     consume_stock(lines)
+    bump_promo(promo_row)
     order = _persist_order(
-        email, name, user_id, total, method, status,
+        email, name, user_id, payable, method, status,
         card_last4, reference, stripe_id, lines,
         prep_status=prep_status, deposit_amount=deposit_amount,
         phone=phone, address=address,
         fulfillment_type=ftype, fulfillment_date=fdate, fulfillment_slot=fslot,
+        shipping_amount=shipping, discount_amount=discount,
+        promo_code=promo_row.code if promo_row else None,
     )
     from flask import request
     from app.services.shop_ops import clear_cart, guest_token_from
     clear_cart(user_id=user_id, token=guest_token_from(request.headers.get('X-Cart-Token')))
+    try:
+        notify_order(order)
+    except Exception:
+        current_app.logger.exception('Mail commande ignoré')
     return order

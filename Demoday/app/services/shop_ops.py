@@ -278,6 +278,11 @@ def create_contact(data):
     row = ContactRequest(name=name[:120], email=email[:120], message=message, status='nouveau')
     db.session.add(row)
     db.session.commit()
+    try:
+        from app.services.shop_commerce import notify_contact
+        notify_contact(row)
+    except Exception:
+        pass
     return row
 
 
@@ -286,14 +291,31 @@ def list_contacts():
     return [row.to_dict() for row in rows]
 
 
-def patch_contact(contact_id, status):
-    if status not in CONTACT_STATUSES:
-        raise ValueError('Statut invalide.')
+def patch_contact(contact_id, status=None, reply_text=None):
     row = db.session.get(ContactRequest, contact_id)
     if row is None:
         raise KeyError('Demande introuvable')
-    row.status = status
+    if status:
+        if status not in CONTACT_STATUSES:
+            raise ValueError('Statut invalide.')
+        row.status = status
+    if reply_text is not None:
+        text = str(reply_text).strip()
+        if len(text) < 4:
+            raise ValueError('La réponse est trop courte.')
+        if len(text) > 2000:
+            raise ValueError('La réponse est trop longue.')
+        row.reply_text = text
+        row.status = 'traite'
+    if not status and reply_text is None:
+        raise ValueError('Statut invalide.')
     db.session.commit()
+    if reply_text is not None:
+        try:
+            from app.services.shop_commerce import notify_contact_reply
+            notify_contact_reply(row)
+        except Exception:
+            pass
     return row
 
 

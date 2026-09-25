@@ -43,6 +43,9 @@ class Order(db.Model):
     fulfillment_type = db.Column(db.String(20), nullable=True)
     fulfillment_date = db.Column(db.Date, nullable=True)
     fulfillment_slot = db.Column(db.String(20), nullable=True)
+    shipping_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    discount_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    promo_code = db.Column(db.String(40), nullable=True)
     created_at = db.Column(db.DateTime, default=utc_now)
     
     # Relations
@@ -88,6 +91,9 @@ class Order(db.Model):
             'fulfillment_type': self.fulfillment_type,
             'fulfillment_date': self.fulfillment_date.isoformat() if self.fulfillment_date else None,
             'fulfillment_slot': self.fulfillment_slot,
+            'shipping_amount': float(self.shipping_amount) if self.shipping_amount is not None else None,
+            'discount_amount': float(self.discount_amount) if self.discount_amount is not None else None,
+            'promo_code': self.promo_code,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'items': [item.to_dict() for item in self.order_items]
         }

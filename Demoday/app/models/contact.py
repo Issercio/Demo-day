@@ -12,6 +12,7 @@ class ContactRequest(db.Model):
     email = db.Column(db.String(120), nullable=False)
     message = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(20), nullable=False, default='nouveau')
+    reply_text = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=utc_now)
 
     def to_dict(self):
@@ -21,5 +22,6 @@ class ContactRequest(db.Model):
             'email': self.email,
             'message': self.message,
             'status': self.status,
+            'reply_text': self.reply_text,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }

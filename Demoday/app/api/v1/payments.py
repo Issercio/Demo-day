@@ -310,6 +310,20 @@ def get_my_orders():
     return jsonify({'orders': [_serialize_order(user, order) for order in orders]}), 200
 
 
+@payments_bp.route('/track', methods=['POST'])
+def track_guest_order_route():
+    """Invité : email + n° de commande, sans compte."""
+    data = request.get_json(silent=True) or {}
+    from app.services.shop_commerce import track_guest_order
+    try:
+        order = track_guest_order(data.get('email'), data.get('order_id') or data.get('id'))
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    except KeyError:
+        return jsonify({'error': 'Aucune commande pour cet email et ce numéro.'}), 404
+    return jsonify({'order': order.to_dict(include_stripe=False)})
+
+
 @payments_bp.route('/orders', methods=['GET'])
 def get_orders():
     """

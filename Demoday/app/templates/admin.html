@@ -803,11 +803,48 @@
             padding: 10px 18px;
         }
 
+        .form-group textarea {
+            width: 100%;
+            max-width: 100%;
+            min-height: 72px;
+            padding: 8px 12px;
+            border: 1.5px solid #bc6288;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+        }
+        .product-desc-field { grid-column: 1 / -1; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 16px;
+        }
+        .settings-grid .form-group input,
+        .settings-grid .form-group textarea { max-width: none; }
+        .closed-days {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            color: #5a3d48;
+        }
+        .closed-days label { display: flex; gap: 6px; align-items: center; font-weight: 500; }
+        .promo-list { display: grid; gap: 8px; }
+        .promo-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 14px;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #e7d6d6;
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+        .contact-card textarea { width: 100%; margin-top: 8px; min-height: 64px; }
         @media (max-width: 720px) {
+            .settings-grid,
             .theme-create-fields,
-            .theme-product-picker {
-                grid-template-columns: 1fr;
-            }
+            .theme-product-picker { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -986,6 +1023,10 @@
                     <span class="product-image-hint">JPG, PNG, WEBP ou GIF — 4 Mo max</span>
                     <img id="product-image-preview" class="product-image-preview" alt="Aperçu">
                 </div>
+                <div class="form-group product-desc-field">
+                    <label for="product-description">Description :</label>
+                    <textarea id="product-description" maxlength="800" placeholder="Composition, saison, occasion…"></textarea>
+                </div>
                 <div class="form-group product-create-actions">
                     <button id="create-product-btn" class="btn">Créer Produit</button>
                 </div>
@@ -1012,6 +1053,85 @@
             </table>
         </div>
 
+        </div>
+
+        <div class="admin-section" id="shop-settings">
+            <h2>Identité et livraison</h2>
+            <p class="admin-vitrine-lead">Nom, adresse, SIREN (si vous en avez un), tarif et départements livrés, jours de fermeture. Ces infos apparaissent sur les CGV et le paiement.</p>
+            <form id="settings-form">
+                <div class="settings-grid">
+                    <div class="form-group">
+                        <label for="setting-legal-name">Nom de la boutique</label>
+                        <input type="text" id="setting-legal-name" maxlength="120" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-email">Email atelier</label>
+                        <input type="email" id="setting-email">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-phone">Téléphone</label>
+                        <input type="text" id="setting-phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-siren">SIREN (optionnel)</label>
+                        <input type="text" id="setting-siren" maxlength="20" placeholder="À renseigner par l’exploitant">
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1;">
+                        <label for="setting-address">Adresse / siège</label>
+                        <input type="text" id="setting-address">
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1;">
+                        <label for="setting-pickup">Note de retrait</label>
+                        <input type="text" id="setting-pickup">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-fee">Tarif livraison (€)</label>
+                        <input type="number" id="setting-fee" min="0" max="200" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-prefixes">Départements livrés</label>
+                        <input type="text" id="setting-prefixes" placeholder="75,77,78,91,92,93,94,95">
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1;">
+                        <label>Jours fermés</label>
+                        <div class="closed-days" id="setting-closed">
+                            <label><input type="checkbox" value="0"> Lundi</label>
+                            <label><input type="checkbox" value="1"> Mardi</label>
+                            <label><input type="checkbox" value="2"> Mercredi</label>
+                            <label><input type="checkbox" value="3"> Jeudi</label>
+                            <label><input type="checkbox" value="4"> Vendredi</label>
+                            <label><input type="checkbox" value="5"> Samedi</label>
+                            <label><input type="checkbox" value="6"> Dimanche</label>
+                        </div>
+                    </div>
+                </div>
+                <p id="mail-status" class="admin-vitrine-lead"></p>
+                <button type="submit" class="btn">Enregistrer</button>
+            </form>
+        </div>
+
+        <div class="admin-section" id="promo-section">
+            <h2>Codes promo</h2>
+            <form id="promo-form" class="settings-grid" style="margin-bottom:16px;">
+                <div class="form-group">
+                    <label for="promo-code">Code</label>
+                    <input type="text" id="promo-code" maxlength="20" placeholder="WELCOME10" required>
+                </div>
+                <div class="form-group">
+                    <label for="promo-percent">% (1–90)</label>
+                    <input type="number" id="promo-percent" min="1" max="90">
+                </div>
+                <div class="form-group">
+                    <label for="promo-amount">ou montant €</label>
+                    <input type="number" id="promo-amount" min="0.01" step="0.01">
+                </div>
+                <div class="form-group" style="align-self:end;">
+                    <button type="submit" class="btn">Créer</button>
+                </div>
+            </form>
+            <div id="promo-list" class="promo-list"><p class="order-empty">Chargement…</p></div>
+        </div>
+
         <div class="admin-section">
             <h2>Demandes contact</h2>
             <p style="margin-bottom: 12px; color: #6c4a58;">Les messages du formulaire Contact arrivent ici.</p>
@@ -1032,7 +1152,7 @@
         let categories = [];
         let products = [];
         let vitrineThemes = [];
-        let themeProductSelection = new Set();
+        let shopIdentity = { legal_name: 'FloraShop', email: 'atelier@florashop.demo', address: '' };
 
         function escapeHtml(value) {
             // Noms / emails / id Stripe du JSON : jamais injectés tels quels.
@@ -1401,6 +1521,8 @@
                 await loadOrders();
                 await loadAtelierToday();
                 await loadContactInbox();
+                await loadShopSettings();
+                await loadPromos();
                 
                 console.log('=== FIN CHARGEMENT ===');
             } catch (error) {
@@ -1465,7 +1587,10 @@
                         <strong>${escapeHtml(row.name)}</strong> · ${escapeHtml(row.email)}
                         <small> · ${escapeHtml((row.created_at || '').replace('T', ' ').slice(0, 16))} · ${escapeHtml(row.status)}</small>
                         <p>${escapeHtml(row.message)}</p>
+                        ${row.reply_text ? `<p><em>Réponse : ${escapeHtml(row.reply_text)}</em></p>` : ''}
+                        <textarea data-contact-reply placeholder="Répondre au client…"></textarea>
                         <menu>
+                            <button type="button" class="btn" data-contact-send="1">Envoyer la réponse</button>
                             <button type="button" class="btn" data-contact-status="lu">Marquer lu</button>
                             <button type="button" class="btn" data-contact-status="traite">Traité</button>
                         </menu>
@@ -1483,8 +1608,170 @@
                         await loadAtelierToday();
                     });
                 });
+                box.querySelectorAll('[data-contact-send]').forEach((button) => {
+                    button.addEventListener('click', async () => {
+                        const card = button.closest('[data-contact-id]');
+                        const reply = (card.querySelector('[data-contact-reply]') || {}).value || '';
+                        const response = await fetch('/api/v1/contact/' + card.getAttribute('data-contact-id'), {
+                            method: 'PATCH',
+                            headers: getAdminHeaders(),
+                            body: JSON.stringify({ reply })
+                        });
+                        const payload = await response.json().catch(() => ({}));
+                        if (!response.ok) {
+                            showNotice(apiErrorMessage(payload, 'Impossible d\'envoyer la réponse'), 'error');
+                            return;
+                        }
+                        showNotice('Réponse enregistrée (envoyée si SMTP est configuré).', 'success');
+                        await loadContactInbox();
+                        await loadAtelierToday();
+                    });
+                });
             } catch (error) {
                 box.innerHTML = '<p class="order-empty">Erreur de chargement.</p>';
+            }
+        }
+
+        async function loadShopSettings() {
+            try {
+                const response = await fetch('/api/v1/settings');
+                if (!response.ok) {
+                    return;
+                }
+                const settings = await response.json();
+                shopIdentity = settings;
+                const setVal = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.value = value || '';
+                    }
+                };
+                setVal('setting-legal-name', settings.legal_name);
+                setVal('setting-email', settings.email);
+                setVal('setting-phone', settings.phone);
+                setVal('setting-siren', settings.siren);
+                setVal('setting-address', settings.address);
+                setVal('setting-pickup', settings.pickup_note);
+                setVal('setting-fee', settings.delivery_fee);
+                setVal('setting-prefixes', settings.delivery_prefixes);
+                const closed = new Set(String(settings.closed_weekdays || '').split(',').map((p) => p.trim()));
+                document.querySelectorAll('#setting-closed input[type="checkbox"]').forEach((box) => {
+                    box.checked = closed.has(box.value);
+                });
+                const mail = document.getElementById('mail-status');
+                if (mail) {
+                    mail.textContent = settings.mail_configured
+                        ? 'SMTP configuré : les commandes et réponses contact partent par email.'
+                        : 'Pas de MAIL_SERVER : les emails sont journalisés, le paiement n’est pas bloqué.';
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function saveShopSettings(event) {
+            event.preventDefault();
+            const closed = Array.from(document.querySelectorAll('#setting-closed input:checked'))
+                .map((box) => box.value)
+                .join(',');
+            try {
+                const response = await fetch('/api/v1/settings', {
+                    method: 'PUT',
+                    headers: getAdminHeaders(),
+                    body: JSON.stringify({
+                        legal_name: document.getElementById('setting-legal-name').value,
+                        email: document.getElementById('setting-email').value,
+                        phone: document.getElementById('setting-phone').value,
+                        siren: document.getElementById('setting-siren').value,
+                        address: document.getElementById('setting-address').value,
+                        pickup_note: document.getElementById('setting-pickup').value,
+                        delivery_fee: document.getElementById('setting-fee').value,
+                        delivery_prefixes: document.getElementById('setting-prefixes').value,
+                        closed_weekdays: closed
+                    })
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (sessionBlocked(response)) {
+                    return;
+                }
+                if (!response.ok) {
+                    showNotice(apiErrorMessage(payload, 'Impossible d\'enregistrer'), 'error');
+                    return;
+                }
+                shopIdentity = payload;
+                showNotice('Identité boutique enregistrée.', 'success');
+                await loadShopSettings();
+                await loadOrders();
+            } catch (error) {
+                showNotice('Erreur de communication: ' + error.message, 'error');
+            }
+        }
+
+        async function loadPromos() {
+            const box = document.getElementById('promo-list');
+            if (!box) {
+                return;
+            }
+            try {
+                const response = await fetch('/api/v1/promos', { headers: getAdminHeaders() });
+                if (!response.ok) {
+                    box.innerHTML = '<p class="order-empty">Impossible de charger les codes.</p>';
+                    return;
+                }
+                const rows = (await response.json()).promos || [];
+                if (!rows.length) {
+                    box.innerHTML = '<p class="order-empty">Aucun code promo pour le moment.</p>';
+                    return;
+                }
+                box.innerHTML = rows.map((row) => {
+                    const value = row.percent ? row.percent + ' %' : (row.amount != null ? Number(row.amount).toFixed(2) + ' €' : '');
+                    return `<div class="promo-row">
+                        <strong>${escapeHtml(row.code)}</strong>
+                        <span>${escapeHtml(value)}</span>
+                        <span>${row.active ? 'actif' : 'désactivé'} · ${row.uses_count} usage(s)</span>
+                        <button type="button" class="btn" data-promo-id="${row.id}" data-promo-active="${row.active ? '0' : '1'}">${row.active ? 'Désactiver' : 'Réactiver'}</button>
+                    </div>`;
+                }).join('');
+                box.querySelectorAll('[data-promo-id]').forEach((button) => {
+                    button.addEventListener('click', async () => {
+                        await fetch('/api/v1/promos/' + button.getAttribute('data-promo-id'), {
+                            method: 'PATCH',
+                            headers: getAdminHeaders(),
+                            body: JSON.stringify({ active: button.getAttribute('data-promo-active') === '1' })
+                        });
+                        await loadPromos();
+                    });
+                });
+            } catch (error) {
+                box.innerHTML = '<p class="order-empty">Erreur de chargement.</p>';
+            }
+        }
+
+        async function createPromoCode(event) {
+            event.preventDefault();
+            try {
+                const response = await fetch('/api/v1/promos', {
+                    method: 'POST',
+                    headers: getAdminHeaders(),
+                    body: JSON.stringify({
+                        code: document.getElementById('promo-code').value,
+                        percent: document.getElementById('promo-percent').value,
+                        amount: document.getElementById('promo-amount').value
+                    })
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (sessionBlocked(response)) {
+                    return;
+                }
+                if (!response.ok) {
+                    showNotice(apiErrorMessage(payload, 'Impossible de créer le code'), 'error');
+                    return;
+                }
+                document.getElementById('promo-form').reset();
+                showNotice('Code promo créé.', 'success');
+                await loadPromos();
+            } catch (error) {
+                showNotice('Erreur de communication: ' + error.message, 'error');
             }
         }
 
@@ -1662,15 +1949,27 @@
                 ? `<tr><th>Acompte versé</th><td>${formatOrderMoney(order.deposit_amount)}</td></tr>
                    <tr><th>Reste dû</th><td>${formatOrderMoney(order.remaining_amount)}</td></tr>`
                 : '';
-            // Ne jamais imprimer un id Stripe pi_… : la facture n'est pas le back-office.
+            const shopName = escapeHtml(shopIdentity.legal_name || 'FloraShop');
+            const shopBits = [
+                shopIdentity.address || 'Boutique florale en ligne',
+                shopIdentity.email || '',
+                shopIdentity.phone || '',
+                shopIdentity.siren ? 'SIREN ' + shopIdentity.siren : '',
+            ].filter(Boolean);
+            const shippingRow = order.shipping_amount
+                ? `<tr><th>Livraison</th><td>${formatOrderMoney(order.shipping_amount)}</td></tr>`
+                : '';
+            const discountRow = order.discount_amount
+                ? `<tr><th>Promo ${escapeHtml(order.promo_code || '')}</th><td>− ${formatOrderMoney(order.discount_amount)}</td></tr>`
+                : '';
             const rawRef = String(order.payment_reference || '');
             const printRef = !rawRef || rawRef.indexOf('pi_') === 0 ? '—' : rawRef;
             return `
                 <div class="order-invoice">
                     <div class="invoice-head">
                         <div class="invoice-shop">
-                            <strong>FloraShop</strong>
-                            <small>Boutique florale en ligne<br>atelier@florashop.demo</small>
+                            <strong>${shopName}</strong>
+                            <small>${shopBits.map((line) => escapeHtml(line)).join('<br>') || 'Boutique florale en ligne'}</small>
                         </div>
                         <div class="invoice-title">
                             <em>Facture</em>
@@ -1685,7 +1984,7 @@
                     <dl class="invoice-parties">
                         <div>
                             <dt>Émetteur</dt>
-                            <dd>FloraShop<br>Boutique florale en ligne</dd>
+                            <dd>${shopName}<br>${shopBits.map((line) => escapeHtml(line)).join('<br>') || 'Boutique florale en ligne'}</dd>
                         </div>
                         <div>
                             <dt>Client</dt>
@@ -1711,6 +2010,8 @@
                     </table>
                     </div>
                     <table class="invoice-totals">
+                        ${shippingRow}
+                        ${discountRow}
                         ${depositRows}
                         <tr class="is-grand"><th>Total TTC</th><td>${formatOrderMoney(order.total_amount)}</td></tr>
                     </table>
@@ -1719,7 +2020,7 @@
                         · Réf. ${escapeHtml(printRef)}
                     </p>
                     <p class="invoice-legal">
-                        Facture émise par FloraShop. Prix TTC.
+                        Facture émise par ${shopName}. Prix TTC.
                     </p>
                 </div>
             `;
@@ -1901,6 +2202,10 @@
             document.getElementById('product-category').value = '';
             document.getElementById('product-color').value = '';
             document.getElementById('product-image').value = '';
+            const desc = document.getElementById('product-description');
+            if (desc) {
+                desc.value = '';
+            }
             const preview = document.getElementById('product-image-preview');
             preview.removeAttribute('src');
             preview.style.display = 'none';
@@ -1916,6 +2221,7 @@
             const stock = document.getElementById('product-stock').value;
             const categoryId = document.getElementById('product-category').value;
             const color = document.getElementById('product-color').value;
+            const description = (document.getElementById('product-description') || {}).value || '';
             const imageInput = document.getElementById('product-image');
             const imageFile = imageInput && imageInput.files && imageInput.files[0];
 
@@ -1934,6 +2240,9 @@
                 }
                 if (color) {
                     formData.append('color', color);
+                }
+                if (description.trim()) {
+                    formData.append('description', description.trim());
                 }
                 if (imageFile) {
                     formData.append('image', imageFile, imageFile.name);
@@ -2025,6 +2334,8 @@
                     <td>
                         <span class="product-name">${escapeHtml(prod.name)}</span>
                         <input type="text" class="edit-input product-name-edit" value="${escapeHtml(prod.name)}" style="display:none;">
+                        <small class="product-desc-preview" style="display:block;color:#7a5a66;font-size:0.82rem;">${escapeHtml((prod.description || '').slice(0, 80))}</small>
+                        <textarea class="edit-input product-desc-edit" style="display:none;" maxlength="800">${escapeHtml(prod.description || '')}</textarea>
                     </td>
                     <td>
                         <span class="product-price">${prod.price}€</span>
@@ -2139,6 +2450,14 @@
             const row = document.querySelector(`tr[data-product-id="${id}"]`);
             row.querySelector('.product-name').style.display = 'none';
             row.querySelector('.product-name-edit').style.display = 'block';
+            const descPreview = row.querySelector('.product-desc-preview');
+            const descEdit = row.querySelector('.product-desc-edit');
+            if (descPreview) {
+                descPreview.style.display = 'none';
+            }
+            if (descEdit) {
+                descEdit.style.display = 'block';
+            }
             row.querySelector('.product-price').style.display = 'none';
             row.querySelector('.product-price-edit').style.display = 'block';
             row.querySelector('.product-category').style.display = 'none';
@@ -2158,6 +2477,7 @@
             const newPrice = row.querySelector('.product-price-edit').value;
             const newCategoryId = row.querySelector('.product-category-edit').value;
             const newStock = row.querySelector('.product-stock-edit').value;
+            const newDesc = (row.querySelector('.product-desc-edit') || {}).value || '';
             const imageInput = row.querySelector('.product-image-edit');
             const imageFile = imageInput && imageInput.files && imageInput.files[0];
             
@@ -2167,6 +2487,7 @@
                 formData.append('price', newPrice);
                 formData.append('category_id', newCategoryId);
                 formData.append('stock_qty', newStock);
+                formData.append('description', newDesc);
                 if (imageFile) {
                     formData.append('image', imageFile, imageFile.name);
                 }
@@ -2223,6 +2544,14 @@
             const row = document.querySelector(`tr[data-product-id="${id}"]`);
             row.querySelector('.product-name').style.display = 'block';
             row.querySelector('.product-name-edit').style.display = 'none';
+            const descPreview = row.querySelector('.product-desc-preview');
+            const descEdit = row.querySelector('.product-desc-edit');
+            if (descPreview) {
+                descPreview.style.display = 'block';
+            }
+            if (descEdit) {
+                descEdit.style.display = 'none';
+            }
             row.querySelector('.product-price').style.display = 'block';
             row.querySelector('.product-price-edit').style.display = 'none';
             row.querySelector('.product-category').style.display = 'block';
@@ -2247,6 +2576,14 @@
             setupProductImagePreview();
             setupAdminVitrine();
             loadData();
+            const settingsForm = document.getElementById('settings-form');
+            if (settingsForm) {
+                settingsForm.addEventListener('submit', saveShopSettings);
+            }
+            const promoForm = document.getElementById('promo-form');
+            if (promoForm) {
+                promoForm.addEventListener('submit', createPromoCode);
+            }
 
             // Bouton créer catégorie
             document.getElementById('create-category-btn').addEventListener('click', function(e) {
