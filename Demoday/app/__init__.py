@@ -84,6 +84,7 @@ def create_app():
         STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', ''),
         MAX_CONTENT_LENGTH = 4 * 1024 * 1024,  # photos produits : 4 Mo max
         PREFERRED_URL_SCHEME = 'https' if os.environ.get('FORCE_HTTPS', '').lower() in ('1', 'true', 'yes') else 'http',
+        PROPAGATE_EXCEPTIONS = False,
     )
 
     # Initialisation des extensions

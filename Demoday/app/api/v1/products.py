@@ -19,5 +19,5 @@ def get_product(product_id):
                 'name': product.category.name
             }
         })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception:
+        return jsonify({'error': 'Erreur interne du serveur'}), 500

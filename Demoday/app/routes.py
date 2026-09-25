@@ -1,8 +1,9 @@
 from flask import Blueprint, jsonify, request, render_template, abort
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
 from .models import Product, Category, User
 from . import db
-from app.api.v1.auth_utils import admin_required_response, self_or_admin_required_response
+from app.api.v1.auth_utils import admin_required_response, json_internal_error, self_or_admin_required_response
 from app.services.checkout_service import parse_money
 from app.services.demo_accounts import normalize_hex_color
 from app.services.product_images import payload_from_request, save_product_image
@@ -74,39 +75,11 @@ def api_index():
     return jsonify({
         'message': 'API FloraShop v1',
         'endpoints': {
-            'Test POST': {
-                'Test création utilisateur': {
-                    'url': '/api/v1/users',
-                    'method': 'POST',
-                    'body': {
-                        'username': 'string',
-                        'email': 'string',
-                        'password': 'string'
-                    }
-                },
-                'Test création produit': {
-                    'url': '/api/v1/products',
-                    'method': 'POST',
-                    'body': {
-                        'name': 'string',
-                        'price': 'number',
-                        'category_id': 'number'
-                    }
-                },
-                'Test création catégorie': {
-                    'url': '/api/v1/categories',
-                    'method': 'POST',
-                    'body': {
-                        'name': 'string'
-                    }
-                }
-            },
-            'Test GET': {
-                'Test récupération utilisateur par ID': '/api/v1/users/1',
-                'Test récupération produit par ID': '/api/v1/products/1',
-                'Test récupération catégorie par ID': '/api/v1/categories/1',
-                'Test récupération de tous les utilisateurs': '/api/v1/users'
-            }
+            'Catalogue': '/api/v1/products · /api/v1/categories · /api/v1/themes',
+            'Auth': '/api/v1/auth/login · /register · /verify',
+            'Panier': '/api/v1/cart',
+            'Paiement': '/api/v1/payments/checkout',
+            'Contact': '/api/v1/contact',
         }
     })
 
@@ -161,8 +134,10 @@ def get_product(product_id):
         if category and not payload.get('category'):
             payload['category'] = {'id': category.id, 'name': category.name}
         return jsonify(payload)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except HTTPException:
+        raise
+    except Exception:
+        return json_internal_error()
 
 # Route GET spécifique pour une catégorie
 @api_bp.route('/categories/<int:category_id>', methods=['GET'])
@@ -221,7 +196,7 @@ def users():
             }), 201
         except Exception as e:
             db.session.rollback()
-            return jsonify({'error': str(e)}), 500
+            return json_internal_error()
 
     denied = admin_required_response()  # liste emails / rôles : fleuriste only
     if denied:
@@ -230,7 +205,7 @@ def users():
         users = User.query.all()
         return jsonify([user.to_dict() for user in users])
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return json_internal_error()
 
 # Routes pour les catégories - CORRECTION MAJEURE
 @api_bp.route('/categories', methods=['GET', 'POST'])
@@ -241,8 +216,6 @@ def categories():
             return denied
         try:
             data = request.get_json()
-            print(f"=== CREATION CATEGORIE ===")
-            print(f"Données reçues: {data}")
             
             if not data or not data.get('name'):
                 return jsonify({'error': 'Le nom de la catégorie est requis'}), 400
@@ -256,7 +229,6 @@ def categories():
             db.session.add(category)
             db.session.flush()  # IMPORTANT: flush pour obtenir l'ID
             
-            print(f"Catégorie créée avec ID: {category.id}")
             
             # VERIFICATION CRITIQUE de l'ID
             if category.id is None:
@@ -273,39 +245,32 @@ def categories():
                     'name': str(category.name)
                 }
             }
-            print(f"Retour API: {result}")
             return jsonify(result), 201
             
         except Exception as e:
-            print(f"Erreur création catégorie: {str(e)}")
             db.session.rollback()
-            return jsonify({'error': str(e)}), 500
+            return json_internal_error()
     
     # GET - Liste des catégories avec VALIDATION STRICTE
     try:
-        print(f"=== GET CATEGORIES ===")
         categories = Category.query.all()
         result = []
         
         for c in categories:
             # VALIDATION CRITIQUE de chaque catégorie
             if c.id is None:
-                print(f"ERREUR: Catégorie '{c.name}' sans ID détectée!")
                 continue  # Skip cette catégorie corrompue
                 
             category_dict = {
                 'id': int(c.id),
                 'name': str(c.name)
             }
-            print(f"Catégorie valide: {category_dict}")
             result.append(category_dict)
         
-        print(f"Résultat final: {result}")
         return jsonify(result)
         
     except Exception as e:
-        print(f"Erreur récupération catégories: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return json_internal_error()
 
 # Route PUT pour catégorie - AVEC VALIDATION
 @api_bp.route('/categories/<int:category_id>', methods=['PUT'])
@@ -314,27 +279,22 @@ def update_category(category_id):
     if denied:
         return denied
     try:
-        print(f"=== MODIFICATION CATEGORIE ===")
-        print(f"ID reçu: {category_id} (type: {type(category_id)})")
         
         # VALIDATION de l'ID en entrée
         if not isinstance(category_id, int) or category_id <= 0:
             return jsonify({'error': 'ID de catégorie invalide'}), 400
         
         data = request.get_json()
-        print(f"Données: {data}")
         
         if not data or not data.get('name'):
             return jsonify({'error': 'Le nom de la catégorie est requis'}), 400
         
         category = db.session.get(Category, category_id)
         if not category:
-            print(f"Catégorie avec ID {category_id} non trouvée")
             return jsonify({'error': 'Catégorie non trouvée'}), 404
         
         # VALIDATION que la catégorie a bien un ID
         if category.id is None:
-            print(f"ERREUR: Catégorie corrompue sans ID!")
             return jsonify({'error': 'Catégorie corrompue'}), 500
         
         # Vérifier unicité du nom
@@ -349,7 +309,6 @@ def update_category(category_id):
         category.name = data['name']
         db.session.commit()
         
-        print(f"Modification réussie: {old_name} -> {category.name}")
         
         return jsonify({
             'message': 'Catégorie mise à jour avec succès',
@@ -360,9 +319,8 @@ def update_category(category_id):
         }), 200
         
     except Exception as e:
-        print(f"Erreur modification catégorie: {str(e)}")
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return json_internal_error()
 
 # Route DELETE pour catégorie - AVEC VALIDATION
 @api_bp.route('/categories/<int:category_id>', methods=['DELETE'])
@@ -371,8 +329,6 @@ def delete_category(category_id):
     if denied:
         return denied
     try:
-        print(f"=== SUPPRESSION CATEGORIE ===")
-        print(f"ID reçu: {category_id} (type: {type(category_id)})")
         
         # VALIDATION de l'ID en entrée
         if not isinstance(category_id, int) or category_id <= 0:
@@ -380,34 +336,28 @@ def delete_category(category_id):
         
         category = db.session.get(Category, category_id)
         if not category:
-            print(f"Catégorie avec ID {category_id} non trouvée")
             return jsonify({'error': 'Catégorie non trouvée'}), 404
             
         # VALIDATION que la catégorie a bien un ID
         if category.id is None:
-            print(f"ERREUR: Catégorie corrompue sans ID!")
             return jsonify({'error': 'Catégorie corrompue'}), 500
             
-        print(f"Catégorie trouvée: {category.name} (ID: {category.id})")
         
         # Supprimer les produits associés
         products_deleted = Product.query.filter_by(category_id=category_id).delete()
-        print(f"Produits supprimés: {products_deleted}")
         
         # Supprimer la catégorie
         category_name = category.name
         db.session.delete(category)
         db.session.commit()
         
-        print(f"Suppression réussie")
         return jsonify({
             'message': f'Catégorie "{category_name}" et {products_deleted} produits supprimés avec succès'
         }), 200
         
     except Exception as e:
-        print(f"Erreur suppression catégorie: {str(e)}")
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return json_internal_error()
 
 # Routes pour les produits
 @api_bp.route('/products', methods=['GET', 'POST'])
@@ -464,7 +414,7 @@ def products():
             }), 201
         except Exception as e:
             db.session.rollback()
-            return jsonify({'error': str(e)}), 500
+            return json_internal_error()
     
     # GET : catalogue complet. La vitrine se filtre côté boutique via GET /themes.
     # ?theme=printemps,mariage = union optionnelle (admin / Swagger), pas le défaut.
@@ -482,7 +432,7 @@ def products():
                 result.append(p.to_dict())
         return jsonify(result)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return json_internal_error()
 
 # Route PUT pour produit
 @api_bp.route('/products/<int:product_id>', methods=['PUT'])
@@ -491,11 +441,8 @@ def update_product(product_id):
     if denied:
         return denied
     try:
-        print(f"=== MODIFICATION PRODUIT ===")
-        print(f"ID à modifier: {product_id}")
         
         data, image_file = payload_from_request()
-        print(f"Nouvelles données: {data}")
         
         if not data and not image_file:
             return jsonify({'error': 'Données requises'}), 400
@@ -537,16 +484,14 @@ def update_product(product_id):
             
         db.session.commit()
         
-        print(f"Produit modifié avec succès")
         
         return jsonify({
             'message': 'Produit mis à jour avec succès',
             'product': product.to_dict()
         }), 200
     except Exception as e:
-        print(f"Erreur modification produit: {str(e)}")
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return json_internal_error()
 
 # Route DELETE pour produit - SIMPLIFIÉE
 @api_bp.route('/products/<int:product_id>', methods=['DELETE'])
@@ -566,7 +511,7 @@ def delete_product(product_id):
         return jsonify({'message': f'Produit "{product_name}" supprimé avec succès'}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return json_internal_error()
 
 @api_bp.route('/themes', methods=['GET', 'PUT', 'POST'])
 def shop_themes():

@@ -12,6 +12,19 @@ ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
 MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
 
+def _header_matches_extension(header, ext):
+    """Refuse un .png/.jpg qui n’est pas vraiment une image (HTML déguisé)."""
+    if ext in ('.jpg', '.jpeg'):
+        return header.startswith(b'\xff\xd8\xff')
+    if ext == '.png':
+        return header.startswith(b'\x89PNG\r\n\x1a\n')
+    if ext == '.gif':
+        return header.startswith(b'GIF87a') or header.startswith(b'GIF89a')
+    if ext == '.webp':
+        return header.startswith(b'RIFF') and header[8:12] == b'WEBP'
+    return False
+
+
 def product_images_dir():
     folder = Path(current_app.static_folder) / 'img' / 'products'
     folder.mkdir(parents=True, exist_ok=True)
@@ -37,6 +50,10 @@ def save_product_image(file_storage, product_name):
         raise ValueError('Image trop lourde (max 4 Mo).')
     if size < 32:
         raise ValueError('Fichier image invalide.')
+    header = stream.read(16)
+    stream.seek(0)
+    if not _header_matches_extension(header, ext):
+        raise ValueError("Format d'image non supporté (jpg, png, webp, gif).")
 
     slug = product_slug(product_name) or 'produit'
     dest_name = f'{slug}-{uuid4().hex[:8]}{ext}'  # évite d'écraser une autre photo

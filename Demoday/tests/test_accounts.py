@@ -655,7 +655,7 @@ class AccountsTestCase(unittest.TestCase):
             json={'username': 'Hack'},
             headers=headers,
         )
-        self.assertEqual(other.status_code, 403)
+        self.assertEqual(other.status_code, 404)
         db.session.refresh(lea)
         self.assertNotEqual(lea.username, 'Hack')
 
@@ -684,8 +684,8 @@ class AccountsTestCase(unittest.TestCase):
             'channel': 'sms',
         })
         self.assertEqual(resent.status_code, 200, resent.get_json())
-        self.assertEqual(resent.get_json().get('channel'), 'sms')
         self.assertEqual(len(resent.get_json()['demo_code']), 6)
+        self.assertNotIn('email', resent.get_json())
 
     def test_customer_can_change_password(self):
         ensure_demo_accounts()
@@ -763,6 +763,31 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn("user.username || user.email", js)
         forgot = self.client.get('/forgot-password.html')
         self.assertIn('reset-fields', forgot.get_data(as_text=True))
+
+    def test_codes_and_emails_stay_off_public_json_when_not_testing(self):
+        self.app.config['TESTING'] = False
+        try:
+            created = self.client.post('/api/v1/auth/register', json={
+                'username': 'noleak',
+                'email': 'noleak@test.com',
+                'password': 'noleak12',
+            })
+            self.assertEqual(created.status_code, 201, created.get_json())
+            payload = created.get_json()['data']
+            self.assertNotIn('demo_code', payload)
+            self.assertNotIn('demo_hint', payload)
+            forgot = self.client.post('/api/v1/auth/forgot-password', json={
+                'email': 'noleak@test.com',
+            })
+            body = forgot.get_json()
+            self.assertNotIn('demo_code', body)
+            self.assertNotEqual(body.get('email'), 'noleak@test.com')
+            unknown = self.client.post('/api/v1/auth/forgot-password', json={
+                'email': 'inconnu@test.com',
+            })
+            self.assertEqual(unknown.get_json().get('message'), body.get('message'))
+        finally:
+            self.app.config['TESTING'] = True
 
 
 class HttpsRedirectTestCase(unittest.TestCase):

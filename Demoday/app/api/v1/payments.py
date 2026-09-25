@@ -145,7 +145,7 @@ def confirm_payment():
         if not order:
             return jsonify({'error': 'Commande non trouvée'}), 404
         if not _user_owns_order(user, order):
-            return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+            return jsonify({'error': 'Commande non trouvée'}), 404
         if not stripe_configured():
             return jsonify({'error': 'Stripe n\'est pas configuré'}), 503
 
@@ -185,10 +185,10 @@ def stripe_webhook():
         
         return jsonify(result), 200
         
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
-    except Exception as e:
-        logger.exception('Erreur webhook: %s', e)
+    except ValueError:
+        return jsonify({'error': 'Webhook invalide'}), 400
+    except Exception:
+        logger.exception('Erreur webhook')
         return jsonify({'error': 'Erreur interne du serveur'}), 500
 
 
@@ -220,9 +220,9 @@ def get_order(order_id):
     order = db.session.get(Order, order_id)
     if not order:
         return jsonify({'error': 'Commande non trouvée'}), 404
-    # IDOR : un client ne lit que sa commande ; la liste complète est admin-only.
+    # IDOR : même 404 si la commande existe (pas d’énumération d’ids).
     if not _user_owns_order(user, order):
-        return jsonify({'success': False, 'message': 'Accès refusé'}), 403  # 403, pas 404 : on ne masque pas, on refuse
+        return jsonify({'error': 'Commande non trouvée'}), 404
     return jsonify({'order': _serialize_order(user, order)}), 200
 
 

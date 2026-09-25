@@ -35,7 +35,7 @@ def handle_categories():
         except Exception as e:
             print(f"Erreur V1 POST: {str(e)}")
             db.session.rollback()
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'Erreur interne du serveur'}), 500
     
     # GET
     try:
@@ -57,7 +57,7 @@ def handle_categories():
         
     except Exception as e:
         print(f"Erreur V1 GET: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Erreur interne du serveur'}), 500
 
 @categories_bp.route('/<int:category_id>', methods=['GET', 'PUT', 'DELETE'])
 def handle_category(category_id):
@@ -105,4 +105,4 @@ def handle_category(category_id):
     except Exception as e:
         print(f"Erreur V1 {request.method}: {str(e)}")
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Erreur interne du serveur'}), 500

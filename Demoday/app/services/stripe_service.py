@@ -108,11 +108,11 @@ class StripeService:
             raise ValueError('Webhook Stripe non configuré')
         try:
             event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+        except Exception:
+            raise ValueError('Webhook invalide') from None
 
-            if event['type'] in ('payment_intent.succeeded', 'payment_intent.payment_failed'):
-                payment_intent = event['data']['object']
-                self.confirm_payment(payment_intent['id'])
+        if event['type'] in ('payment_intent.succeeded', 'payment_intent.payment_failed'):
+            payment_intent = event['data']['object']
+            self.confirm_payment(payment_intent['id'])
 
-            return {'status': 'success'}
-        except ValueError as e:
-            raise ValueError(f"Signature invalide: {str(e)}") from e
+        return {'status': 'success'}

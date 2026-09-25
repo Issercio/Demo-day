@@ -157,7 +157,8 @@ class AdminGuardTestCase(unittest.TestCase):
             f'/api/v1/users/{admin.id}',
             headers={'Authorization': f'Bearer {token}'},
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
+        self.assertNotIn('admin@florashop.com', response.get_data(as_text=True))
 
     def test_client_cannot_delete_admin(self):
         token = self.login('marie@test.com', 'marie123')
@@ -166,7 +167,7 @@ class AdminGuardTestCase(unittest.TestCase):
             f'/api/v1/users/{admin.id}',
             headers={'Authorization': f'Bearer {token}'},
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
         self.assertIsNotNone(db.session.get(User, admin.id))
 
     def test_anonymous_cannot_read_user(self):
@@ -350,6 +351,58 @@ class AdminGuardTestCase(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn('image', (response.get_json() or {}).get('error', '').lower())
+
+    def test_disguised_html_png_is_rejected(self):
+        from io import BytesIO
+        from app.models import Category
+        token = self.login('admin@florashop.com', 'admin123')
+        category = Category.query.filter_by(name='Fleurs Fraîches').first()
+        fake = b'<html><body>not a png</body></html>' + b'\x00' * 40
+        response = self.client.post(
+            '/api/v1/products',
+            data={
+                'name': 'Faux png',
+                'price': '12',
+                'category_id': str(category.id),
+                'image': (BytesIO(fake), 'notes.png'),
+            },
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_server_error_does_not_leak_exception(self):
+        from unittest.mock import patch
+        with patch('app.routes.Product.query') as query:
+            query.all.side_effect = RuntimeError('SECRET_LEAK_XYZ')
+            response = self.client.get('/api/v1/products')
+        self.assertEqual(response.status_code, 500)
+        body = response.get_data(as_text=True)
+        self.assertNotIn('SECRET_LEAK_XYZ', body)
+        self.assertIn('Erreur interne', body)
+
+    def test_api_index_does_not_advertise_user_dump(self):
+        body = self.client.get('/api/v1/').get_data(as_text=True)
+        self.assertNotIn('/api/v1/users/1', body)
+        self.assertNotIn('Test récupération de tous les utilisateurs', body)
+
+    def test_user_json_omits_secrets(self):
+        token = self.login('marie@test.com', 'marie123')
+        marie = User.query.filter_by(email='marie@test.com').first()
+        marie.verify_code_hash = 'should-never-leave-the-server'
+        marie.failed_login_count = 4
+        db.session.commit()
+        response = self.client.get(
+            f'/api/v1/users/{marie.id}',
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        blob = str(payload).lower()
+        self.assertNotIn('password', payload)
+        self.assertNotIn('verify_code_hash', payload)
+        self.assertNotIn('should-never-leave-the-server', blob)
+        self.assertNotIn('failed_login_count', payload)
+        self.assertNotIn('locked_until', payload)
 
 
 if __name__ == '__main__':

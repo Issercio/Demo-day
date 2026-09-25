@@ -287,7 +287,8 @@ class CheckoutTestCase(unittest.TestCase):
             f'/api/v1/payments/orders/{order_id}',
             headers={'Authorization': f'Bearer {other}'},
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
+        self.assertNotIn('marie@test.com', response.get_data(as_text=True))
 
     def test_admin_can_read_any_order(self):
         order_id, _token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')
@@ -684,7 +685,7 @@ class CheckoutTestCase(unittest.TestCase):
             json={'payment_intent_id': 'pi_owned_by_marie'},
             headers={'Authorization': f'Bearer {other}'},
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
 
     def test_create_payment_intent_rejects_bad_token(self):
         response = self.client.post(

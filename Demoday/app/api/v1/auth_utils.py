@@ -6,6 +6,21 @@ from flask import current_app, jsonify, request
 from app.extensions import db
 from app.models.user import User
 
+INTERNAL_ERROR_MESSAGE = 'Erreur interne du serveur'
+HIDDEN_RESOURCE = {'success': False, 'message': 'Introuvable'}
+
+
+def json_internal_error():
+    """500 générique : jamais le traceback, le SQL ou un secret dans la réponse."""
+    current_app.logger.exception(INTERNAL_ERROR_MESSAGE)
+    return jsonify({'error': INTERNAL_ERROR_MESSAGE, 'success': False, 'message': INTERNAL_ERROR_MESSAGE}), 500
+
+
+def hidden_not_found():
+    """404 identique que la ressource existe ou non (pas d’énumération d’ids)."""
+    return jsonify(HIDDEN_RESOURCE), 404
+
+
 TOKENS = {}
 
 
@@ -77,7 +92,7 @@ def self_or_admin_required_response(user_id):
         return jsonify(body), status
     if user.is_admin or str(user.id) == str(user_id):
         return None
-    return jsonify({'success': False, 'message': 'Accès refusé'}), 403
+    return hidden_not_found()
 
 
 def require_admin_token(f):
@@ -107,5 +122,5 @@ def require_self_or_admin(f):
             user_id = args[1]
         if user.is_admin or str(user.id) == str(user_id):
             return f(*args, **kwargs)
-        return {'success': False, 'message': 'Accès refusé'}, 403
+        return HIDDEN_RESOURCE, 404
     return decorated

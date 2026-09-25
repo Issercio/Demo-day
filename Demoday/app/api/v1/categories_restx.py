@@ -1,6 +1,6 @@
 from flask_restx import Resource, fields, Namespace
 from flask import request
-# CORRECTION : import direct depuis models
+from werkzeug.exceptions import HTTPException
 from app.models import Category
 from app import db
 from sqlalchemy import text
@@ -20,7 +20,6 @@ class CategoryList(Resource):
     def get(self):
         """Récupérer toutes les catégories"""
         try:
-            print("=== GET CATEGORIES RESTX ===")
             categories = Category.query.all()
             result = []
             
@@ -30,14 +29,13 @@ class CategoryList(Resource):
                         'id': int(cat.id),
                         'name': str(cat.name)
                     }
-                    print(f"Catégorie RESTX: {category_dict}")
                     result.append(category_dict)
             
-            print(f"Total catégories RESTX: {len(result)}")
             return result
-        except Exception as e:
-            print(f"Erreur RESTX GET categories: {str(e)}")
-            api.abort(500, f"Erreur serveur: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception:
+            api.abort(500, 'Erreur interne du serveur')
 
     @api.expect(category_model)
     @api.marshal_with(category_model, code=201)
@@ -45,9 +43,7 @@ class CategoryList(Resource):
     def post(self):
         """Créer une nouvelle catégorie"""
         try:
-            print("=== POST CATEGORY RESTX ===")
             data = request.json
-            print(f"Données reçues RESTX: {data}")
             
             if not data or not data.get('name'):
                 api.abort(400, 'Le nom de la catégorie est requis')
@@ -71,13 +67,13 @@ class CategoryList(Resource):
                 'id': int(category.id),
                 'name': str(category.name)
             }
-            print(f"Catégorie créée RESTX: {result}")
             return result, 201
             
-        except Exception as e:
-            print(f"Erreur RESTX POST: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception:
             db.session.rollback()
-            api.abort(500, f"Erreur: {str(e)}")
+            api.abort(500, 'Erreur interne du serveur')
 
 @api.route('/<int:category_id>')
 class CategoryResource(Resource):
@@ -85,7 +81,6 @@ class CategoryResource(Resource):
     def get(self, category_id):
         """Récupérer une catégorie par ID"""
         try:
-            print(f"=== GET CATEGORY {category_id} RESTX ===")
             category = db.session.get(Category, category_id)
             if not category:
                 api.abort(404, 'Catégorie non trouvée')
@@ -97,11 +92,11 @@ class CategoryResource(Resource):
                 'id': int(category.id),
                 'name': str(category.name)
             }
-            print(f"Catégorie trouvée RESTX: {result}")
             return result
-        except Exception as e:
-            print(f"Erreur RESTX GET category: {str(e)}")
-            api.abort(500, f"Erreur: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception:
+            api.abort(500, 'Erreur interne du serveur')
 
     @api.expect(category_model)
     @api.marshal_with(category_model)
@@ -109,9 +104,7 @@ class CategoryResource(Resource):
     def put(self, category_id):
         """Modifier une catégorie"""
         try:
-            print(f"=== PUT CATEGORY {category_id} RESTX ===")
             data = request.json
-            print(f"Nouvelles données RESTX: {data}")
             
             if not data or not data.get('name'):
                 api.abort(400, 'Le nom est requis')
@@ -138,19 +131,18 @@ class CategoryResource(Resource):
                 'id': int(category.id),
                 'name': str(category.name)
             }
-            print(f"Catégorie modifiée RESTX: {result}")
             return result
             
-        except Exception as e:
-            print(f"Erreur RESTX PUT: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception:
             db.session.rollback()
-            api.abort(500, f"Erreur: {str(e)}")
+            api.abort(500, 'Erreur interne du serveur')
 
     @require_admin_token
     def delete(self, category_id):
         """Supprimer une catégorie"""
         try:
-            print(f"=== DELETE CATEGORY {category_id} RESTX ===")
             category = db.session.get(Category, category_id)
             if not category:
                 api.abort(404, 'Catégorie non trouvée')
@@ -159,23 +151,21 @@ class CategoryResource(Resource):
                 api.abort(500, 'Catégorie corrompue')
             
             # SUPPRESSION DIRECTE SQL pour éviter les problèmes avec is_on_sale
-            print(f"Suppression des produits avec SQL direct...")
             result = db.session.execute(
                 text("DELETE FROM products WHERE category_id = :cat_id"), 
                 {"cat_id": category_id}
             )
             products_deleted = result.rowcount
-            print(f"Produits supprimés via SQL: {products_deleted}")
             
             # Supprimer la catégorie
             category_name = category.name
             db.session.delete(category)
             db.session.commit()
             
-            print(f"Catégorie supprimée RESTX: {category_name}")
             return {'message': f'Catégorie "{category_name}" et {products_deleted} produits supprimés'}, 200
             
-        except Exception as e:
-            print(f"Erreur RESTX DELETE: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception:
             db.session.rollback()
-            api.abort(500, f"Erreur: {str(e)}")
+            api.abort(500, 'Erreur interne du serveur')

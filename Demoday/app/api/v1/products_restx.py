@@ -1,6 +1,6 @@
 from flask_restx import Resource, fields, Namespace
 from flask import request
-# CORRECTION : import direct depuis models
+from werkzeug.exceptions import HTTPException
 from app.models import Product, Category
 from app import db
 from app.api.v1.auth_utils import require_admin_token
@@ -24,7 +24,6 @@ class ProductList(Resource):
     def get(self):
         """Récupérer tous les produits"""
         try:
-            print("=== GET PRODUCTS RESTX ===")
             products = Product.query.all()  # catalogue complet, sans filtre vitrine (le shop filtre côté client)
             result = []
             
@@ -37,14 +36,13 @@ class ProductList(Resource):
                         'category_id': prod.category_id,
                         'color': prod.color,
                     }
-                    print(f"Produit RESTX: {product_dict}")
                     result.append(product_dict)
             
-            print(f"Total produits RESTX: {len(result)}")
             return result
-        except Exception as e:
-            print(f"Erreur RESTX GET products: {str(e)}")
-            api.abort(500, f"Erreur serveur: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception:
+            api.abort(500, 'Erreur interne du serveur')
 
     @api.expect(product_model)
     @api.marshal_with(product_model, code=201)
@@ -52,9 +50,7 @@ class ProductList(Resource):
     def post(self):
         """Créer un nouveau produit"""
         try:
-            print("=== POST PRODUCT RESTX ===")
             data = request.json
-            print(f"Données reçues RESTX: {data}")
             
             required_fields = ['name', 'price', 'category_id']
             for field in required_fields:
@@ -95,10 +91,11 @@ class ProductList(Resource):
             }
             return result, 201
             
-        except Exception as e:
-            print(f"Erreur RESTX POST product: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception:
             db.session.rollback()
-            api.abort(500, f"Erreur: {str(e)}")
+            api.abort(500, 'Erreur interne du serveur')
 
 @api.route('/<int:product_id>')
 class ProductResource(Resource):
@@ -118,8 +115,10 @@ class ProductResource(Resource):
                 'color': product.color,
             }
             return result
-        except Exception as e:
-            api.abort(500, f"Erreur: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception:
+            api.abort(500, 'Erreur interne du serveur')
 
     @api.expect(product_model)
     @api.marshal_with(product_model)
@@ -160,9 +159,11 @@ class ProductResource(Resource):
             }
             return result
             
-        except Exception as e:
+        except HTTPException:
+            raise
+        except Exception:
             db.session.rollback()
-            api.abort(500, f"Erreur: {str(e)}")
+            api.abort(500, 'Erreur interne du serveur')
 
     @require_admin_token
     def delete(self, product_id):
@@ -178,6 +179,8 @@ class ProductResource(Resource):
             
             return {'message': f'Produit "{product_name}" supprimé'}, 200
             
-        except Exception as e:
+        except HTTPException:
+            raise
+        except Exception:
             db.session.rollback()
-            api.abort(500, f"Erreur: {str(e)}")
+            api.abort(500, 'Erreur interne du serveur')

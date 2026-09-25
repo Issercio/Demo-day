@@ -79,10 +79,12 @@ def _issue_token(user):
 
 
 def _demo_payload(code):
-    # En classe : le code est visible comme la carte 4242. En prod : MAIL_SERVER l'envoie.
+    # Le code en clair ne sort jamais hors des tests automatisés (TESTING=True).
+    if not current_app.config.get('TESTING'):
+        return {}
     return {
         'demo_code': code,
-        'demo_hint': 'Mode démo (pas de SMTP/SMS opérateur) : entrez ce code à 6 chiffres.',
+        'demo_hint': 'Mode test : code à 6 chiffres, uniquement dans la suite unittest.',
     }
 
 
@@ -247,7 +249,7 @@ class ResendCode(Resource):
             return {'success': False, 'message': 'Un numéro est requis pour un code SMS'}, 400
         purpose = 'verify' if not user.email_verified else (user.verify_purpose or 'verify')
         code = issue_code(user, channel=channel, purpose=purpose if purpose in ('verify', 'reset') else 'verify')
-        return {**generic, **_demo_payload(code), 'channel': channel}, 200
+        return {**generic, **_demo_payload(code)}, 200
 
 
 @api.route('/forgot-password')
@@ -269,7 +271,7 @@ class ForgotPassword(Resource):
         if channel == 'sms' and not user.phone:
             channel = 'email'
         code = issue_code(user, channel=channel, purpose='reset')
-        return {**generic, **_demo_payload(code), 'email': user.email}, 200
+        return {**generic, **_demo_payload(code)}, 200
 
 
 @api.route('/reset-password')

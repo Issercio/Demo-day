@@ -1,7 +1,7 @@
-"""Vérification email/SMS et codes de reset — même 6 chiffres que la carte 4242 en classe.
+"""Vérification email/SMS et codes de reset.
 
-Sans SMTP/Twilio le code est renvoyé dans `demo_code` (mode démo). Le hash
-reste en base ; on ne stocke jamais le code en clair.
+Le hash est stocké en base ; le code en clair n’est jamais loggé ni renvoyé
+hors `TESTING=True` (suite unittest).
 """
 
 from __future__ import annotations
@@ -112,12 +112,9 @@ def clear_code(user):
 def _deliver(user, code, channel, purpose):
     from flask import current_app
 
-    dest = user.phone if channel == 'sms' else user.email
     current_app.logger.info(
-        'Code %s (%s) pour %s via %s : mode démo (SMTP si MAIL_SERVER)',
+        'Code %s émis via %s (SMTP si MAIL_SERVER)',
         purpose,
-        channel,
-        dest,
         channel,
     )
     host = (os.environ.get('MAIL_SERVER') or '').strip()
