@@ -304,6 +304,9 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('payload.applied_ids', shop)
         self.assertIn('toggleVitrineChip', admin)
         self.assertIn('applied_season', admin)
+        self.assertIn('applied_themes', admin)
+        self.assertIn('appliedEventIds', admin)
+        self.assertIn('autant de thèmes', admin)
         self.assertIn('theme-banner', shop)
         self.assertIn('syncCategoryChecksToTheme', shop)
         self.assertNotIn('applyThemeFromUrl', shop)
@@ -368,6 +371,7 @@ class AccountsTestCase(unittest.TestCase):
         self.assertEqual(kinds, {'saison', 'evenement'})
         self.assertIsNone(payload['applied'])
         self.assertEqual(payload['applied_ids'], [])
+        self.assertEqual(payload['applied_themes'], [])
         self.assertTrue(next(item for item in payload['themes'] if item['id'] == 'mariage')['can_delete'])
         self.assertFalse(next(item for item in payload['themes'] if item['id'] == 'printemps')['can_delete'])
 
@@ -416,6 +420,7 @@ class AccountsTestCase(unittest.TestCase):
         self.assertEqual(payload['applied_theme'], 'mariage')
         self.assertIsNone(payload['applied_season'])
         self.assertEqual(payload['applied_ids'], ['mariage'])
+        self.assertEqual(payload['applied_themes'], ['mariage'])
         self.assertIn('Mariage', payload.get('message', ''))
         mariage = next(item for item in payload['themes'] if item['id'] == 'mariage')
         self.assertTrue(mariage['is_applied'])
@@ -423,6 +428,23 @@ class AccountsTestCase(unittest.TestCase):
         printemps = next(item for item in payload['themes'] if item['id'] == 'printemps')
         self.assertEqual(printemps['kind'], 'saison')
         self.assertFalse(printemps['is_applied'])
+
+        stacked = self.client.put('/api/v1/themes', json={'id': 'cadeau'}, headers=headers)
+        self.assertEqual(stacked.status_code, 200, stacked.get_json())
+        stacked_payload = stacked.get_json()
+        self.assertEqual(stacked_payload['applied_themes'], ['mariage', 'cadeau'])
+        self.assertEqual(stacked_payload['applied_theme'], 'mariage,cadeau')
+        self.assertEqual(stacked_payload['applied_ids'], ['mariage', 'cadeau'])
+        self.assertIn('Bouquet de mariée', stacked_payload['product_names'])
+        self.assertIn('Pot-fleur surprise', stacked_payload['product_names'])
+        self.assertTrue(next(item for item in stacked_payload['themes'] if item['id'] == 'cadeau')['is_applied'])
+        from app.models.shop_theme import ShopVitrineTheme
+        self.assertEqual(ShopVitrineTheme.query.count(), 2)
+
+        unstacked = self.client.put('/api/v1/themes', json={'id': 'cadeau'}, headers=headers)
+        self.assertEqual(unstacked.status_code, 200, unstacked.get_json())
+        self.assertEqual(unstacked.get_json()['applied_theme'], 'mariage')
+        self.assertEqual(unstacked.get_json()['applied_themes'], ['mariage'])
 
         full = self.client.get('/api/v1/products').get_json()
         self.assertGreater(len(full), len(mariage['product_names']))
@@ -442,6 +464,7 @@ class AccountsTestCase(unittest.TestCase):
         self.assertEqual(combo_payload['applied_ids'], ['printemps', 'mariage'])
         self.assertEqual(combo_payload['applied_season'], 'printemps')
         self.assertEqual(combo_payload['applied_theme'], 'mariage')
+        self.assertEqual(combo_payload['applied_themes'], ['mariage'])
         self.assertIn('Printemps + Mariage', combo_payload.get('label'))
         self.assertIn('Bouquet Pivoine', combo_payload['product_names'])
         self.assertIn('Bouquet de mariée', combo_payload['product_names'])
@@ -454,6 +477,19 @@ class AccountsTestCase(unittest.TestCase):
         self.assertEqual(season_payload['applied_season'], 'automne')
         self.assertEqual(season_payload['applied_theme'], 'mariage')
         self.assertEqual(season_payload['applied_ids'], ['automne', 'mariage'])
+
+        listed = self.client.put(
+            '/api/v1/themes',
+            json={'season': 'automne', 'theme': ['mariage', 'cadeau']},
+            headers=headers,
+        )
+        self.assertEqual(listed.status_code, 200, listed.get_json())
+        listed_payload = listed.get_json()
+        self.assertEqual(listed_payload['applied'], 'automne,mariage,cadeau')
+        self.assertEqual(listed_payload['applied_ids'], ['automne', 'mariage', 'cadeau'])
+        self.assertEqual(listed_payload['applied_themes'], ['mariage', 'cadeau'])
+        self.assertEqual(listed_payload['applied_theme'], 'mariage,cadeau')
+        self.assertIn('Automne + Mariage + Cadeau', listed_payload.get('label'))
 
         cleared = self.client.put('/api/v1/themes', json={'id': 'catalogue'}, headers=headers)
         self.assertEqual(cleared.status_code, 200)

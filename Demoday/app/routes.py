@@ -599,7 +599,7 @@ def shop_themes():
         data = request.get_json(silent=True) or {}
         try:
             if 'season' in data:
-                # Combo : une saison ET/OU un thème événement.
+                # Combo : une saison et 0 à N thèmes événement (liste ou virgules).
                 set_applied_vitrine(data.get('season'), data.get('theme'))
             else:
                 theme_id = data.get('id')
