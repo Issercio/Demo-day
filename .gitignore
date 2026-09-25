@@ -23,7 +23,7 @@ __pycache__/
 .nox/
 .hypothesis/
 
-# Coverage generated at the repo root (committed evidence lives in docs/)
+# Coverage generated locally
 .coverage
 htmlcov/
 coverage.xml

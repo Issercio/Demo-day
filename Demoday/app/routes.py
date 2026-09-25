@@ -1,6 +1,4 @@
-import os
-
-from flask import Blueprint, jsonify, request, render_template, abort, send_file, send_from_directory, redirect
+from flask import Blueprint, jsonify, request, render_template, abort
 from flask_cors import CORS
 from .models import Product, Category, User
 from . import db
@@ -46,8 +44,6 @@ TEMPLATE_PAGES = {
     'subscription.html',
     'subscription_payment.html',
     'verify-code.html',
-    'livrables.html',
-    'maquettes.html',
 }
 
 PAGE_ALIASES = {
@@ -69,21 +65,6 @@ PAGE_ALIASES = {
     'subscription': 'subscription.html',
     'subscription-payment': 'subscription_payment.html',
     'verify-code': 'verify-code.html',
-    'livrables': 'livrables.html',
-    'maquettes': 'maquettes.html',
-}
-
-# Cahier des charges et deck : téléchargement direct (évaluation / Demo Day).
-_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-EVAL_DOWNLOADS = {
-    'Pivoine-Lilas-Specifications.docx': (
-        os.path.join(_REPO_ROOT, 'docs', 'Pivoine-Lilas-Specifications.docx'),
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ),
-    'Pivoine-Lilas.pptx': (
-        os.path.join(_REPO_ROOT, 'docs', 'presentation', 'Pivoine-Lilas.pptx'),
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    ),
 }
 
 @api_bp.route('/')
@@ -633,38 +614,6 @@ def delete_shop_theme(theme_id):
     payload = themes_payload()
     payload['message'] = 'Thème supprimé.'
     return jsonify(payload)
-
-
-@main_bp.route('/downloads/<path:filename>')
-def download_eval_doc(filename):
-    """Pièces d'évaluation : .docx / .pptx en pièce jointe, pas d'ouverture inline."""
-    meta = EVAL_DOWNLOADS.get(filename)
-    if not meta:
-        abort(404)
-    path, mime = meta
-    if not os.path.isfile(path):
-        abort(404)
-    return send_file(path, mimetype=mime, as_attachment=True, download_name=filename)
-
-
-# Prototype HTML cliquable (maquette Demo Day), fichiers dans docs/mockups/.
-_MOCKUPS_ROOT = os.path.join(_REPO_ROOT, 'docs', 'mockups')
-
-
-@main_bp.route('/maquettes')
-def mockups_redirect():
-    return redirect('/maquettes/')
-
-
-@main_bp.route('/maquettes/')
-@main_bp.route('/maquettes/<path:filename>')
-def serve_mockups(filename='index.html'):
-    """Sert le prototype cliquable sans exposer le reste du dépôt."""
-    if not os.path.isdir(_MOCKUPS_ROOT):
-        abort(404)
-    if filename.endswith('/') or filename == '':
-        filename = 'index.html'
-    return send_from_directory(_MOCKUPS_ROOT, filename)
 
 
 @main_bp.route('/')

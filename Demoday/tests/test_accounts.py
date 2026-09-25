@@ -165,7 +165,7 @@ class AccountsTestCase(unittest.TestCase):
         payload = response.get_json()
         self.assertTrue(payload['data']['user']['is_admin'])
         self.assertEqual(payload['data']['user']['email'], 'admin@florashop.com')
-        self.assertEqual(payload['data']['user']['username'], 'Camille Pivoine')
+        self.assertEqual(payload['data']['user']['username'], 'Administrateur')
 
     def test_demo_seed_restores_admin_flag(self):
         ensure_demo_accounts()

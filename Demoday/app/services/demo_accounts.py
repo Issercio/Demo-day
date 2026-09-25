@@ -22,7 +22,7 @@ def product_image_path(name):
 # Compte client demandé pour la démo (en plus de Marie et de l'admin).
 # username = prénom + nom, affiché au checkout et sur les commandes.
 DEMO_ACCOUNTS = (
-    ('Camille Pivoine', 'admin@florashop.com', 'admin123', True),
+    ('Administrateur', 'admin@florashop.com', 'admin123', True),
     ('Marie Dupont', 'marie@test.com', 'marie123', False),
     ('Léa Martin', 'client@test.com', 'client123', False),
 )
@@ -178,7 +178,7 @@ def ensure_demo_accounts():
             continue
         user.email = email
         user.username = username
-        user.is_admin = is_admin  # à chaque boot : Camille reste fleuriste, Marie/Léa clientes
+        user.is_admin = is_admin  # à chaque boot : admin reste fleuriste, Marie/Léa clientes
         user.email_verified = True
         # Compte démo déjà là mais hash incompatible (bcrypt, etc.) → on rétablit marie123 / admin123.
         if not user.check_password(password) or not user.has_modern_hash():

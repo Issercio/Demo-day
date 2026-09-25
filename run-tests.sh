@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# Run the automated test suite and write coverage evidence under docs/test-evidence/
+# Run the automated test suite.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 APP_DIR="$ROOT/Demoday"
-EVIDENCE="$ROOT/docs/test-evidence"
 
 if [[ ! -d "$APP_DIR/.venv" ]]; then
   echo "Virtualenv missing. Run ./setup.sh first."
@@ -13,16 +12,10 @@ fi
 
 # shellcheck disable=SC1091
 source "$APP_DIR/.venv/bin/activate"
-mkdir -p "$EVIDENCE"
-
 cd "$APP_DIR"
 export DATABASE_URL="${DATABASE_URL:-sqlite://}"
 export STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-}"
 export STRIPE_PUBLISHABLE_KEY="${STRIPE_PUBLISHABLE_KEY:-}"
 
 python -m coverage run --source=app -m unittest discover -s tests -v
-python -m coverage report -m | tee "$EVIDENCE/coverage-report.txt"
-python -m coverage xml -o "$EVIDENCE/coverage.xml"
-
-echo
-echo "Coverage report saved to docs/test-evidence/coverage-report.txt"
+python -m coverage report -m

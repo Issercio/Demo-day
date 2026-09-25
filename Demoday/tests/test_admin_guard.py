@@ -1,7 +1,6 @@
 import os
 import unittest
 from io import BytesIO
-from zipfile import ZipFile
 
 os.environ['DATABASE_URL'] = 'sqlite://'
 
@@ -237,7 +236,7 @@ class AdminGuardTestCase(unittest.TestCase):
         self.assertIn('Imprimer la facture', html)
         self.assertIn('data-order-print', html)
         self.assertIn('FAC-', html)
-        self.assertIn('SIREN 522 234 871', html)
+        self.assertIn('Boutique florale en ligne', html)
         self.assertIn("rawRef.indexOf('pi_') === 0", html)
         self.assertIn('Prix unit.', html)
         self.assertIn('create-theme-btn', html)
@@ -254,58 +253,13 @@ class AdminGuardTestCase(unittest.TestCase):
         self.assertIn('order-lines-wrap', html)
         self.assertEqual(self.client.get('/index.html').status_code, 404)
 
-    def test_eval_docs_download_as_attachments(self):
-        docx = self.client.get('/downloads/Pivoine-Lilas-Specifications.docx')
-        pptx = self.client.get('/downloads/Pivoine-Lilas.pptx')
-        self.assertEqual(docx.status_code, 200, docx.get_data()[:200])
-        self.assertEqual(pptx.status_code, 200)
-        self.assertIn('attachment', docx.headers.get('Content-Disposition', ''))
-        self.assertIn('attachment', pptx.headers.get('Content-Disposition', ''))
-        self.assertIn('.docx', docx.headers.get('Content-Disposition', ''))
-        self.assertIn('.pptx', pptx.headers.get('Content-Disposition', ''))
-        self.assertGreater(len(docx.get_data()), 1000)
-        self.assertGreater(len(pptx.get_data()), 1000)
-        self.assertEqual(self.client.get('/downloads/secret.env').status_code, 404)
-        page = self.client.get('/livrables.html')
-        self.assertEqual(page.status_code, 200)
-        html = page.get_data(as_text=True)
-        self.assertIn('/downloads/Pivoine-Lilas-Specifications.docx', html)
-        self.assertIn('/downloads/Pivoine-Lilas.pptx', html)
-        self.assertIn('/maquettes/', html)
-        self.assertIn('Google Docs', html)
-        self.assertIn('Google Slides', html)
-        with ZipFile(BytesIO(docx.get_data())) as z:
-            names = z.namelist()
-            self.assertIn('[Content_Types].xml', names)
-            self.assertIn('word/document.xml', names)
-            self.assertTrue(any(n.startswith('word/media/') and n.endswith('.jpg') for n in names))
-            self.assertIn('image/jpeg', z.read('[Content_Types].xml').decode('utf-8'))
-            self.assertIn('Google Docs', z.read('word/document.xml').decode('utf-8'))
-        with ZipFile(BytesIO(pptx.get_data())) as z:
-            names = z.namelist()
-            self.assertIn('ppt/presentation.xml', names)
-            pres = z.read('ppt/presentation.xml').decode('utf-8')
-            self.assertIn('screen16x9', pres)
-            self.assertTrue(any(n.startswith('ppt/media/') and n.endswith('.jpg') for n in names))
-            self.assertIn('image/jpeg', z.read('[Content_Types].xml').decode('utf-8'))
-
-    def test_clickable_mockup_is_served(self):
-        index = self.client.get('/maquettes/')
-        self.assertEqual(index.status_code, 200)
-        html = index.get_data(as_text=True)
-        self.assertIn('#bc6288', html)
-        self.assertIn('shop.html', html)
-        shop = self.client.get('/maquettes/shop.html')
-        self.assertEqual(shop.status_code, 200)
-        self.assertIn('Bouquet Pivoine', shop.get_data(as_text=True))
-        frame = self.client.get('/maquettes/frames/mockup-palette.png')
-        self.assertEqual(frame.status_code, 200)
-        self.assertGreater(len(frame.get_data()), 1000)
-        css = self.client.get('/maquettes/screens.css')
-        self.assertEqual(css.status_code, 200)
-        self.assertEqual(self.client.get('/maquettes/../../Demoday/app/routes.py').status_code, 404)
-        bounced = self.client.get('/maquettes', follow_redirects=False)
-        self.assertIn(bounced.status_code, (301, 302))
+    def test_eval_docs_and_mockups_are_gone(self):
+        self.assertEqual(self.client.get('/downloads/Pivoine-Lilas-Specifications.docx').status_code, 404)
+        self.assertEqual(self.client.get('/downloads/Pivoine-Lilas.pptx').status_code, 404)
+        self.assertEqual(self.client.get('/livrables.html').status_code, 404)
+        self.assertEqual(self.client.get('/maquettes.html').status_code, 404)
+        self.assertEqual(self.client.get('/maquettes/').status_code, 404)
+        self.assertEqual(self.client.get('/maquettes').status_code, 404)
 
     def test_invalid_product_color_is_rejected(self):
         from app.models import Category, Product

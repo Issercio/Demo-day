@@ -29,7 +29,7 @@ def ensure_verification_columns():
     if 'users' not in inspector.get_table_names():
         return
     existing = {column['name'] for column in inspector.get_columns('users')}
-    # Compte déjà en base = considéré vérifié (Marie / Léa / Camille).
+    # Compte déjà en base = considéré vérifié (comptes de démo).
     additions = {
         'email_verified': 'BOOLEAN DEFAULT 1',
         'phone': 'VARCHAR(20)',
