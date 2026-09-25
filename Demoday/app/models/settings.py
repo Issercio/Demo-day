@@ -11,9 +11,17 @@ class ShopSettings(db.Model):
     email = db.Column(db.String(120), nullable=True)
     phone = db.Column(db.String(40), nullable=True)
     siren = db.Column(db.String(20), nullable=True)
+    legal_form = db.Column(db.String(40), nullable=True)
+    capital = db.Column(db.String(40), nullable=True)
+    rcs_city = db.Column(db.String(80), nullable=True)
+    tva_intra = db.Column(db.String(20), nullable=True)
     pickup_note = db.Column(db.String(255), nullable=True)
     delivery_fee = db.Column(db.Numeric(10, 2), nullable=False, default=8.90)
+    delivery_fee_overseas = db.Column(db.Numeric(10, 2), nullable=True)
     delivery_prefixes = db.Column(db.String(120), nullable=False, default='FR')
+    delivery_carrier = db.Column(db.String(80), nullable=True)
+    delivery_eta_metro = db.Column(db.String(80), nullable=True)
+    delivery_eta_overseas = db.Column(db.String(80), nullable=True)
     closed_weekdays = db.Column(db.String(20), nullable=False, default='6')
     updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
@@ -24,9 +32,18 @@ class ShopSettings(db.Model):
             'email': self.email or '',
             'phone': self.phone or '',
             'siren': self.siren or '',
+            'legal_form': self.legal_form or '',
+            'capital': self.capital or '',
+            'rcs_city': self.rcs_city or '',
+            'tva_intra': self.tva_intra or '',
             'pickup_note': self.pickup_note or 'Retrait à l’atelier aux horaires indiqués.',
             'delivery_fee': float(self.delivery_fee or 0),
+            'delivery_fee_overseas': float(self.delivery_fee_overseas)
+            if self.delivery_fee_overseas is not None else None,
             'delivery_prefixes': self.delivery_prefixes or 'FR',
+            'delivery_carrier': self.delivery_carrier or '',
+            'delivery_eta_metro': self.delivery_eta_metro or '24–48 h',
+            'delivery_eta_overseas': self.delivery_eta_overseas or '3–5 jours ouvrés',
             'closed_weekdays': self.closed_weekdays or '6',
         }
 

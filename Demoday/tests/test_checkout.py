@@ -667,12 +667,31 @@ class CheckoutTestCase(unittest.TestCase):
         self.assertIn('confirm-payment', (response.get_json() or {}).get('error', ''))
         self.assertEqual(Order.query.count(), 0)
 
-    def test_confirm_payment_requires_auth(self):
-        response = self.client.post(
-            '/api/v1/payments/confirm-payment',
-            json={'payment_intent_id': 'pi_anything'},
+    def test_confirm_payment_guest_needs_email(self):
+        order = Order(
+            email='invite@test.com',
+            total_amount=10,
+            status='pending',
+            payment_method='card',
+            stripe_payment_intent_id='pi_guest_pending',
         )
-        self.assertEqual(response.status_code, 401)
+        db.session.add(order)
+        db.session.commit()
+        missing = self.client.post(
+            '/api/v1/payments/confirm-payment',
+            json={'payment_intent_id': 'pi_guest_pending'},
+        )
+        self.assertEqual(missing.status_code, 400)
+        wrong = self.client.post(
+            '/api/v1/payments/confirm-payment',
+            json={'payment_intent_id': 'pi_guest_pending', 'email': 'other@test.com'},
+        )
+        self.assertEqual(wrong.status_code, 404)
+        unknown = self.client.post(
+            '/api/v1/payments/confirm-payment',
+            json={'payment_intent_id': 'pi_missing', 'email': 'invite@test.com'},
+        )
+        self.assertEqual(unknown.status_code, 404)
 
     def test_confirm_payment_rejects_other_client(self):
         order_id, _token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')

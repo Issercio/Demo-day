@@ -1057,7 +1057,7 @@
 
         <div class="admin-section" id="shop-settings">
             <h2>Identité et livraison</h2>
-            <p class="admin-vitrine-lead">Nom, adresse, SIREN (si vous en avez un), tarif, zone de livraison (FR = toute la France), jours de fermeture. Ces infos apparaissent sur les CGV et le paiement.</p>
+            <p class="admin-vitrine-lead">Nom, adresse, SIREN réel (si vous en avez un — ne pas inventer), forme juridique, tarif métropole / DOM, transporteur et délais. Ces infos apparaissent sur les CGV et le paiement.</p>
             <form id="settings-form">
                 <div class="settings-grid">
                     <div class="form-group">
@@ -1073,20 +1073,52 @@
                         <input type="text" id="setting-phone">
                     </div>
                     <div class="form-group">
-                        <label for="setting-siren">SIREN (optionnel)</label>
-                        <input type="text" id="setting-siren" maxlength="20" placeholder="À renseigner par l’exploitant">
+                        <label for="setting-siren">SIREN (9 chiffres, optionnel)</label>
+                        <input type="text" id="setting-siren" maxlength="20" placeholder="À saisir par l’exploitant — laisser vide sinon" inputmode="numeric" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-legal-form">Forme juridique</label>
+                        <input type="text" id="setting-legal-form" maxlength="40" placeholder="EI, SAS, SARL…">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-capital">Capital</label>
+                        <input type="text" id="setting-capital" maxlength="40" placeholder="ex. 1 000 €">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-rcs">RCS / ville</label>
+                        <input type="text" id="setting-rcs" maxlength="80" placeholder="ex. Paris">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-tva">N° TVA intra</label>
+                        <input type="text" id="setting-tva" maxlength="20" placeholder="FR…">
                     </div>
                     <div class="form-group" style="grid-column:1 / -1;">
                         <label for="setting-address">Adresse / siège</label>
-                        <input type="text" id="setting-address">
+                        <input type="text" id="setting-address" placeholder="Adresse légale réelle">
                     </div>
                     <div class="form-group" style="grid-column:1 / -1;">
                         <label for="setting-pickup">Note de retrait</label>
                         <input type="text" id="setting-pickup">
                     </div>
                     <div class="form-group">
-                        <label for="setting-fee">Tarif livraison (€)</label>
+                        <label for="setting-fee">Tarif métropole (€)</label>
                         <input type="number" id="setting-fee" min="0" max="200" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-fee-overseas">Tarif DOM (€)</label>
+                        <input type="number" id="setting-fee-overseas" min="0" max="200" step="0.01" placeholder="16.90">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-carrier">Transporteur</label>
+                        <input type="text" id="setting-carrier" maxlength="80" placeholder="ex. Chronopost, Colissimo">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-eta-metro">Délai métropole</label>
+                        <input type="text" id="setting-eta-metro" maxlength="80" placeholder="24–48 h">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-eta-overseas">Délai DOM</label>
+                        <input type="text" id="setting-eta-overseas" maxlength="80" placeholder="3–5 jours ouvrés">
                     </div>
                     <div class="form-group">
                         <label for="setting-prefixes">Zone de livraison</label>
@@ -1651,9 +1683,17 @@
                 setVal('setting-email', settings.email);
                 setVal('setting-phone', settings.phone);
                 setVal('setting-siren', settings.siren);
+                setVal('setting-legal-form', settings.legal_form);
+                setVal('setting-capital', settings.capital);
+                setVal('setting-rcs', settings.rcs_city);
+                setVal('setting-tva', settings.tva_intra);
                 setVal('setting-address', settings.address);
                 setVal('setting-pickup', settings.pickup_note);
                 setVal('setting-fee', settings.delivery_fee);
+                setVal('setting-fee-overseas', settings.delivery_fee_overseas);
+                setVal('setting-carrier', settings.delivery_carrier);
+                setVal('setting-eta-metro', settings.delivery_eta_metro);
+                setVal('setting-eta-overseas', settings.delivery_eta_overseas);
                 setVal('setting-prefixes', settings.delivery_prefixes);
                 const closed = new Set(String(settings.closed_weekdays || '').split(',').map((p) => p.trim()));
                 document.querySelectorAll('#setting-closed input[type="checkbox"]').forEach((box) => {
@@ -1662,7 +1702,7 @@
                 const mail = document.getElementById('mail-status');
                 if (mail) {
                     mail.textContent = settings.mail_configured
-                        ? 'SMTP configuré : les commandes et réponses contact partent par email.'
+                        ? 'SMTP configuré (MAIL_SERVER) : commandes et réponses contact partent par email.'
                         : 'Pas de MAIL_SERVER : les emails sont journalisés, le paiement n’est pas bloqué.';
                 }
             } catch (error) {
@@ -1684,9 +1724,17 @@
                         email: document.getElementById('setting-email').value,
                         phone: document.getElementById('setting-phone').value,
                         siren: document.getElementById('setting-siren').value,
+                        legal_form: document.getElementById('setting-legal-form').value,
+                        capital: document.getElementById('setting-capital').value,
+                        rcs_city: document.getElementById('setting-rcs').value,
+                        tva_intra: document.getElementById('setting-tva').value,
                         address: document.getElementById('setting-address').value,
                         pickup_note: document.getElementById('setting-pickup').value,
                         delivery_fee: document.getElementById('setting-fee').value,
+                        delivery_fee_overseas: document.getElementById('setting-fee-overseas').value,
+                        delivery_carrier: document.getElementById('setting-carrier').value,
+                        delivery_eta_metro: document.getElementById('setting-eta-metro').value,
+                        delivery_eta_overseas: document.getElementById('setting-eta-overseas').value,
                         delivery_prefixes: document.getElementById('setting-prefixes').value,
                         closed_weekdays: closed
                     })
@@ -1955,7 +2003,10 @@
                 shopIdentity.address || 'Boutique florale en ligne',
                 shopIdentity.email || '',
                 shopIdentity.phone || '',
+                shopIdentity.legal_form || '',
                 shopIdentity.siren ? 'SIREN ' + shopIdentity.siren : '',
+                shopIdentity.tva_intra ? 'TVA ' + shopIdentity.tva_intra : '',
+                shopIdentity.rcs_city ? 'RCS ' + shopIdentity.rcs_city : '',
             ].filter(Boolean);
             const shippingRow = order.shipping_amount
                 ? `<tr><th>Livraison</th><td>${formatOrderMoney(order.shipping_amount)}</td></tr>`

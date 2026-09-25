@@ -11,13 +11,13 @@ Boutique florale en ligne : le client choisit un bouquet, paie, et suit sa comma
 - Catalogue photo : 7 univers (fleurs fraîches, compositions, séchées, plantes, mariage, deuil, cadeaux)
 - Filtres par catégorie, couleur et prix
 - Panier serveur, fusionné au compte à la connexion
-- Paiement en ligne (cartes de test, ou Stripe si les clés sont renseignées)
+- Paiement en ligne (cartes de test, ou Stripe.js + webhook si les clés Dashboard sont renseignées)
 - Acompte 30 % ou règlement intégral
 - Date de retrait ou de livraison au paiement
 - Abonnements mensuel, semestriel et annuel
 - Suivi de commande (compte, ou invité avec email + n°) et facture
 - Formulaire Contact : le message arrive dans l’inbox du fleuriste, qui peut répondre
-- Livraison en France (métropole et DOM, tarif réglable) ou retrait atelier
+- Livraison en France : tarif et délai métropole / DOM, transporteur saisi en admin, ou retrait atelier
 - Code promo au paiement
 
 **Côté fleuriste**
@@ -25,7 +25,7 @@ Boutique florale en ligne : le client choisit un bouquet, paie, et suit sa comma
 - Vitrine du shop : une saison, un thème, ou les deux
 - Tableau du jour : à préparer, stock bas / rupture, prochains retraits
 - Demandes contact : nouveau → lu → traité, réponse au client
-- Identité boutique, zone de livraison (France entière par défaut), jours fermés, codes promo
+- Identité boutique (SIREN / adresse légale saisis par l’exploitant, jamais inventés), transporteur, délais, jours fermés, codes promo
 - Commandes : statut de paiement, préparation (`À préparer` → `Remise`), facture imprimable
 - Accès admin réservé : un client ne peut pas ouvrir le back-office
 
@@ -62,7 +62,7 @@ Le shop écoute sur [http://localhost:5000](http://localhost:5000). HTTPS local 
 | Admin | http://localhost:5000/admin.html |
 | API | http://localhost:5000/api/v1 |
 
-Copier [`.env.example`](.env.example) vers `Demoday/.env`. Ne jamais committer `.env`.
+`./setup.sh` copie [`.env.example`](.env.example) vers `Demoday/.env` et génère `SECRET_KEY` / `JWT_SECRET_KEY` (`openssl rand -hex 32`). Ne jamais committer `.env`.
 
 ## Comptes de démonstration
 
@@ -75,21 +75,39 @@ Copier [`.env.example`](.env.example) vers `Demoday/.env`. Ne jamais committer `
 Paiement accepté : `4242 4242 4242 4242`, date future, CVC `123`.  
 Refusé : `4000 0000 0000 0002`. Fonds insuffisants : `4000 0000 0000 9995`.
 
-Les totaux viennent de la base, jamais du navigateur. Les numéros de carte ne sont pas stockés (au plus les 4 derniers chiffres).
+Les totaux viennent de la base, jamais du navigateur. Sans clés Stripe, le PAN de test reste local. Avec Stripe, la carte passe par Stripe.js (jamais stockée ici).
 
 ## Mettre en ligne
 
-Le dépôt n’expose pas d’URL publique tant qu’un hébergeur n’est pas connecté. Deux chemins prêts :
+Le dépôt n’invente pas d’URL publique, de clés Stripe ni de SIREN. Brancher un hébergeur, coller les vraies clés, saisir l’identité légale en admin.
 
 **Docker Compose** (Postgres + gunicorn)
 
 ```bash
+./setup.sh
 docker compose up --build
 ```
 
-Le shop écoute sur [http://localhost:5000](http://localhost:5000). Le mot de passe Postgres d’exemple est dans `docker-compose.yml` : à changer hors démo.
+Le shop écoute sur [http://localhost:5000](http://localhost:5000). `SECRET_KEY` vide → Flask en génère une, persistée dans le volume `instance`. Changer le mot de passe Postgres d’exemple hors démo.
 
-**Render** — le fichier `render.yaml` décrit le service. Relier le dépôt GitHub à Render, déployer, et l’URL Render devient l’adresse du shop. Poser `SECRET_KEY` (générée) et éventuellement les clés Stripe.
+**Render** — `render.yaml` : `SECRET_KEY` et `JWT_SECRET_KEY` en `generateValue`, `FORCE_HTTPS=1`. Relier le dépôt, déployer. L’URL Render devient l’adresse HTTPS du shop (webhook Stripe : `https://VOTRE_DOMAINE/api/v1/payments/webhook`). Renseigner `STRIPE_*` et `MAIL_*` dans le dashboard Render, sans les committer.
+
+### Stripe.js + webhook
+
+1. Compte Stripe Dashboard → clés `pk_test_` / `sk_test_` (ou live) dans `Demoday/.env`.
+2. Endpoint webhook `https://VOTRE_DOMAINE/api/v1/payments/webhook`, secret `whsec_…`, événements `payment_intent.succeeded` et `payment_intent.payment_failed`.
+3. HTTPS public (Render le force). En local : `./run-https.sh` + Stripe CLI si besoin.
+4. Checkout charge alors Stripe.js (Card Element). Le montant PI = devis serveur (catalogue + livraison + promo + acompte). Le stock n’est consommé qu’au passage `pending` → `paid`.
+
+Sans clés, le processeur de test (4242…) reste actif.
+
+### SMTP (`MAIL_*`)
+
+`MAIL_SERVER` + `MAIL_USER` / `MAIL_PASSWORD` + `MAIL_FROM`. Port 587 + `MAIL_STARTTLS=1`, ou 465 + `MAIL_SSL=1`. `MAIL_TO` = boîte atelier. Sans serveur, les mails de commande / contact sont journalisés, le paiement n’échoue pas.
+
+### Identité légale et livraison
+
+Admin → Identité : SIREN (9 chiffres, Luhn, **vide par défaut**), adresse de siège, forme, capital, RCS, TVA. Transporteur, délai métropole (`24–48 h`), délai DOM (`3–5 jours ouvrés`), tarif DOM distinct du forfait métropole.
 
 ## Technique
 
@@ -99,7 +117,7 @@ Le shop écoute sur [http://localhost:5000](http://localhost:5000). Le mot de pa
 | API | Flask 3, Flask-RESTX |
 | Auth | JWT, mots de passe hashés, verrouillage après 5 échecs |
 | Données | SQLAlchemy 2, `Numeric(10, 2)` pour l’argent |
-| Paiement | Processeur de test, Stripe optionnel |
+| Paiement | Processeur de test, ou Stripe.js + webhook |
 | Prod | gunicorn, Docker, Render |
 
 Le navigateur affiche les pages et appelle `/api/v1`. La vitrine lue par le shop est celle posée par le fleuriste (`GET /api/v1/themes`). Le logo est servi en local (`/static/img/logo.png`), pas depuis un CDN.
@@ -129,7 +147,10 @@ Documentation interactive : [http://localhost:5000/api/v1](http://localhost:5000
 | GET / PUT | `/api/v1/settings` | public / fleuriste |
 | GET | `/api/v1/shipping` · `/promo/quote` | public |
 | GET / POST / PATCH | `/api/v1/promos` | fleuriste |
-| POST | `/api/v1/payments/checkout` | public ou JWT |
+| POST | `/api/v1/payments/checkout` | public ou JWT (mode test) |
+| POST | `/api/v1/payments/create-payment-intent` | public ou JWT (Stripe) |
+| POST | `/api/v1/payments/confirm-payment` | JWT ou invité (email) |
+| POST | `/api/v1/payments/webhook` | Stripe |
 | POST | `/api/v1/payments/track` | public (email + n°) |
 | GET | `/api/v1/payments/my-orders` | client |
 | GET / PATCH | `/api/v1/payments/orders` | fleuriste |

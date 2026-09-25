@@ -15,6 +15,9 @@ WEEKDAY_LABELS = ('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', '
 NATIONWIDE_TOKENS = {'', 'FR', '*', 'FRANCE', 'ALL', 'TOUTELAFRANCE'}
 OLD_IDF_PREFIXES = '75,77,78,91,92,93,94,95'
 OVERSEAS_PREFIXES = ('971', '972', '973', '974', '975', '976')
+DEFAULT_ETA_METRO = '24–48 h'
+DEFAULT_ETA_OVERSEAS = '3–5 jours ouvrés'
+DEFAULT_OVERSEAS_FEE = Decimal('16.90')
 
 
 def parse_description(value):
@@ -26,6 +29,52 @@ def parse_description(value):
     if len(text) > 800:
         raise ValueError('Description trop longue (800 caractères max).')
     return text
+
+
+def _luhn_ok(number):
+    digits = [int(char) for char in number]
+    checksum = 0
+    odd = True
+    for digit in reversed(digits):
+        if not odd:
+            digit *= 2
+            if digit > 9:
+                digit -= 9
+        checksum += digit
+        odd = not odd
+    return checksum % 10 == 0
+
+
+def normalize_siren(value):
+    """SIREN réel saisi en admin : 9 chiffres + Luhn. Jamais de numéro inventé par défaut."""
+    raw = str(value or '').strip()
+    if not raw:
+        return None
+    digits = re.sub(r'\D', '', raw)
+    if len(digits) == 14:
+        raise ValueError('Indiquez le SIREN (9 chiffres), pas le SIRET.')
+    if len(digits) != 9 or not digits.isdigit():
+        raise ValueError('SIREN invalide : 9 chiffres.')
+    if digits == '000000000' or not _luhn_ok(digits):
+        raise ValueError('SIREN invalide (clé de Luhn).')
+    return digits
+
+
+def _optional_text(value, length):
+    text = str(value or '').strip()[:length]
+    return text or None
+
+
+def _money_field(value, label, allow_empty=False):
+    if allow_empty and value in (None, ''):
+        return None
+    try:
+        fee = Decimal(str(value)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    except Exception as exc:
+        raise ValueError(f'{label} invalide.') from exc
+    if fee < 0 or fee > 200:
+        raise ValueError(f'{label} invalide.')
+    return fee
 
 
 def ensure_commerce_schema():
@@ -49,6 +98,20 @@ def ensure_commerce_schema():
         existing = {column['name'] for column in inspector.get_columns('contact_requests')}
         if 'reply_text' not in existing:
             db.session.execute(text('ALTER TABLE contact_requests ADD COLUMN reply_text TEXT'))
+    if 'shop_settings' in tables:
+        existing = {column['name'] for column in inspector.get_columns('shop_settings')}
+        for name, ddl in {
+            'legal_form': 'VARCHAR(40)',
+            'capital': 'VARCHAR(40)',
+            'rcs_city': 'VARCHAR(80)',
+            'tva_intra': 'VARCHAR(20)',
+            'delivery_carrier': 'VARCHAR(80)',
+            'delivery_eta_metro': 'VARCHAR(80)',
+            'delivery_eta_overseas': 'VARCHAR(80)',
+            'delivery_fee_overseas': 'NUMERIC(10, 2)',
+        }.items():
+            if name not in existing:
+                db.session.execute(text(f'ALTER TABLE shop_settings ADD COLUMN {name} {ddl}'))
     db.session.commit()
     get_settings()
 
@@ -62,13 +125,29 @@ def get_settings():
             email='atelier@florashop.demo',
             pickup_note='Retrait à l’atelier, 10h–18h (fermé le dimanche).',
             delivery_fee=Decimal('8.90'),
+            delivery_fee_overseas=DEFAULT_OVERSEAS_FEE,
             delivery_prefixes='FR',
+            delivery_eta_metro=DEFAULT_ETA_METRO,
+            delivery_eta_overseas=DEFAULT_ETA_OVERSEAS,
             closed_weekdays='6',
         )
         db.session.add(row)
         db.session.commit()
-    elif (row.delivery_prefixes or '') == OLD_IDF_PREFIXES:
+        return row
+    changed = False
+    if (row.delivery_prefixes or '') == OLD_IDF_PREFIXES:
         row.delivery_prefixes = 'FR'
+        changed = True
+    if not (row.delivery_eta_metro or '').strip():
+        row.delivery_eta_metro = DEFAULT_ETA_METRO
+        changed = True
+    if not (row.delivery_eta_overseas or '').strip():
+        row.delivery_eta_overseas = DEFAULT_ETA_OVERSEAS
+        changed = True
+    if row.delivery_fee_overseas is None:
+        row.delivery_fee_overseas = DEFAULT_OVERSEAS_FEE
+        changed = True
+    if changed:
         db.session.commit()
     return row
 
@@ -98,17 +177,34 @@ def update_settings(data):
     if 'phone' in data:
         row.phone = str(data.get('phone') or '').strip()[:40] or None
     if 'siren' in data:
-        row.siren = str(data.get('siren') or '').strip()[:20] or None
+        row.siren = normalize_siren(data.get('siren'))
+    if 'legal_form' in data:
+        row.legal_form = _optional_text(data.get('legal_form'), 40)
+    if 'capital' in data:
+        row.capital = _optional_text(data.get('capital'), 40)
+    if 'rcs_city' in data:
+        row.rcs_city = _optional_text(data.get('rcs_city'), 80)
+    if 'tva_intra' in data:
+        tva = str(data.get('tva_intra') or '').strip().upper().replace(' ', '')[:20]
+        row.tva_intra = tva or None
     if 'pickup_note' in data:
         row.pickup_note = str(data.get('pickup_note') or '').strip()[:255] or None
     if 'delivery_fee' in data:
-        try:
-            fee = Decimal(str(data.get('delivery_fee'))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        except Exception as exc:
-            raise ValueError('Tarif de livraison invalide.') from exc
-        if fee < 0 or fee > 200:
-            raise ValueError('Tarif de livraison invalide.')
-        row.delivery_fee = fee
+        row.delivery_fee = _money_field(data.get('delivery_fee'), 'Tarif de livraison')
+    if 'delivery_fee_overseas' in data:
+        row.delivery_fee_overseas = _money_field(
+            data.get('delivery_fee_overseas'),
+            'Tarif DOM',
+            allow_empty=True,
+        )
+    if 'delivery_carrier' in data:
+        row.delivery_carrier = _optional_text(data.get('delivery_carrier'), 80)
+    if 'delivery_eta_metro' in data:
+        row.delivery_eta_metro = _optional_text(data.get('delivery_eta_metro'), 80) or DEFAULT_ETA_METRO
+    if 'delivery_eta_overseas' in data:
+        row.delivery_eta_overseas = (
+            _optional_text(data.get('delivery_eta_overseas'), 80) or DEFAULT_ETA_OVERSEAS
+        )
     if 'delivery_prefixes' in data:
         raw = str(data.get('delivery_prefixes') or '').strip()
         compact = raw.upper().replace(' ', '').replace('-', '')
@@ -174,6 +270,10 @@ def is_french_postal(postal):
     return postal[:3] in OVERSEAS_PREFIXES
 
 
+def is_overseas_postal(postal):
+    return bool(postal) and postal[:3] in OVERSEAS_PREFIXES
+
+
 def prefix_list():
     raw = get_settings().delivery_prefixes or 'FR'
     if delivery_is_nationwide(raw):
@@ -181,28 +281,62 @@ def prefix_list():
     return [part.strip() for part in raw.split(',') if part.strip()]
 
 
-def quote_shipping(fulfillment_type, address):
-    """0 € au retrait. Livraison : tarif boutique si le CP est français (ou dans la zone)."""
-    if fulfillment_type != 'livraison':
-        return Decimal('0.00')
-    postal = extract_postal(address or '')
-    if not postal:
-        raise ValueError('Pour une livraison, indiquez une adresse avec le code postal à 5 chiffres.')
+def _assert_delivery_zone(postal):
     if delivery_is_nationwide():
         if not is_french_postal(postal):
             raise ValueError(
                 f'Livraison uniquement en France (code postal à 5 chiffres). '
                 f'Le {postal} n’est pas desservi (retrait à l’atelier possible).'
             )
+        return
+    prefixes = prefix_list()
+    if not prefixes or not any(postal.startswith(prefix) for prefix in prefixes):
+        raise ValueError(
+            f'Livraison indisponible pour le {postal}. '
+            f'Zone desservie : {", ".join(prefixes)} (retrait à l’atelier possible).'
+        )
+
+
+def quote_shipping_details(fulfillment_type, address):
+    """Retrait = 0 €. Livraison : tarif + délai selon métropole / DOM."""
+    settings = get_settings()
+    empty = {
+        'shipping': Decimal('0.00'),
+        'zone': None,
+        'overseas': False,
+        'carrier': settings.delivery_carrier or '',
+        'eta': '',
+    }
+    if fulfillment_type != 'livraison':
+        return empty
+    postal = extract_postal(address or '')
+    if not postal:
+        raise ValueError('Pour une livraison, indiquez une adresse avec le code postal à 5 chiffres.')
+    _assert_delivery_zone(postal)
+    overseas = is_overseas_postal(postal)
+    if overseas:
+        if settings.delivery_fee_overseas is not None:
+            fee = Decimal(str(settings.delivery_fee_overseas))
+        else:
+            fee = Decimal(str(settings.delivery_fee or 0))
+        eta = settings.delivery_eta_overseas or DEFAULT_ETA_OVERSEAS
+        zone = 'overseas'
     else:
-        prefixes = prefix_list()
-        if not prefixes or not any(postal.startswith(prefix) for prefix in prefixes):
-            raise ValueError(
-                f'Livraison indisponible pour le {postal}. '
-                f'Zone desservie : {", ".join(prefixes)} (retrait à l’atelier possible).'
-            )
-    fee = Decimal(str(get_settings().delivery_fee or 0)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-    return fee
+        fee = Decimal(str(settings.delivery_fee or 0))
+        eta = settings.delivery_eta_metro or DEFAULT_ETA_METRO
+        zone = 'metro'
+    return {
+        'shipping': fee.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP),
+        'zone': zone,
+        'overseas': overseas,
+        'carrier': settings.delivery_carrier or '',
+        'eta': eta,
+    }
+
+
+def quote_shipping(fulfillment_type, address):
+    """0 € au retrait. Livraison : tarif boutique si le CP est français (ou dans la zone)."""
+    return quote_shipping_details(fulfillment_type, address)['shipping']
 
 
 def apply_promo(code, subtotal):
@@ -293,10 +427,24 @@ def track_guest_order(email, order_id):
 def notify_order(order):
     settings = get_settings()
     shop = settings.legal_name or 'FloraShop'
+    ship_line = ''
+    if order.fulfillment_type == 'livraison':
+        carrier = settings.delivery_carrier or 'transporteur de la boutique'
+        eta = (
+            settings.delivery_eta_overseas
+            if is_overseas_postal(extract_postal(order.address or '') or '')
+            else settings.delivery_eta_metro
+        ) or ''
+        ship_line = (
+            f'Livraison {order.shipping_amount or 0} €'
+            f'{f" via {carrier}" if carrier else ""}'
+            f'{f" ({eta})" if eta else ""}.\n'
+        )
     body = (
         f'Bonjour {order.customer_name or ""},\n\n'
         f'Votre commande #{order.id} chez {shop} est enregistrée '
         f'({order.payment_label()}, {order.total_amount} €).\n'
+        f'{ship_line}'
         f'Suivi : page Commandes, ou en invité avec cet email et le n° {order.id}.\n\n'
         f'{shop}\n'
     )

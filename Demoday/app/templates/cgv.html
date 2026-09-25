@@ -186,10 +186,14 @@
         document.getElementById('legal-name').textContent = name;
         document.getElementById('legal-retract-name').textContent = name;
         const bits = [];
+        if (settings.legal_form) bits.push(settings.legal_form);
         if (settings.address) bits.push(settings.address);
         if (settings.email) bits.push(settings.email);
         if (settings.phone) bits.push(settings.phone);
         if (settings.siren) bits.push('SIREN ' + settings.siren);
+        if (settings.capital) bits.push('Capital ' + settings.capital);
+        if (settings.rcs_city) bits.push('RCS ' + settings.rcs_city);
+        if (settings.tva_intra) bits.push('TVA ' + settings.tva_intra);
         const box = document.getElementById('legal-contact');
         if (bits.length) {
           box.hidden = false;
@@ -202,10 +206,16 @@
         const delivery = document.getElementById('legal-delivery');
         if (delivery) {
           const fee = Number(settings.delivery_fee || 0).toFixed(2);
+          const overseas = settings.delivery_fee_overseas != null
+            ? Number(settings.delivery_fee_overseas).toFixed(2)
+            : fee;
+          const metroEta = settings.delivery_eta_metro || '24–48 h';
+          const overseasEta = settings.delivery_eta_overseas || '3–5 jours ouvrés';
+          const carrier = settings.delivery_carrier ? ' via ' + settings.delivery_carrier : '';
           if (settings.delivery_nationwide || settings.delivery_prefixes === 'FR') {
-            delivery.textContent = 'France entière, ' + fee + ' €';
+            delivery.textContent = 'France : métropole ' + fee + ' € (' + metroEta + '), DOM ' + overseas + ' € (' + overseasEta + ')' + carrier;
           } else if (settings.delivery_prefixes) {
-            delivery.textContent = 'départements ' + settings.delivery_prefixes + ', ' + fee + ' €';
+            delivery.textContent = 'départements ' + settings.delivery_prefixes + ', ' + fee + ' € (' + metroEta + ')' + carrier;
           }
         }
       } catch (e) {}

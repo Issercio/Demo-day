@@ -21,10 +21,27 @@ services:
       - "5000:5000"
     environment:
       DATABASE_URL: postgresql://florashop:change-me-db-password@db:5432/florashop
-      SECRET_KEY: change-me-to-a-long-random-string-min-32-chars
+      # SECRET_KEY vide : Flask génère et persiste dans le volume instance.
+      SECRET_KEY: ${SECRET_KEY:-}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-}
+      FORCE_HTTPS: ${FORCE_HTTPS:-0}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      MAIL_SERVER: ${MAIL_SERVER:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_STARTTLS: ${MAIL_STARTTLS:-1}
+      MAIL_SSL: ${MAIL_SSL:-0}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_TO: ${MAIL_TO:-}
+    volumes:
+      - florashop-instance:/app/instance
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   florashop-pg:
+  florashop-instance:

@@ -19,7 +19,7 @@ python3 -m coverage report -m
 
 Dernière capture : [test-evidence/unittest-output.txt](test-evidence/unittest-output.txt), [test-evidence/coverage-report.txt](test-evidence/coverage-report.txt).
 
-Dernière exécution enregistrée : **140 tests, OK** (95,7 s, couverture 64 %).
+Dernière exécution enregistrée : **150 tests, OK** (118 s, couverture 68 %).
 
 ## Fichiers
 
@@ -28,6 +28,7 @@ Dernière exécution enregistrée : **140 tests, OK** (95,7 s, couverture 64 %).
 | `tests/test_accounts.py` | Comptes démo, catalogue, auth, vitrine, verrouillage login, HTTPS |
 | `tests/test_admin_guard.py` | Rôles, photos produits, page admin, facture, fuites JSON |
 | `tests/test_checkout.py` | Paiement, acompte, atelier, IDOR, suivi commandes |
+| `tests/test_go_live.py` | Stripe.js (mock), webhook idempotent, SMTP SSL, SIREN, zones DOM |
 | `tests/test_shop_ops.py` | Contact, panier serveur, stock, tableau du jour, marque FloraShop |
 | `tests/test_shop_commerce.py` | Suivi invité, livraison, jours fermés, codes promo, identité boutique, descriptions |
 | `tests/test_battery.py` | Batterie fuites / IDOR / auth / France / paniers / pages |
@@ -35,6 +36,6 @@ Dernière exécution enregistrée : **140 tests, OK** (95,7 s, couverture 64 %).
 ## Hors périmètre
 
 - E2E navigateur (Cypress / Playwright)
-- Stripe réel (clés vides en test)
-- SMTP production
+- Stripe réel (clés vides en test ; PaymentIntent / webhook mockés)
+- SMTP production (connexion réelle ; STARTTLS/SSL mockés)
 - PostgreSQL spécifique

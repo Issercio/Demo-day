@@ -12,6 +12,10 @@ def mail_configured():
     return bool((os.environ.get('MAIL_SERVER') or '').strip())
 
 
+def _truthy(name):
+    return (os.environ.get(name) or '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
 def send_mail(to, subject, body):
     dest = (to or '').strip()
     if not dest or '@' not in dest:
@@ -26,13 +30,21 @@ def send_mail(to, subject, body):
         msg['To'] = dest
         msg.set_content(body)
         host = os.environ.get('MAIL_SERVER').strip()
-        port = int(os.environ.get('MAIL_PORT') or '25')
+        port = int(os.environ.get('MAIL_PORT') or '587')
         user = (os.environ.get('MAIL_USER') or '').strip()
         password = os.environ.get('MAIL_PASSWORD') or ''
-        with smtplib.SMTP(host, port, timeout=8) as smtp:
+        # Port 465 = SMTPS. 587 = STARTTLS. MAIL_SSL / MAIL_STARTTLS forcent le mode.
+        use_ssl = _truthy('MAIL_SSL') or _truthy('MAIL_USE_SSL') or port == 465
+        use_starttls = _truthy('MAIL_STARTTLS')
+        if use_ssl:
+            smtp_cm = smtplib.SMTP_SSL(host, port, timeout=12)
+        else:
+            smtp_cm = smtplib.SMTP(host, port, timeout=12)
+        with smtp_cm as smtp:
             smtp.ehlo()
-            if (os.environ.get('MAIL_STARTTLS') or '').lower() in ('1', 'true', 'yes'):
+            if use_starttls and not use_ssl:
                 smtp.starttls()
+                smtp.ehlo()
             if user:
                 smtp.login(user, password)
             smtp.send_message(msg)

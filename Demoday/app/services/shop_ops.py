@@ -61,7 +61,8 @@ def parse_stock_qty(value, default=None):
     return qty
 
 
-def consume_stock(lines):
+def assert_stock_available(lines):
+    """Refuse the quote before Stripe / test-card if a line is already out of stock."""
     for line in lines:
         product = line['product']
         if str(product.name or '').startswith('Abonnement '):
@@ -70,6 +71,16 @@ def consume_stock(lines):
         current = int(product.stock_qty if product.stock_qty is not None else 12)
         if current < qty:
             raise ValueError(f'« {product.name} » n’est plus en stock.')
+
+
+def consume_stock(lines):
+    assert_stock_available(lines)
+    for line in lines:
+        product = line['product']
+        if str(product.name or '').startswith('Abonnement '):
+            continue
+        qty = int(line['quantity'])
+        current = int(product.stock_qty if product.stock_qty is not None else 12)
         product.stock_qty = current - qty
 
 

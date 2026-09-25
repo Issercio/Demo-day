@@ -12,15 +12,29 @@ services:
         value: sqlite:///florashop.db
       - key: SECRET_KEY
         generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
       - key: FORCE_HTTPS
         value: "1"
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
       - key: MAIL_SERVER
-        value: ""
+        sync: false
       - key: MAIL_PORT
         value: "587"
       - key: MAIL_STARTTLS
         value: "1"
+      - key: MAIL_SSL
+        value: "0"
+      - key: MAIL_USER
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
       - key: MAIL_FROM
-        value: ""
+        sync: false
       - key: MAIL_TO
-        value: ""
+        sync: false

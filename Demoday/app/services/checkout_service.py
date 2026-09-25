@@ -6,11 +6,11 @@ import re
 import uuid
 
 from flask import current_app
-from sqlalchemy import inspect, text
+from sqlalchemy import func, inspect, text
 
 from app.extensions import db
 from app.models import Category, Order, OrderItem, Product
-from app.services.shop_ops import consume_stock, parse_fulfillment
+from app.services.shop_ops import assert_stock_available, consume_stock, parse_fulfillment
 
 
 SUBSCRIPTION_PLANS = {
@@ -80,10 +80,17 @@ def stripe_configured():
 
 def payment_config():
     live = stripe_configured()
+    webhook = (current_app.config.get('STRIPE_WEBHOOK_SECRET') or '').strip()
+    webhook_ready = bool(webhook) and webhook not in {
+        '',
+        'whsec_...',
+        'whsec_VOTRE_WEBHOOK_SECRET',
+    }
     return {
         'mode': 'stripe' if live else 'test',
         'publishable_key': current_app.config.get('STRIPE_PUBLISHABLE_KEY') if live else None,
         'currency': 'eur',
+        'webhook_configured': webhook_ready if live else False,
         'test_cards': [
             {'number': '4242 4242 4242 4242', 'result': 'Paiement accepté'},
             {'number': '4000 0000 0000 0002', 'result': 'Carte refusée'},
@@ -329,6 +336,133 @@ def _guest_contact(data, user_id):
     return phone, (address or None)
 
 
+def resolve_cart_items(data, user_id):
+    items = list(data.get('items') or [])
+    if items:
+        return items
+    from flask import request
+    from app.services.shop_ops import guest_token_from, load_cart_items
+    token = guest_token_from(request.headers.get('X-Cart-Token'))
+    return load_cart_items(user_id=user_id, token=None if user_id else token)
+
+
+def build_checkout_quote(data, user_id=None):
+    """Prix catalogue + livraison + promo. Rien n'est persisté."""
+    email = (data.get('email') or '').strip()
+    name = (data.get('customer_name') or data.get('name') or '').strip()
+    method = (data.get('payment_method') or 'card').lower()
+    phone, address = _guest_contact(data, user_id)
+    ftype, fdate, fslot = parse_fulfillment(data)
+    from app.services.shop_commerce import assert_open_day, quote_shipping_details, apply_promo
+    assert_open_day(fdate)
+    if ftype == 'livraison' and not address:
+        raise ValueError('Pour une livraison, indiquez une adresse avec le code postal.')
+
+    if not email or '@' not in email:
+        raise ValueError('Email invalide.')
+    if not name:
+        if user_id is None:
+            name = 'Invité'
+        else:
+            raise ValueError('Nom du client requis.')
+    if method not in ('card', 'paypal', 'saved'):
+        raise ValueError('Méthode de paiement non supportée.')
+
+    items = resolve_cart_items(data, user_id)
+    lines, subtotal = build_order_lines(items)
+    assert_stock_available(lines)
+    shipping_info = quote_shipping_details(ftype, address)
+    shipping = shipping_info['shipping']
+    promo_row, discount = apply_promo(data.get('promo_code') or data.get('promo'), subtotal)
+    payable = subtotal + shipping - discount
+    if payable < Decimal('0.00'):
+        payable = Decimal('0.00')
+    want_deposit = _wants_deposit(data)
+    deposit_amount = deposit_of(payable) if want_deposit else None
+    charge = deposit_amount if want_deposit else payable
+    return {
+        'email': email,
+        'name': name,
+        'user_id': user_id,
+        'phone': phone,
+        'address': address,
+        'method': method,
+        'ftype': ftype,
+        'fdate': fdate,
+        'fslot': fslot,
+        'lines': lines,
+        'subtotal': subtotal,
+        'shipping': shipping,
+        'shipping_info': shipping_info,
+        'discount': discount,
+        'promo_row': promo_row,
+        'payable': payable,
+        'want_deposit': want_deposit,
+        'deposit_amount': deposit_amount,
+        'charge': charge,
+    }
+
+
+def lines_from_order(order):
+    from app.models import Product
+    lines = []
+    for item in order.order_items:
+        product = item.product or db.session.get(Product, item.product_id)
+        if product is None:
+            continue
+        lines.append({
+            'product': product,
+            'quantity': item.quantity,
+            'price': money(item.price),
+        })
+    return lines
+
+
+def mark_order_succeeded(order, card_last4=None):
+    """Idempotent : stock et promo seulement au passage pending → paid/deposit."""
+    from app.services.shop_commerce import bump_promo, notify_order
+    from app.models.settings import PromoCode
+
+    if order.status in ('paid', 'deposit'):
+        return order
+    was_pending = order.status == 'pending'
+    if order.deposit_amount is not None:
+        order.status = 'deposit'
+    else:
+        order.status = 'paid'
+    if not order.prep_status:
+        order.prep_status = 'a_preparer'
+    if card_last4:
+        order.card_last4 = str(card_last4)[:4]
+    if was_pending:
+        try:
+            consume_stock(lines_from_order(order))
+        except ValueError:
+            current_app.logger.exception('Stock après paiement Stripe commande #%s', order.id)
+        if order.promo_code:
+            promo_row = PromoCode.query.filter(
+                func.upper(PromoCode.code) == str(order.promo_code).upper()
+            ).first()
+            bump_promo(promo_row)
+        db.session.commit()
+        try:
+            notify_order(order)
+        except Exception:
+            current_app.logger.exception('Mail commande ignoré')
+    else:
+        db.session.commit()
+    return order
+
+
+def mark_order_failed(order):
+    if order.status in ('paid', 'deposit'):
+        return order
+    order.status = 'failed'
+    order.prep_status = None
+    db.session.commit()
+    return order
+
+
 def _persist_order(
     email, name, user_id, total, method, status, card_last4, reference, stripe_id, lines,
     prep_status=None, deposit_amount=None, phone=None, address=None,
@@ -371,52 +505,37 @@ def _persist_order(
 
 def checkout(data, user_id=None):
     """Valide le panier côté serveur : les prix viennent de la DB, pas du navigateur."""
-    email = (data.get('email') or '').strip()
-    name = (data.get('customer_name') or data.get('name') or '').strip()
-    method = (data.get('payment_method') or 'card').lower()
-    phone, address = _guest_contact(data, user_id)
-    ftype, fdate, fslot = parse_fulfillment(data)
-    from app.services.shop_commerce import assert_open_day, quote_shipping, apply_promo, bump_promo, notify_order
-    assert_open_day(fdate)
-    if ftype == 'livraison' and not address:
-        raise ValueError('Pour une livraison, indiquez une adresse avec le code postal.')
+    from app.services.shop_commerce import bump_promo, notify_order
 
-    if not email or '@' not in email:
-        raise ValueError('Email invalide.')
-    if not name:
-        if user_id is None:
-            name = 'Invité'
-        else:
-            raise ValueError('Nom du client requis.')
-    if method not in ('card', 'paypal', 'saved'):
-        raise ValueError('Méthode de paiement non supportée.')
+    quote = build_checkout_quote(data, user_id)
+    if data.get('payment_intent_id'):
+        # Pas de PI ici : n'importe qui réécrirait la commande. Confirmez via /confirm-payment.
+        raise ValueError('Paiement Stripe : confirmez via /api/v1/payments/confirm-payment.')
+    if quote['method'] == 'card' and stripe_configured():
+        raise ValueError(
+            'Paiement Stripe : utilisez Stripe.js puis /api/v1/payments/confirm-payment.'
+        )
 
-    items = list(data.get('items') or [])
-    if not items:
-        from flask import request
-        from app.services.shop_ops import guest_token_from, load_cart_items
-        token = guest_token_from(request.headers.get('X-Cart-Token'))
-        items = load_cart_items(user_id=user_id, token=None if user_id else token)
-    lines, total = build_order_lines(items)
-    shipping = quote_shipping(ftype, address)
-    promo_row, discount = apply_promo(data.get('promo_code') or data.get('promo'), total)
-    payable = total + shipping - discount
-    if payable < Decimal('0.00'):
-        payable = Decimal('0.00')
+    email = quote['email']
+    name = quote['name']
+    method = quote['method']
+    phone = quote['phone']
+    address = quote['address']
+    ftype, fdate, fslot = quote['ftype'], quote['fdate'], quote['fslot']
+    lines = quote['lines']
+    shipping = quote['shipping']
+    discount = quote['discount']
+    promo_row = quote['promo_row']
+    payable = quote['payable']
     card_last4 = None
     reference = f'{method.upper()}-{uuid.uuid4().hex[:10].upper()}'
     stripe_id = None
     status = 'paid'
     deposit_amount = None
-    # Payée ou acompte → l'atelier doit préparer ; refusée → pas de préparation.
     prep_status = 'a_preparer'
-    want_deposit = _wants_deposit(data)
 
     try:
         if method == 'card':
-            if data.get('payment_intent_id'):
-                # Pas de PI ici : n'importe qui réécrirait la commande. JWT + owner = /confirm-payment.
-                raise ValueError('Paiement Stripe : confirmez via /api/v1/payments/confirm-payment.')
             card_last4 = process_test_card(
                 data.get('card_number'),
                 data.get('card_expiry') or data.get('expiry'),
@@ -441,9 +560,9 @@ def checkout(data, user_id=None):
         raise PaymentDeclined(str(error), order=order) from error
 
     # Stripe encaisse le total : on n'enregistre un acompte que sur le processeur de test.
-    if want_deposit and not stripe_id:
+    if quote['want_deposit'] and not stripe_id:
         status = 'deposit'
-        deposit_amount = deposit_of(payable)
+        deposit_amount = quote['deposit_amount']
 
     consume_stock(lines)
     bump_promo(promo_row)

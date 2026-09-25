@@ -18,6 +18,8 @@ CORS(payments_bp, origins=[
     'http://localhost:8000',
     'http://localhost:5000',
     'http://127.0.0.1:5000',
+    'https://localhost:5000',
+    'https://127.0.0.1:5000',
 ])
 
 logger = logging.getLogger(__name__)
@@ -77,6 +79,7 @@ def create_checkout():
 def create_payment_intent():
     """
     Crée un Payment Intent Stripe. Nécessite des clés Stripe valides.
+    Le montant est le devis serveur (catalogue + livraison + promo + acompte).
     """
     user, error = load_current_user_optional()
     if error:
@@ -94,30 +97,28 @@ def create_payment_intent():
         data['user_id'] = user.id if user else None
         if user:
             data['email'] = user.email
-        
-        if not data.get('items') or not data.get('email'):
-            return jsonify({'error': 'Items et email requis'}), 400
-        
-        if not data['items']:
-            return jsonify({'error': 'Au moins un item requis'}), 400
-        
-        for item in data['items']:
-            if 'product_id' not in item or 'quantity' not in item:
-                return jsonify({'error': 'Chaque item doit avoir product_id et quantity'}), 400
-            if item['quantity'] <= 0:
-                return jsonify({'error': 'La quantité doit être positive'}), 400
+            if not (data.get('name') or data.get('customer_name')):
+                data['name'] = user.username
+            if not data.get('phone') and user.phone:
+                data['phone'] = user.phone
 
+        from app.services.checkout_service import build_checkout_quote
+        quote = build_checkout_quote(data, user_id=user.id if user else None)
         stripe_service = get_stripe_service()
-        result = stripe_service.create_payment_intent(data)
-        
+        result = stripe_service.create_payment_intent(data, quote=quote)
+
         return jsonify({
             'message': 'Payment Intent créé avec succès',
             'client_secret': result['client_secret'],
+            'payment_intent_id': result['payment_intent_id'],
             'order_id': result['order_id'],
             'total_amount': result['total_amount'],
-            'stripe_publishable_key': result['stripe_publishable_key']
+            'charge_amount': result['charge_amount'],
+            'shipping_amount': result['shipping_amount'],
+            'discount_amount': result['discount_amount'],
+            'stripe_publishable_key': result['stripe_publishable_key'],
         }), 201
-        
+
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
@@ -128,9 +129,9 @@ def create_payment_intent():
 @payments_bp.route('/confirm-payment', methods=['POST'])
 def confirm_payment():
     """
-    Confirme un paiement Stripe. JWT obligatoire : on ne synchronise pas une commande d'autrui.
+    Confirme un paiement Stripe. Compte JWT, ou invité avec le même email que la commande.
     """
-    user, error = load_current_user()
+    user, error = load_current_user_optional()
     if error:
         body, status = error
         return jsonify(body), status
@@ -144,20 +145,32 @@ def confirm_payment():
         order = Order.query.filter_by(stripe_payment_intent_id=payment_intent_id).first()
         if not order:
             return jsonify({'error': 'Commande non trouvée'}), 404
-        if not _user_owns_order(user, order):
-            return jsonify({'error': 'Commande non trouvée'}), 404
+        if user:
+            if not _user_owns_order(user, order):
+                return jsonify({'error': 'Commande non trouvée'}), 404
+        else:
+            email = (data.get('email') or '').strip().lower()
+            if not email:
+                return jsonify({'error': 'Email requis pour confirmer en invité.'}), 400
+            if (order.email or '').strip().lower() != email:
+                return jsonify({'error': 'Commande non trouvée'}), 404
         if not stripe_configured():
             return jsonify({'error': 'Stripe n\'est pas configuré'}), 503
 
         stripe_service = get_stripe_service()
         result = stripe_service.confirm_payment(payment_intent_id)
         order = db.session.get(Order, order.id)
+        from app.services.shop_ops import clear_cart, guest_token_from
+        clear_cart(
+            user_id=user.id if user else None,
+            token=guest_token_from(request.headers.get('X-Cart-Token')),
+        )
         return jsonify({
             'message': 'Paiement confirmé',
             'status': result['status'],
             'order': _serialize_order(user, order),
         }), 200
-        
+
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:

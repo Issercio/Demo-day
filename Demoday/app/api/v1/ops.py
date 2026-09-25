@@ -133,14 +133,20 @@ def put_settings_route():
 
 @ops_bp.route('/shipping', methods=['GET'])
 def shipping_quote_route():
-    from app.services.shop_commerce import quote_shipping
+    from app.services.shop_commerce import quote_shipping_details
     ftype = (request.args.get('type') or '').strip().lower()
     address = request.args.get('address') or ''
     try:
-        fee = quote_shipping(ftype, address)
+        details = quote_shipping_details(ftype, address)
     except ValueError as exc:
         return jsonify({'error': str(exc), 'shipping': None}), 400
-    return jsonify({'shipping': float(fee)})
+    return jsonify({
+        'shipping': float(details['shipping']),
+        'zone': details['zone'],
+        'overseas': details['overseas'],
+        'carrier': details['carrier'],
+        'eta': details['eta'],
+    })
 
 
 @ops_bp.route('/promo/quote', methods=['GET'])

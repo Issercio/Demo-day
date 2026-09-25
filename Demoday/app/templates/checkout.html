@@ -109,6 +109,13 @@
             box-shadow: 0 0 0 3px rgba(188, 98, 136, 0.18);
         }
         .card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .stripe-card-mount {
+            padding: 12px;
+            border: 1.5px solid #bc6288;
+            border-radius: 8px;
+            background: #fff;
+            min-height: 42px;
+        }
         .test-cards {
             margin-top: 10px;
             padding: 12px;
@@ -395,6 +402,7 @@
                     </div>
                     
                     <div class="form-group" id="card-fields">
+                        <div id="pan-fields">
                         <label for="card-number">💳 Numéro de carte</label>
                         <input type="text" id="card-number" name="card_number" inputmode="numeric" autocomplete="off" placeholder="4242 4242 4242 4242">
                         <div class="card-row" style="margin-top: 12px;">
@@ -407,7 +415,6 @@
                                 <input type="text" id="card-cvc" name="card_cvc" inputmode="numeric" autocomplete="off" placeholder="123">
                             </div>
                         </div>
-                        <div id="card-errors" class="error" style="display: none;"></div>
                         <div class="test-cards" id="test-cards-help">
                             Cartes de test : <strong>4242 4242 4242 4242</strong> (acceptée),
                             <strong>4000 0000 0000 0002</strong> (refusée),
@@ -415,6 +422,15 @@
                             Expiration future + CVC 123.
                             <button type="button" id="fill-test-card" class="back-to-shop" style="display:block;margin-top:10px;background:#bc6288;">Remplir la carte de test 4242</button>
                         </div>
+                        </div>
+                        <div id="stripe-card-wrap" style="display:none;">
+                            <label for="stripe-card-mount">💳 Carte bancaire</label>
+                            <div id="stripe-card-mount" class="stripe-card-mount"></div>
+                            <p class="test-cards" id="stripe-help">
+                                Paiement Stripe (HTTPS public + webhook). En test Stripe, carte 4242 4242 4242 4242.
+                            </p>
+                        </div>
+                        <div id="card-errors" class="error" style="display: none;"></div>
                     </div>
 
                     <div class="form-group deposit-option" id="deposit-option">
@@ -453,10 +469,14 @@
         let cartItems = [];
         let selectedPaymentMethod = 'card';
         let paymentMode = 'test';
+        let stripePublishableKey = null;
+        let stripe = null;
+        let stripeCard = null;
         let lastCartTotal = 0;
         let shippingFee = 0;
         let discountAmount = 0;
         let shopSettings = null;
+        let shippingMeta = { carrier: '', eta: '', zone: null };
 
         function depositWanted() {
             const box = document.getElementById('pay-deposit');
@@ -541,14 +561,25 @@
 
         function configurePaymentFormForMethod() {
             const cardFields = document.getElementById('card-fields');
+            const panFields = document.getElementById('pan-fields');
+            const stripeWrap = document.getElementById('stripe-card-wrap');
             const note = document.getElementById('payment-method-note');
             const payButton = document.getElementById('pay-button');
             const methodLabel = getMethodLabel(selectedPaymentMethod);
             const cardRequired = selectedPaymentMethod === 'card';
             cardFields.style.display = cardRequired ? 'block' : 'none';
+            const useStripe = paymentMode === 'stripe' && cardRequired;
 
             if (selectedPaymentMethod === 'card') {
-                note.innerHTML = `Mode sélectionné : <strong>${methodLabel}</strong> — le serveur valide la carte et enregistre la commande.`;
+                if (useStripe) {
+                    note.innerHTML = 'Mode sélectionné : <strong>Stripe</strong> — la carte ne transite pas par le serveur FloraShop.';
+                    if (panFields) panFields.style.display = 'none';
+                    if (stripeWrap) stripeWrap.style.display = 'block';
+                } else {
+                    note.innerHTML = `Mode sélectionné : <strong>${methodLabel}</strong> — le serveur valide la carte de test et enregistre la commande.`;
+                    if (panFields) panFields.style.display = 'block';
+                    if (stripeWrap) stripeWrap.style.display = 'none';
+                }
                 cardFields.style.display = 'block';
             } else if (selectedPaymentMethod === 'paypal') {
                 note.innerHTML = 'Mode sélectionné : <strong>PayPal</strong> (sandbox). La commande est créée côté serveur.';
@@ -560,6 +591,71 @@
 
             payButton.innerHTML = `🔒 Payer avec ${methodLabel} <span id="pay-amount">0.00 €</span>`;
             displayCartItems();
+        }
+
+        function checkoutAuthHeaders() {
+            const headers = { 'Content-Type': 'application/json' };
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+            if (window.FloraCart && FloraCart.guestToken) {
+                headers['X-Cart-Token'] = FloraCart.guestToken();
+            }
+            return headers;
+        }
+
+        function loadStripeJs() {
+            return new Promise((resolve, reject) => {
+                if (window.Stripe) {
+                    resolve(window.Stripe);
+                    return;
+                }
+                const existing = document.querySelector('script[data-stripe-js]');
+                if (existing) {
+                    existing.addEventListener('load', () => resolve(window.Stripe));
+                    existing.addEventListener('error', () => reject(new Error('Stripe.js indisponible')));
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = 'https://js.stripe.com/v3/';
+                script.async = true;
+                script.dataset.stripeJs = '1';
+                script.onload = () => resolve(window.Stripe);
+                script.onerror = () => reject(new Error('Stripe.js indisponible'));
+                document.head.appendChild(script);
+            });
+        }
+
+        async function ensureStripeCard() {
+            if (!stripePublishableKey || paymentMode !== 'stripe') {
+                return;
+            }
+            const StripeCtor = await loadStripeJs();
+            if (!StripeCtor) {
+                throw new Error('Stripe.js indisponible');
+            }
+            if (!stripe) {
+                stripe = StripeCtor(stripePublishableKey);
+            }
+            if (!stripeCard) {
+                const elements = stripe.elements();
+                stripeCard = elements.create('card', { hidePostalCode: true });
+                stripeCard.mount('#stripe-card-mount');
+                stripeCard.on('change', (event) => {
+                    const err = document.getElementById('card-errors');
+                    if (!err) {
+                        return;
+                    }
+                    if (event.error) {
+                        err.style.display = 'block';
+                        err.textContent = event.error.message;
+                    } else {
+                        err.style.display = 'none';
+                        err.textContent = '';
+                    }
+                });
+            }
         }
 
         function renderSuccessPayment(order) {
@@ -812,9 +908,14 @@
             const shippingEl = document.getElementById('shipping-amount');
             if (shippingEl) {
                 const ftype = (document.getElementById('fulfillment-type') || {}).value;
-                shippingEl.textContent = ftype === 'livraison'
-                    ? `${Number(shippingFee).toFixed(2)} €`
-                    : 'Offerte au retrait';
+                if (ftype === 'livraison') {
+                    const bits = [`${Number(shippingFee).toFixed(2)} €`];
+                    if (shippingMeta.eta) bits.push(shippingMeta.eta);
+                    if (shippingMeta.carrier) bits.push(shippingMeta.carrier);
+                    shippingEl.textContent = bits.join(' · ');
+                } else {
+                    shippingEl.textContent = 'Offerte au retrait';
+                }
             }
             totalElement.textContent = `${payableTotal(total).toFixed(2)} €`;
             refreshDepositUi();
@@ -826,12 +927,18 @@
             const promo = (document.getElementById('promo-code') || {}).value || '';
             const hint = document.getElementById('promo-hint');
             shippingFee = 0;
+            shippingMeta = { carrier: '', eta: '', zone: null };
             if (ftype === 'livraison') {
                 try {
                     const response = await fetch('/api/v1/shipping?type=livraison&address=' + encodeURIComponent(address));
                     const data = await response.json().catch(() => ({}));
                     if (response.ok) {
                         shippingFee = Number(data.shipping || 0);
+                        shippingMeta = {
+                            carrier: data.carrier || '',
+                            eta: data.eta || '',
+                            zone: data.zone || null
+                        };
                     } else {
                         shippingFee = 0;
                         const shippingEl = document.getElementById('shipping-amount');
@@ -947,27 +1054,58 @@
                 items: checkoutItemsPayload()
             };
 
-            if (selectedPaymentMethod === 'card') {
-                payload.card_number = document.getElementById('card-number').value;
-                payload.card_expiry = document.getElementById('card-expiry').value;
-                payload.card_cvc = document.getElementById('card-cvc').value;
-                if (!payload.card_number || !payload.card_expiry || !payload.card_cvc) {
-                    resultBox.innerHTML = '<div class="error"><p>Numéro de carte, expiration et CVC sont requis.</p></div>';
-                    restorePayButton();
-                    return;
-                }
-            }
-
-            const headers = { 'Content-Type': 'application/json' };
-            const token = localStorage.getItem('auth_token');
-            if (token) {
-                headers.Authorization = `Bearer ${token}`;  // optionnel : checkout invité autorisé
-            }
-            if (window.FloraCart && FloraCart.guestToken) {
-                headers['X-Cart-Token'] = FloraCart.guestToken();
-            }
+            const headers = checkoutAuthHeaders();
 
             try {
+                if (selectedPaymentMethod === 'card' && paymentMode === 'stripe') {
+                    await ensureStripeCard();
+                    const intentResponse = await fetch('/api/v1/payments/create-payment-intent', {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify(payload)
+                    });
+                    const intentData = await intentResponse.json().catch(() => ({}));
+                    if (!intentResponse.ok) {
+                        throw new Error(intentData.error || 'Impossible de créer le paiement Stripe.');
+                    }
+                    const confirmed = await stripe.confirmCardPayment(intentData.client_secret, {
+                        payment_method: {
+                            card: stripeCard,
+                            billing_details: { name: name || 'Invité', email }
+                        }
+                    });
+                    if (confirmed.error) {
+                        throw new Error(confirmed.error.message || 'Carte refusée.');
+                    }
+                    const piId = (confirmed.paymentIntent && confirmed.paymentIntent.id)
+                        || intentData.payment_intent_id;
+                    const confirmResponse = await fetch('/api/v1/payments/confirm-payment', {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({
+                            payment_intent_id: piId,
+                            email
+                        })
+                    });
+                    const confirmData = await confirmResponse.json().catch(() => ({}));
+                    if (confirmResponse.ok && confirmData.order) {
+                        renderSuccessPayment(confirmData.order);
+                        return;
+                    }
+                    throw new Error(confirmData.error || 'Paiement Stripe non confirmé.');
+                }
+
+                if (selectedPaymentMethod === 'card') {
+                    payload.card_number = document.getElementById('card-number').value;
+                    payload.card_expiry = document.getElementById('card-expiry').value;
+                    payload.card_cvc = document.getElementById('card-cvc').value;
+                    if (!payload.card_number || !payload.card_expiry || !payload.card_cvc) {
+                        resultBox.innerHTML = '<div class="error"><p>Numéro de carte, expiration et CVC sont requis.</p></div>';
+                        restorePayButton();
+                        return;
+                    }
+                }
+
                 const response = await fetch('/api/v1/payments/checkout', {
                     method: 'POST',
                     headers,
@@ -1104,10 +1242,18 @@
                     bits.push(shopSettings.pickup_note);
                 }
                 const fee = Number(shopSettings.delivery_fee || 0).toFixed(2);
+                const overseas = shopSettings.delivery_fee_overseas != null
+                    ? Number(shopSettings.delivery_fee_overseas).toFixed(2)
+                    : fee;
+                const metroEta = shopSettings.delivery_eta_metro || '24–48 h';
+                const overseasEta = shopSettings.delivery_eta_overseas || '3–5 jours ouvrés';
                 if (shopSettings.delivery_nationwide) {
-                    bits.push('Livraison en France entière (métropole et DOM), ' + fee + ' €.');
+                    bits.push('Livraison métropole ' + fee + ' € (' + metroEta + '), DOM ' + overseas + ' € (' + overseasEta + ').');
                 } else if (shopSettings.delivery_label) {
-                    bits.push('Livraison : départements ' + shopSettings.delivery_label + ', ' + fee + ' €.');
+                    bits.push('Livraison : ' + shopSettings.delivery_label + ', ' + fee + ' € (' + metroEta + ').');
+                }
+                if (shopSettings.delivery_carrier) {
+                    bits.push('Transporteur : ' + shopSettings.delivery_carrier + '.');
                 }
                 pickup.textContent = bits.join(' ');
             }
@@ -1154,9 +1300,15 @@
                 if (configResponse.ok) {
                     const config = await configResponse.json();
                     paymentMode = config.mode || 'test';
+                    stripePublishableKey = config.publishable_key || null;
                     if (paymentMode === 'stripe') {
-                        document.getElementById('test-cards-help').textContent =
-                            'Stripe est configuré. Vous pouvez aussi utiliser les cartes de test Stripe.';
+                        const help = document.getElementById('test-cards-help');
+                        if (help) {
+                            help.style.display = 'none';
+                        }
+                        try {
+                            await ensureStripeCard();
+                        } catch (e) {}
                     }
                 }
             } catch (e) {}
