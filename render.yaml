@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: pivoine-lilas
+    name: florashop
     runtime: python
     plan: free
     buildCommand: pip install -r Demoday/requirements.txt

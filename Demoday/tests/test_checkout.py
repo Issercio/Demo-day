@@ -588,14 +588,14 @@ class CheckoutTestCase(unittest.TestCase):
             'card_number': '4242424242424242',
             'card_expiry': '12/34',
             'card_cvc': '123',
-            'address': '12 rue des Lilas, 74140 Sciez',
+            'address': '12 rue des Fleurs, 75011 Paris',
             'items': [{'product_id': self.product.id, 'quantity': 1}],
         })
         self.assertEqual(by_address.status_code, 201, by_address.get_json())
         order = by_address.get_json()['order']
         self.assertTrue(order['guest'])
         self.assertEqual(order['customer_name'], 'Invité')
-        self.assertEqual(order['address'], '12 rue des Lilas, 74140 Sciez')
+        self.assertEqual(order['address'], '12 rue des Fleurs, 75011 Paris')
         self.assertIsNone(order['phone'])
 
     def test_client_order_json_hides_stripe_id(self):

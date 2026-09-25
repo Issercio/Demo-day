@@ -147,6 +147,22 @@ class ShopOpsTestCase(unittest.TestCase):
         self.assertIn('atelier-today', html)
         self.assertIn('contact-inbox', html)
         self.assertIn('/static/img/logo.png', html)
+        self.assertIn('FloraShop', html)
+        self.assertNotIn('Pivoine & Lilas', html.replace('&amp;', '&'))
+        self.assertNotIn('pivoine-lilas', html.lower())
+
+    def test_site_brand_is_florashop(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1].joinpath('app/templates')
+        offenders = []
+        for path in sorted(root.glob('*.html')):
+            text = path.read_text()
+            plain = text.replace('&amp;', '&')
+            if 'Pivoine & Lilas' in plain or 'pivoine-lilas' in text.lower():
+                offenders.append(path.name)
+        self.assertEqual(offenders, [])
+        home = (root / 'accueil.html').read_text()
+        self.assertIn('FloraShop', home)
 
     def test_admin_can_set_stock(self):
         token = self.login('admin@florashop.com', 'admin123')

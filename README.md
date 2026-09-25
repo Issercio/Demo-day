@@ -1,4 +1,4 @@
-# Pivoine & Lilas
+# FloraShop
 
 Boutique florale en ligne : le client choisit un bouquet, paie, et suit sa commande. Le fleuriste gère le catalogue, la vitrine et l’atelier depuis un back-office protégé.
 
@@ -81,8 +81,8 @@ Le dépôt n’expose pas d’URL publique tant qu’un hébergeur n’est pas c
 **Docker**
 
 ```bash
-docker build -t pivoine-lilas .
-docker run -p 5000:5000 pivoine-lilas
+docker build -t florashop .
+docker run -p 5000:5000 florashop
 ```
 
 **Render** — le fichier `render.yaml` décrit le service. Relier le dépôt GitHub à Render, déployer, et l’URL Render devient l’adresse du shop. Poser `SECRET_KEY` (générée) et éventuellement les clés Stripe.
@@ -99,6 +99,16 @@ docker run -p 5000:5000 pivoine-lilas
 | Prod | gunicorn, Docker, Render |
 
 Le navigateur affiche les pages et appelle `/api/v1`. La vitrine lue par le shop est celle posée par le fleuriste (`GET /api/v1/themes`). Le logo est servi en local (`/static/img/logo.png`), pas depuis un CDN.
+
+## Tests
+
+La suite reste dans `Demoday/tests/` (`test_accounts.py`, `test_admin_guard.py`, `test_checkout.py`, `test_shop_ops.py`).
+
+```bash
+./run-tests.sh
+```
+
+Détail et preuves : [`docs/testing.md`](docs/testing.md).
 
 ## API principale
 

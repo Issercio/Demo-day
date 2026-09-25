@@ -124,7 +124,7 @@ def _deliver(user, code, channel, purpose):
     if channel == 'email' and host:
         try:
             msg = EmailMessage()
-            msg['Subject'] = 'Pivoine & Lilas — votre code'
+            msg['Subject'] = 'FloraShop — votre code'
             msg['From'] = os.environ.get('MAIL_FROM', 'noreply@localhost')
             msg['To'] = user.email
             msg.set_content(
