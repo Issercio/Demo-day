@@ -74,6 +74,7 @@ class ShopOpsTestCase(unittest.TestCase):
         items = loaded.get_json()['items']
         self.assertEqual(len(items), 1)
         self.assertEqual(int(items[0]['quantity']), 2)
+        self.assertEqual(float(items[0]['price']), 29.99)
 
     def test_login_merges_guest_cart(self):
         self.client.put('/api/v1/cart', json={

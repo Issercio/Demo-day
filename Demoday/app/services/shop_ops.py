@@ -115,6 +115,17 @@ def _sanitize_items(raw):
             'image': str(item.get('image') or '')[:255] or None,
             'plan': str(item.get('plan') or '')[:40] or None,
         }
+        try:
+            price = float(item.get('price'))
+        except (TypeError, ValueError):
+            price = None
+        if price is not None and 0 <= price <= 10000:
+            payload['price'] = round(price, 2)
+        category = item.get('category')
+        if isinstance(category, dict):
+            category = category.get('name')
+        if category:
+            payload['category'] = str(category)[:80]
         if kind == 'subscription' or str(payload['id'] or '').startswith('subscription_'):
             payload['type'] = 'subscription'
         items.append(payload)
@@ -158,13 +169,48 @@ def _get_or_create_cart(user_id=None, token=None):
     return None
 
 
+def _enrich_items(items):
+    """Prix, nom et photo viennent du catalogue pour l’affichage panier."""
+    product_ids = []
+    for item in items:
+        if item.get('type') == 'subscription':
+            continue
+        try:
+            product_ids.append(int(item.get('product_id') or item.get('id')))
+        except (TypeError, ValueError):
+            continue
+    catalog = {}
+    if product_ids:
+        catalog = {
+            product.id: product
+            for product in Product.query.filter(Product.id.in_(product_ids)).all()
+        }
+    for item in items:
+        if item.get('type') == 'subscription':
+            continue
+        try:
+            product_id = int(item.get('product_id') or item.get('id'))
+        except (TypeError, ValueError):
+            continue
+        product = catalog.get(product_id)
+        if product is None:
+            continue
+        item['price'] = float(product.price)
+        item['name'] = product.name
+        if product.image:
+            item['image'] = product.image
+        if product.category:
+            item['category'] = product.category.name
+    return items
+
+
 def load_cart_items(user_id=None, token=None):
     cart = None
     if user_id:
         cart = Cart.query.filter_by(user_id=user_id).first()
     elif token:
         cart = Cart.query.filter_by(guest_token=token).first()
-    return _sanitize_items(_cart_payload(cart) if cart else [])
+    return _enrich_items(_sanitize_items(_cart_payload(cart) if cart else []))
 
 
 def save_cart_items(items, user_id=None, token=None):
@@ -174,7 +220,7 @@ def save_cart_items(items, user_id=None, token=None):
     cart.items_json = json.dumps(_sanitize_items(items), ensure_ascii=False)
     cart.updated_at = utc_now()
     db.session.commit()
-    return _sanitize_items(json.loads(cart.items_json))
+    return _enrich_items(_sanitize_items(json.loads(cart.items_json)))
 
 
 def merge_guest_into_user(user_id, token):
@@ -195,7 +241,7 @@ def merge_guest_into_user(user_id, token):
     user_cart.items_json = json.dumps(merged, ensure_ascii=False)
     user_cart.updated_at = utc_now()
     db.session.commit()
-    return merged
+    return _enrich_items(merged)
 
 
 def _item_key(item):

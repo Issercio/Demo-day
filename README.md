@@ -30,7 +30,9 @@ Boutique florale en ligne : le client choisit un bouquet, paie, et suit sa comma
 
 ![Paiement](docs/screenshots/checkout.png)
 
-![Atelier](docs/screenshots/admin-orders.png)
+![Atelier](docs/screenshots/admin-today.png)
+
+![Commandes](docs/screenshots/admin-orders.png)
 
 ## Lancer le projet
 
