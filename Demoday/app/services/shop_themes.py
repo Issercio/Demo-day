@@ -370,7 +370,7 @@ def ensure_shop_themes():
             _set_theme_products(row, spec['products'], by_name)
     _import_legacy_json(by_name)
     if db.session.get(ShopVitrine, 1) is None:
-        db.session.add(ShopVitrine(id=1, season_id=None, theme_id=None))
+        db.session.add(ShopVitrine(id=1, season_id=None, theme_id=None, auto_mode=True))
     db.session.commit()
     _sync_vitrine_event_links()
     _import_legacy_vitrine_file()
@@ -606,8 +606,10 @@ def _sync_vitrine_event_links():
     db.session.commit()
 
 
-def get_applied_vitrine():
+def get_applied_vitrine(today=None):
     row = _vitrine_row()
+    if getattr(row, 'auto_mode', True):
+        return calendar_applied(today)
     try:
         season = _normalize_slot(row.season_id, 'saison')
     except KeyError:
@@ -629,6 +631,7 @@ def set_applied_vitrine(season_id=None, theme_id=None):
     events = _normalize_event_list(theme_id)
     applied = _applied_from(_normalize_slot(season_id, 'saison'), events)
     row = _vitrine_row()
+    row.auto_mode = False  # un clic fleuriste sort du calendrier
     row.season_id = applied['season']
     row.theme_id = events[0] if events else None  # compat : première colonne = premier thème
     row.event_links.clear()
@@ -638,11 +641,38 @@ def set_applied_vitrine(season_id=None, theme_id=None):
     return applied
 
 
+def set_auto_vitrine():
+    row = _vitrine_row()
+    row.auto_mode = True
+    db.session.commit()
+    return get_applied_vitrine()
+
+
+def is_auto_vitrine():
+    row = _vitrine_row()
+    return bool(getattr(row, 'auto_mode', True))
+
+
+def calendar_applied(today=None):
+    from app.services.shop_extras import calendar_event_ids
+
+    season = current_theme_id(today)
+    events = []
+    for theme_id in calendar_event_ids(today):
+        try:
+            events.append(_normalize_slot(theme_id, 'evenement'))
+        except KeyError:
+            continue
+    return _applied_from(season, events)
+
+
 def set_applied_theme_id(theme_id):
+    if theme_id in ('auto', 'calendrier'):
+        return set_auto_vitrine()
     if theme_id in (None, '', 'none', 'all', 'catalogue'):
         return set_applied_vitrine(None, None)
     ids = parse_theme_ids(theme_id)
-    current = get_applied_vitrine()
+    current = _empty_applied() if is_auto_vitrine() else get_applied_vitrine()
     season = current['season']
     events = list(current['themes'] or [])
     for item_id in ids:
@@ -668,12 +698,14 @@ def vitrine_blurb(applied):
 
 def themes_payload(today=None):
     calendar_season = current_theme_id(today)
-    applied = get_applied_vitrine()
+    applied = get_applied_vitrine(today)
     ids = applied_ids(applied)
+    auto = is_auto_vitrine()
     return {
         'current': calendar_season,
         'season': calendar_season,
-        'applied': get_applied_theme_id(),
+        'auto': auto,
+        'applied': ','.join(ids) if ids else None,
         'applied_season': applied['season'],
         'applied_theme': applied['theme'],
         'applied_themes': applied['themes'],

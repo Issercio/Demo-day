@@ -629,8 +629,10 @@ class CheckoutTestCase(unittest.TestCase):
         html = self.client.get('/commandes.html').get_data(as_text=True)
         self.assertEqual(self.client.get('/commandes.html').status_code, 200)
         self.assertEqual(self.client.get('/commandes').status_code, 200)
-        self.assertIn('Suivi de mes commandes', html)
+        self.assertIn('Suivi de commande', html)
         self.assertIn('/api/v1/payments/my-orders', html)
+        self.assertIn('/api/v1/payments/track', html)
+        self.assertIn('guest-track-form', html)
         self.assertIn('track-steps', html)
         self.assertIn('À préparer', html)
         self.assertIn('not(:last-child)::after', html)
@@ -642,13 +644,16 @@ class CheckoutTestCase(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         js = root.joinpath('app/static/js/api.js').read_text()
         self.assertIn('Mes commandes', js)
+        self.assertIn('Suivre une commande', js)
         checkout = self.client.get('/checkout.html').get_data(as_text=True)
         self.assertIn('Suivre ma commande', checkout)
-        self.assertIn('commandes.html#order-', checkout)
+        self.assertIn('commandes.html', checkout)
         self.assertIn('success-actions', checkout)
         self.assertIn('identity-gate', checkout)
         self.assertIn('Continuer en invité', checkout)
         self.assertIn('Créer un compte', checkout)
+        self.assertIn('fulfillment-date', checkout)
+        self.assertIn('card-message', checkout)
 
     def test_checkout_rejects_payment_intent_id(self):
         response = self.client.post('/api/v1/payments/checkout', json={
@@ -712,6 +717,121 @@ class CheckoutTestCase(unittest.TestCase):
         order = response.get_json()['order']
         self.assertFalse(str(order.get('payment_reference') or '').startswith('pi_'))
         self.assertNotIn('stripe_payment_intent_id', order)
+
+    def test_checkout_saves_fulfillment_and_card_message(self):
+        from datetime import date, timedelta
+        wanted = (date.today() + timedelta(days=2)).isoformat()
+        response = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'invite@test.com',
+            'name': 'Invité Fleurs',
+            'phone': '+33612345678',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'fulfillment_type': 'retrait',
+            'fulfillment_date': wanted,
+            'fulfillment_slot': 'apres-midi',
+            'card_message': 'Pour maman, avec tout mon amour.',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        self.assertEqual(response.status_code, 201, response.get_json())
+        order = response.get_json()['order']
+        self.assertEqual(order['fulfillment_type'], 'retrait')
+        self.assertEqual(order['fulfillment_date'], wanted)
+        self.assertEqual(order['fulfillment_slot'], 'apres-midi')
+        self.assertEqual(order['card_message'], 'Pour maman, avec tout mon amour.')
+        self.assertTrue(response.get_json().get('demo_notice'))
+
+    def test_guest_can_track_order_by_email_and_code(self):
+        created = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'guest-track@test.com',
+            'name': 'Invité',
+            'phone': '+33612345678',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        self.assertEqual(created.status_code, 201, created.get_json())
+        order_id = created.get_json()['order']['id']
+
+        denied = self.client.get('/api/v1/payments/my-orders')
+        self.assertEqual(denied.status_code, 401)
+
+        found = self.client.post('/api/v1/payments/track', json={
+            'email': 'guest-track@test.com',
+            'order_id': order_id,
+        })
+        self.assertEqual(found.status_code, 200, found.get_json())
+        self.assertEqual(found.get_json()['orders'][0]['id'], order_id)
+
+        missing = self.client.post('/api/v1/payments/track', json={
+            'email': 'other@test.com',
+            'order_id': order_id,
+        })
+        self.assertEqual(missing.status_code, 404)
+
+        code_res = self.client.post('/api/v1/payments/track-request', json={
+            'email': 'guest-track@test.com',
+        })
+        self.assertEqual(code_res.status_code, 200, code_res.get_json())
+        demo_code = code_res.get_json()['demo_code']
+        listed = self.client.post('/api/v1/payments/track', json={
+            'email': 'guest-track@test.com',
+            'code': demo_code,
+        })
+        self.assertEqual(listed.status_code, 200, listed.get_json())
+        self.assertEqual(listed.get_json()['orders'][0]['id'], order_id)
+
+    def test_checkout_decrements_server_stock_and_rejects_out_of_stock(self):
+        self.product.stock_qty = 1
+        db.session.commit()
+        ok = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'phone': '+33612345678',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        self.assertEqual(ok.status_code, 201, ok.get_json())
+        db.session.refresh(self.product)
+        self.assertEqual(self.product.stock_qty, 0)
+
+        refused = self.client.post('/api/v1/payments/checkout', json={
+            'email': 'marie@test.com',
+            'name': 'Marie Test',
+            'phone': '+33612345678',
+            'payment_method': 'card',
+            'card_number': '4242424242424242',
+            'card_expiry': '12/34',
+            'card_cvc': '123',
+            'items': [{'product_id': self.product.id, 'quantity': 1}],
+        })
+        self.assertEqual(refused.status_code, 400, refused.get_json())
+        self.assertIn('stock', refused.get_json()['error'].lower())
+
+    def test_prep_patch_returns_demo_sms_notice(self):
+        order_id, token = self._checkout_as('marie@test.com', 'marie123', 'Marie Test')
+        user = User.query.filter_by(email='marie@test.com').first()
+        user.phone = '+33612345678'
+        order = db.session.get(Order, order_id)
+        order.phone = '+33612345678'
+        db.session.commit()
+        admin = self.login('admin@florashop.com', 'admin123')
+        response = self.client.patch(
+            f'/api/v1/payments/orders/{order_id}',
+            json={'prep_status': 'en_preparation'},
+            headers={'Authorization': f'Bearer {admin}'},
+        )
+        self.assertEqual(response.status_code, 200, response.get_json())
+        self.assertEqual(response.get_json()['order']['prep_status'], 'en_preparation')
+        self.assertIn('en préparation', response.get_json()['demo_notice'])
+        self.assertEqual(response.get_json()['notice']['channel'], 'sms')
 
 
 if __name__ == '__main__':

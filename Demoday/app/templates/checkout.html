@@ -441,7 +441,7 @@
             <div class="payment-form">
                 <div id="identity-gate" class="identity-gate" style="display:none;">
                     <h3>Comment voulez-vous commander ?</h3>
-                    <p>Sans compte, créez-en un pour valider et suivre la commande, ou continuez en <strong>invité</strong> avec un email et un téléphone ou une adresse.</p>
+                    <p>Sans compte, créez-en un ou continuez en <strong>invité</strong>. Le suivi se fait ensuite par email ou sur le site avec le n° de commande.</p>
                     <div class="identity-actions">
                         <button type="button" class="primary" id="choose-account">Créer un compte</button>
                         <a class="secondary" id="choose-login" href="account.html">J'ai déjà un compte</a>
@@ -477,6 +477,31 @@
                         <input type="text" id="address" name="address" placeholder="Numéro, rue, code postal, ville" autocomplete="street-address">
                     </div>
                     <p id="guest-contact-hint" style="display:none;margin:-12px 0 18px;color:#6c4a58;font-size:0.9rem;">Invité : indiquez un téléphone <strong>ou</strong> une adresse (les deux si vous voulez).</p>
+
+                    <div class="form-group">
+                        <label for="fulfillment-type">Retrait ou livraison</label>
+                        <select id="fulfillment-type" name="fulfillment_type">
+                            <option value="retrait">Retrait en boutique</option>
+                            <option value="livraison">Livraison</option>
+                        </select>
+                    </div>
+                    <div class="card-row" style="margin-bottom: 16px;">
+                        <div class="form-group" style="margin:0;">
+                            <label for="fulfillment-date">Date</label>
+                            <input type="date" id="fulfillment-date" name="fulfillment_date" required>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label for="fulfillment-slot">Créneau</label>
+                            <select id="fulfillment-slot" name="fulfillment_slot">
+                                <option value="matin">Matin</option>
+                                <option value="apres-midi">Après-midi</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="card-message">Carte de vœux (optionnel)</label>
+                        <textarea id="card-message" name="card_message" maxlength="280" rows="2" placeholder="Un mot à glisser dans le bouquet…"></textarea>
+                    </div>
                     
                     <div class="form-group" id="card-fields">
                         <label for="card-number">💳 Numéro de carte</label>
@@ -657,12 +682,14 @@
                     <p>Confirmation : <strong>${escapeHtml(order.email)}</strong></p>
                     ${order.phone ? `<p>Téléphone : <strong>${escapeHtml(order.phone)}</strong></p>` : ''}
                     ${order.address ? `<p>Adresse : <strong>${escapeHtml(order.address)}</strong></p>` : ''}
+                    ${order.fulfillment_date ? `<p>${order.fulfillment_type === 'livraison' ? 'Livraison' : 'Retrait'} : <strong>${escapeHtml(order.fulfillment_date)}</strong> (${escapeHtml(order.fulfillment_slot === 'apres-midi' ? 'après-midi' : 'matin')})</p>` : ''}
+                    ${order.card_message ? `<p>Carte : <em>${escapeHtml(order.card_message)}</em></p>` : ''}
                     <p>Montant : <strong>${Number(order.total_amount).toFixed(2)} €</strong></p>
                     ${depositLine}
                     ${prepLine}
                     <p>Référence : ${escapeHtml(order.payment_reference || '')}</p>
                     <p class="success-actions">
-                        <a class="back-to-shop" href="commandes.html#order-${Number(order.id)}">Suivre ma commande</a>
+                        <a class="back-to-shop" href="commandes.html?email=${encodeURIComponent(order.email || '')}&order=${Number(order.id)}#order-${Number(order.id)}">Suivre ma commande</a>
                         <a class="back-to-shop" href="shop.html">Retour boutique</a>
                     </p>
                 </div>
@@ -674,6 +701,12 @@
                 localStorage.removeItem('cart');
             }
             sessionStorage.removeItem('checkout_cart');
+            try {
+                sessionStorage.setItem('guest_track', JSON.stringify({
+                    email: order.email,
+                    order_id: order.id
+                }));
+            } catch (err) {}
             localStorage.removeItem('selected_payment_method');
             cartItems = [];
 
@@ -922,6 +955,10 @@
                 address,
                 payment_method: selectedPaymentMethod,
                 deposit: depositWanted(),
+                fulfillment_type: document.getElementById('fulfillment-type').value,
+                fulfillment_date: document.getElementById('fulfillment-date').value,
+                fulfillment_slot: document.getElementById('fulfillment-slot').value,
+                card_message: document.getElementById('card-message').value.trim(),
                 items: checkoutItemsPayload()
             };
 
@@ -1052,6 +1089,14 @@
         document.addEventListener('DOMContentLoaded', async () => {
             selectedPaymentMethod = getPaymentMethodFromContext();
             setupIdentity();
+            const dateInput = document.getElementById('fulfillment-date');
+            if (dateInput && !dateInput.value) {
+                const min = new Date();
+                min.setDate(min.getDate() + 1);
+                const iso = min.toISOString().slice(0, 10);
+                dateInput.min = new Date().toISOString().slice(0, 10);
+                dateInput.value = iso;
+            }
 
             const cardNumber = document.getElementById('card-number');
             const cardExpiry = document.getElementById('card-expiry');

@@ -201,7 +201,7 @@ Open, none of them block a purchase:
 
 The browser renders server templates and calls `/api/v1`. Checkout never uses a price from the client: `checkout_service.build_order_lines` loads `Product.price` from the database and totals with `Decimal`.
 
-The public shop does not auto-filter `GET /api/v1/products`. After load it reads `GET /api/v1/themes` (`applied_ids`, `product_names`) and shows the florist’s vitrine. A combo is the union of one season list and any number of event lists. Applied ids are stored as a comma-separated string (`printemps,mariage,cadeau`), not with `+`, so they stay URL-safe.
+The public shop does not auto-filter `GET /api/v1/products`. After load it reads `GET /api/v1/themes` (`applied_ids`, `product_names`) and shows the florist’s vitrine. By default the vitrine follows the calendar (season plus Saint-Valentin / Fête des mères / Noël). The florist can override it with chips or switch back with `{ "auto": true }`. A combo is the union of one season list and any number of event lists. Applied ids are stored as a comma-separated string (`printemps,mariage,cadeau`), not with `+`, so they stay URL-safe.
 
 **Frontend.** Templates in `Demoday/app/templates/` (home, shop, cart, checkout, account, admin, subscription). Shared CSS in `static/css/style.css`. Cart and session in `static/js/api.js`. Vanilla JavaScript and Jinja — no React.
 
@@ -378,22 +378,27 @@ Postman: [`docs/postman/FloraShop.postman_collection.json`](docs/postman/FloraSh
 | GET | `/api/v1/products` | public | Full catalog (`?theme=` season, event, or comma-separated combo) |
 | GET | `/api/v1/themes` | public | Seasons, event themes, and the applied shop vitrine |
 | POST | `/api/v1/themes` | admin JWT | Create a custom event theme (not a season) |
-| PUT | `/api/v1/themes` | admin JWT | Apply `{ "season", "theme" }` or a legacy `{ "id" }` |
+| PUT | `/api/v1/themes` | admin JWT | Apply `{ "season", "theme" }`, `{ "auto": true }`, or a legacy `{ "id" }` |
 | DELETE | `/api/v1/themes/<id>` | admin JWT | Delete an event theme |
-| POST | `/api/v1/products` | admin JWT | Create product (JSON or multipart with `image`) |
+| GET | `/api/v1/packs` | public | Wedding pack (bridal bouquet + boutonnieres + table centre) |
+| POST | `/api/v1/products` | admin JWT | Create product (JSON or multipart with `image`, `stock_qty`) |
 | PUT / DELETE | `/api/v1/products/<id>` | admin JWT | Update or delete product (multipart photo allowed on PUT) |
 | GET | `/api/v1/categories` | public | List categories |
 | POST / PUT / DELETE | `/api/v1/categories`… | admin JWT | Mutate categories |
 | GET | `/api/v1/users` | admin JWT | List users (no password field) |
 | GET | `/api/v1/payments/config` | public | `test` or `stripe` mode |
-| POST | `/api/v1/payments/checkout` | optional JWT | Create a paid, deposit, or failed order (`deposit: true` = 30 %) |
-| PATCH | `/api/v1/payments/orders/<id>` | admin JWT | Advance prep (`a_preparer` → `remise`) or settle a deposit |
+| POST | `/api/v1/payments/checkout` | optional JWT | Create a paid, deposit, or failed order (`deposit: true` = 30 %; optional fulfillment date/slot and card message) |
+| PATCH | `/api/v1/payments/orders/<id>` | admin JWT | Advance prep (`a_preparer` → `remise`) or settle a deposit (demo SMS/email notice) |
 | DELETE | `/api/v1/payments/orders/<id>` | admin JWT | Remove an order (line items cascade) |
 | GET | `/api/v1/payments/my-orders` | JWT | Customer’s own orders (tracking) |
+| POST | `/api/v1/payments/track-request` | public | Email a 6-digit tracking code (`demo_code` in classroom JSON) |
+| POST | `/api/v1/payments/track` | public | Guest tracking: `{email, order_id}` or `{email, code}` |
 | GET | `/api/v1/payments/orders/<id>` | owner or admin JWT | Order detail |
 | GET | `/api/v1/payments/orders` | admin JWT | List every order |
 
-`GET /api/v1/themes` returns `applied`, `applied_ids`, `applied_season`, `applied_theme` (comma-separated events), `applied_themes` (event id list), `label`, `blurb`, `product_names`, and the full theme list with `is_applied` and `can_delete`. PUT `{season, theme}` replaces the event list (`theme` may be a string, comma-separated ids, or an array). PUT `{id}` toggles one season or adds/removes one event. A customer token cannot change the vitrine.
+`GET /api/v1/themes` returns `auto`, `applied`, `applied_ids`, `applied_season`, `applied_theme` (comma-separated events), `applied_themes` (event id list), `label`, `blurb`, `product_names`, and the full theme list with `is_applied` and `can_delete`. PUT `{season, theme}` replaces the event list (`theme` may be a string, comma-separated ids, or an array). PUT `{id}` toggles one season or adds/removes one event. PUT `{auto: true}` restores the calendar. A customer token cannot change the vitrine.
+
+Guests track an order on `/commandes.html` with the payment email plus order number, or with a 6-digit email code. Product JSON includes `stock_qty`, `stock_status` (`available` / `low` / `out`) and `related_names`. Checkout decrements stock.
 
 ---
 

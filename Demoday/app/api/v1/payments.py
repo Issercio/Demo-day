@@ -57,10 +57,15 @@ def create_checkout():
                 data['phone'] = user.phone
         # Invité : user_id null ; connecté : la commande est liée au compte JWT.
         order = checkout(data, user_id=user.id if user else None)
-        return jsonify({
+        payload = {
             'message': 'Paiement confirmé',
             'order': _serialize_order(user, order),
-        }), 201
+        }
+        notice = getattr(order, 'track_notice', None)
+        if notice:
+            payload['track_notice'] = notice
+            payload['demo_notice'] = notice.get('text')
+        return jsonify(payload), 201
     except PaymentDeclined as exc:
         payload = {'error': str(exc)}
         if exc.order is not None:
@@ -238,6 +243,7 @@ def patch_order(order_id):
 
     data = request.get_json() or {}
     changed = False
+    notify = False
 
     if 'prep_status' in data:
         if order.status not in PAID_LIKE:
@@ -249,6 +255,7 @@ def patch_order(order_id):
             return jsonify({'error': 'Statut de préparation invalide.'}), 400
         order.prep_status = prep
         changed = True
+        notify = True
 
     settle = bool(data.get('settle_payment')) or data.get('status') == 'paid'
     if settle:
@@ -272,8 +279,14 @@ def patch_order(order_id):
         return jsonify({'error': 'Aucun champ à mettre à jour.'}), 400
 
     db.session.commit()
-    # Réponse fleuriste : id Stripe inclus pour le suivi processeur.
-    return jsonify({'order': order.to_dict(include_stripe=True)}), 200
+    payload = {'order': order.to_dict(include_stripe=True)}
+    if notify:
+        from app.services.shop_extras import notify_prep_change
+        notice = notify_prep_change(order)
+        if notice:
+            payload['notice'] = notice
+            payload['demo_notice'] = notice.get('text')
+    return jsonify(payload), 200
 
 
 @payments_bp.route('/orders/<int:order_id>', methods=['DELETE'])
@@ -308,6 +321,55 @@ def get_my_orders():
         .all()
     )
     return jsonify({'orders': [_serialize_order(user, order) for order in orders]}), 200
+
+
+@payments_bp.route('/track-request', methods=['POST'])
+def request_order_track():
+    """Invité : envoie un code 6 chiffres (démo_code) pour lister les commandes de cet email."""
+    from app.services.shop_extras import issue_track_code
+
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+    try:
+        code = issue_track_code(email)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    return jsonify({
+        'message': 'Si des commandes existent pour cet email, un code a été envoyé.',
+        'demo_code': code,
+        'expires_in_minutes': 15,
+    }), 200
+
+
+@payments_bp.route('/track', methods=['POST'])
+def track_orders():
+    """Suivi sans compte : email + n° de commande, ou email + code reçu."""
+    from sqlalchemy import func
+    from app.services.shop_extras import check_track_code
+
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+    if not email or '@' not in email:
+        return jsonify({'error': 'Email invalide.'}), 400
+    code = (data.get('code') or data.get('demo_code') or '').strip()
+    order_id = data.get('order_id') or data.get('order')
+    if code:
+        if not check_track_code(email, code):
+            return jsonify({'error': 'Code invalide ou expiré.'}), 400
+        orders = (
+            Order.query.filter(func.lower(Order.email) == email)
+            .order_by(Order.created_at.desc())
+            .all()
+        )
+        return jsonify({'orders': [order.to_dict() for order in orders]}), 200
+    try:
+        order_id = int(order_id)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Indiquez le numéro de commande ou un code reçu par email.'}), 400
+    order = db.session.get(Order, order_id)
+    if not order or (order.email or '').strip().lower() != email:
+        return jsonify({'error': 'Commande introuvable pour cet email.'}), 404
+    return jsonify({'orders': [order.to_dict()]}), 200
 
 
 @payments_bp.route('/orders', methods=['GET'])

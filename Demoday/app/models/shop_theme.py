@@ -90,6 +90,7 @@ class ShopVitrine(db.Model):
         db.ForeignKey('shop_themes.id', ondelete='SET NULL'),
         nullable=True,
     )  # premier thème événement, pour rester compatible avec l'ancienne colonne
+    auto_mode = db.Column(db.Boolean, default=True)  # calendrier (saison + fêtes) tant que le fleuriste ne force pas
 
     season = db.relationship('ShopTheme', foreign_keys=[season_id])
     theme = db.relationship('ShopTheme', foreign_keys=[theme_id])

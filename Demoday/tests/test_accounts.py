@@ -307,7 +307,14 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('applied_themes', admin)
         self.assertIn('appliedEventIds', admin)
         self.assertIn('autant de thèmes', admin)
+        self.assertIn('Vitrine auto', admin)
+        self.assertIn('Aperçu du shop', admin)
+        self.assertIn('shop-preview-modal', admin)
+        self.assertIn('applyAutoVitrine', admin)
         self.assertIn('theme-banner', shop)
+        self.assertIn('related_names', shop)
+        self.assertIn('/api/v1/packs', shop)
+        self.assertIn('stock_status', shop)
         self.assertIn('syncCategoryChecksToTheme', shop)
         self.assertNotIn('applyThemeFromUrl', shop)
         self.assertNotIn('Tous les bouquets', shop)
@@ -369,8 +376,9 @@ class AccountsTestCase(unittest.TestCase):
 
         kinds = {item['kind'] for item in payload['themes']}
         self.assertEqual(kinds, {'saison', 'evenement'})
-        self.assertIsNone(payload['applied'])
-        self.assertEqual(payload['applied_ids'], [])
+        self.assertTrue(payload['auto'])
+        self.assertEqual(payload['applied_season'], current_theme_id())
+        self.assertEqual(payload['applied_ids'], [current_theme_id()])
         self.assertEqual(payload['applied_themes'], [])
         self.assertTrue(next(item for item in payload['themes'] if item['id'] == 'mariage')['can_delete'])
         self.assertFalse(next(item for item in payload['themes'] if item['id'] == 'printemps')['can_delete'])
@@ -381,6 +389,23 @@ class AccountsTestCase(unittest.TestCase):
         self.assertIn('Bouquet Pivoine', combo_names)
         self.assertIn('Bouquet de mariée', combo_names)
         self.assertNotIn('Gerbe de deuil', combo_names)
+
+        from app.services.shop_themes import themes_payload
+        feb = themes_payload(date(2026, 2, 10))
+        self.assertTrue(feb['auto'])
+        self.assertEqual(feb['applied_season'], 'hiver')
+        self.assertIn('saint-valentin', feb['applied_ids'])
+        self.assertIn('Rose unique', feb['product_names'])
+
+        packs = self.client.get('/api/v1/packs').get_json()
+        self.assertEqual(packs['packs'][0]['id'], 'pack-mariage')
+        self.assertGreaterEqual(len(packs['packs'][0]['products']), 2)
+
+        rose = next(item for item in full if item['name'] == 'Rose unique')
+        self.assertEqual(rose['stock_status'], 'low')
+        self.assertIn('Carte et rose', rose['related_names'])
+        anthurium = next(item for item in full if item['name'] == 'Anthurium')
+        self.assertEqual(anthurium['stock_status'], 'out')
 
     def test_admin_applies_theme_and_shop_payload_updates(self):
         ensure_demo_accounts()
@@ -495,6 +520,13 @@ class AccountsTestCase(unittest.TestCase):
         self.assertEqual(cleared.status_code, 200)
         self.assertIsNone(cleared.get_json()['applied'])
         self.assertEqual(cleared.get_json()['applied_ids'], [])
+        self.assertFalse(cleared.get_json()['auto'])
+
+        auto = self.client.put('/api/v1/themes', json={'auto': True}, headers=headers)
+        self.assertEqual(auto.status_code, 200, auto.get_json())
+        from app.services.shop_themes import current_theme_id
+        self.assertTrue(auto.get_json()['auto'])
+        self.assertEqual(auto.get_json()['applied_season'], current_theme_id())
 
     def test_admin_can_create_and_delete_custom_theme(self):
         ensure_demo_accounts()

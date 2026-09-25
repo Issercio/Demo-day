@@ -22,6 +22,42 @@
       color: #6c4a58;
       margin-bottom: 24px;
     }
+    .guest-track {
+      background: #fff;
+      border: 1.5px solid #e7d6d6;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 22px;
+      display: grid;
+      gap: 12px;
+    }
+    .guest-track-row label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #ab597c;
+      margin-bottom: 4px;
+    }
+    .guest-track-row input {
+      width: 100%;
+      border: 1px solid #e7d6d6;
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .guest-track-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .guest-track-actions .cta-btn {
+      width: auto;
+      margin: 0;
+    }
+    .guest-track-feedback {
+      margin: 0;
+      color: #6c4a58;
+      font-size: 0.92rem;
+    }
     .track-card {
       background: #fff;
       border: 1.5px solid #e7d6d6;
@@ -214,8 +250,27 @@
     </nav>
   </header>
   <main class="orders-page">
-    <h1>Suivi de mes commandes</h1>
-    <p class="orders-intro">Cliquez une commande pour voir photos, paiement et le détail des lignes. L’atelier est mis à jour par la fleuriste.</p>
+    <h1>Suivi de commande</h1>
+    <p class="orders-intro">Avec un compte, vos commandes s’affichent ici. Sans compte, entrez l’email du paiement et le n° de commande, ou demandez un code par email.</p>
+    <form id="guest-track-form" class="guest-track" hidden>
+      <div class="guest-track-row">
+        <label for="track-email">Email</label>
+        <input type="email" id="track-email" name="email" autocomplete="email" placeholder="vous@exemple.com">
+      </div>
+      <div class="guest-track-row">
+        <label for="track-order">N° de commande</label>
+        <input type="text" id="track-order" name="order" inputmode="numeric" placeholder="12">
+      </div>
+      <div class="guest-track-row">
+        <label for="track-code">Code reçu par email</label>
+        <input type="text" id="track-code" name="code" inputmode="numeric" maxlength="6" placeholder="123456">
+      </div>
+      <p id="guest-track-feedback" class="guest-track-feedback" hidden></p>
+      <div class="guest-track-actions">
+        <button type="submit" class="cta-btn">Voir le suivi</button>
+        <button type="button" class="cta-btn" id="track-send-code">Recevoir un code par email</button>
+      </div>
+    </form>
     <div id="orders-list"><p class="track-empty">Chargement…</p></div>
   </main>
   <footer class="site-footer">
@@ -340,7 +395,7 @@
           </div>
           <div>
             <dt>Destinataire</dt>
-            <dd>${escapeHtml(order.customer_name || (order.guest ? 'Invité' : '—'))}<br><small>${escapeHtml(order.email || '')}</small>${order.phone ? `<br><small>${escapeHtml(order.phone)}</small>` : ''}${order.address ? `<br><small>${escapeHtml(order.address)}</small>` : ''}</dd>
+            <dd>${escapeHtml(order.customer_name || (order.guest ? 'Invité' : '—'))}<br><small>${escapeHtml(order.email || '')}</small>${order.phone ? `<br><small>${escapeHtml(order.phone)}</small>` : ''}${order.address ? `<br><small>${escapeHtml(order.address)}</small>` : ''}${order.fulfillment_date ? `<br><small>${order.fulfillment_type === 'livraison' ? 'Livraison' : 'Retrait'} ${escapeHtml(order.fulfillment_date)} · ${escapeHtml(order.fulfillment_slot === 'apres-midi' ? 'après-midi' : 'matin')}</small>` : ''}${order.card_message ? `<br><small>Carte : ${escapeHtml(order.card_message)}</small>` : ''}</dd>
           </div>
           ${deposit}
         </dl>
@@ -380,27 +435,60 @@
     }
 
     const detailCache = new Map();  // un seul GET /orders/:id par commande
+    let guestTrack = null;
+
+    function currentTrackParams() {
+      const params = new URLSearchParams(location.search);
+      const stored = (() => {
+        try {
+          return JSON.parse(sessionStorage.getItem('guest_track') || 'null');
+        } catch (err) {
+          return null;
+        }
+      })();
+      return {
+        email: (params.get('email') || (stored && stored.email) || (guestTrack && guestTrack.email) || '').trim(),
+        orderId: params.get('order') || (stored && stored.order_id) || (guestTrack && guestTrack.order_id) || ''
+      };
+    }
 
     async function fetchOrderDetail(orderId) {
       if (detailCache.has(orderId)) {
         return detailCache.get(orderId);
       }
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/v1/payments/orders/' + orderId, {
-        headers: { Authorization: 'Bearer ' + token }  // le serveur revérifie l'IDOR
+      if (token) {
+        const response = await fetch('/api/v1/payments/orders/' + orderId, {
+          headers: { Authorization: 'Bearer ' + token }  // le serveur revérifie l'IDOR
+        });
+        if (response.status === 401) {
+          window.location.replace('account.html');
+          return null;
+        }
+        if (response.status === 403 || response.status === 404) {
+          throw new Error('Cette commande n’est pas accessible.');
+        }
+        if (!response.ok) {
+          throw new Error('Impossible de charger le détail.');
+        }
+        const payload = await response.json();
+        detailCache.set(orderId, payload.order);
+        return payload.order;
+      }
+      const tracked = currentTrackParams();
+      const response = await fetch('/api/v1/payments/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: tracked.email, order_id: orderId })
       });
-      if (response.status === 401) {
-        window.location.replace('account.html');
-        return null;
-      }
-      if (response.status === 403 || response.status === 404) {
-        throw new Error('Cette commande n’est pas accessible.');  // pas de fuite sur l'existence d'une commande d'autrui
-      }
       if (!response.ok) {
-        throw new Error('Impossible de charger le détail.');
+        throw new Error('Cette commande n’est pas accessible.');
       }
       const payload = await response.json();
-      const order = payload.order;
+      const order = (payload.orders || [])[0];
+      if (!order) {
+        throw new Error('Cette commande n’est pas accessible.');
+      }
       detailCache.set(orderId, order);
       return order;
     }
@@ -417,7 +505,7 @@
         label.textContent = 'Masquer le détail';
       }
       if (persistHash) {
-        history.replaceState(null, '', '#order-' + orderId);
+        history.replaceState(null, '', location.pathname + location.search + '#order-' + orderId);
       }
       if (detail && !detail.dataset.loaded) {  // lazy-load : fetch seulement à l'ouverture
         detail.innerHTML = '<p>Chargement du détail…</p>';
@@ -446,32 +534,16 @@
       }
     }
 
-    async function loadMyOrders() {
+    async function showOrders(orders) {
       const body = document.getElementById('orders-list');
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        window.location.replace('account.html');  // suivi réservé au compte connecté
-        return;
-      }
-      const response = await fetch('/api/v1/payments/my-orders', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (response.status === 401) {
-        window.location.replace('account.html');
-        return;
-      }
-      if (!response.ok) {
-        body.innerHTML = '<p class="track-empty">Impossible de charger vos commandes.</p>';
-        return;
-      }
-      const payload = await response.json();
-      const orders = payload.orders || [];
       if (!orders.length) {
         body.innerHTML = '<p class="track-empty">Aucune commande pour le moment. <a href="shop.html">Commander un bouquet</a></p>';
         return;
       }
       body.innerHTML = orders.map(renderOrder).join('');
-      body.addEventListener('click', async (event) => {
+      if (!body.dataset.bound) {
+        body.dataset.bound = '1';
+        body.addEventListener('click', async (event) => {
         const button = event.target.closest('[data-open-order]');
         if (!button || !body.contains(button)) {
           return;
@@ -484,14 +556,15 @@
         if (card.classList.contains('is-open')) {
           closeOrder(card);
           if (location.hash === '#order-' + orderId) {
-            history.replaceState(null, '', location.pathname);
+            history.replaceState(null, '', location.pathname + location.search);
           }
           return;
         }
         body.querySelectorAll('.track-card.is-open').forEach(closeOrder);  // une seule commande dépliée
         await openOrder(card, orderId, true);
         card.scrollIntoView({ block: 'start' });
-      });
+        });
+      }
       const match = /^#order-(\d+)$/.exec(location.hash || '');  // deep-link après « Suivre ma commande »
       if (match) {
         const card = document.getElementById('order-' + match[1]);
@@ -500,6 +573,116 @@
           card.scrollIntoView({ block: 'start' });
         }
       }
+    }
+
+    async function loadMyOrders() {
+      const body = document.getElementById('orders-list');
+      const form = document.getElementById('guest-track-form');
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        if (form) {
+          form.hidden = true;
+        }
+        const response = await fetch('/api/v1/payments/my-orders', {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        if (response.status === 401) {
+          localStorage.removeItem('auth_token');
+          setupGuestTracking();
+          return;
+        }
+        if (!response.ok) {
+          body.innerHTML = '<p class="track-empty">Impossible de charger vos commandes.</p>';
+          return;
+        }
+        const payload = await response.json();
+        await showOrders(payload.orders || []);
+        return;
+      }
+      setupGuestTracking();
+    }
+
+    function setupGuestTracking() {
+      const form = document.getElementById('guest-track-form');
+      const body = document.getElementById('orders-list');
+      if (form) {
+        form.hidden = false;
+      }
+      const tracked = currentTrackParams();
+      if (tracked.email) {
+        document.getElementById('track-email').value = tracked.email;
+      }
+      if (tracked.orderId) {
+        document.getElementById('track-order').value = tracked.orderId;
+      }
+      if (form && !form.dataset.bound) {
+        form.dataset.bound = '1';
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          await lookupGuestOrders();
+        });
+        document.getElementById('track-send-code').addEventListener('click', sendTrackCode);
+      }
+      if (tracked.email && tracked.orderId) {
+        lookupGuestOrders();
+      } else {
+        body.innerHTML = '<p class="track-empty">Entrez votre email et le numéro de commande, ou demandez un code.</p>';
+      }
+    }
+
+    function setTrackFeedback(text) {
+      const box = document.getElementById('guest-track-feedback');
+      if (!box) {
+        return;
+      }
+      box.hidden = !text;
+      box.textContent = text || '';
+    }
+
+    async function sendTrackCode() {
+      const email = document.getElementById('track-email').value.trim();
+      setTrackFeedback('');
+      const response = await fetch('/api/v1/payments/track-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setTrackFeedback(payload.error || 'Impossible d’envoyer le code.');
+        return;
+      }
+      const extra = payload.demo_code ? ` Code démo : ${payload.demo_code}.` : '';
+      setTrackFeedback((payload.message || 'Code envoyé.') + extra);
+    }
+
+    async function lookupGuestOrders() {
+      const email = document.getElementById('track-email').value.trim();
+      const orderId = document.getElementById('track-order').value.trim();
+      const code = document.getElementById('track-code').value.trim();
+      guestTrack = { email, order_id: orderId };
+      try {
+        sessionStorage.setItem('guest_track', JSON.stringify(guestTrack));
+      } catch (err) {}
+      const body = { email };
+      if (code) {
+        body.code = code;
+      } else {
+        body.order_id = orderId;
+      }
+      const response = await fetch('/api/v1/payments/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setTrackFeedback(payload.error || 'Suivi impossible.');
+        document.getElementById('orders-list').innerHTML = '';
+        return;
+      }
+      setTrackFeedback('');
+      await showOrders(payload.orders || []);
     }
 
     document.addEventListener('DOMContentLoaded', loadMyOrders);

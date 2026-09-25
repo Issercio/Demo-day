@@ -40,6 +40,10 @@ class Order(db.Model):
     payment_reference = db.Column(db.String(64), nullable=True)
     status = db.Column(db.String(50), default='pending')  # pending, deposit, paid, failed, cancelled
     prep_status = db.Column(db.String(32), nullable=True)  # a_preparer → remise
+    fulfillment_type = db.Column(db.String(16), nullable=True)  # retrait | livraison
+    fulfillment_date = db.Column(db.String(10), nullable=True)  # AAAA-MM-JJ
+    fulfillment_slot = db.Column(db.String(16), nullable=True)  # matin | apres-midi
+    card_message = db.Column(db.String(280), nullable=True)
     created_at = db.Column(db.DateTime, default=utc_now)
     
     # Relations
@@ -82,6 +86,10 @@ class Order(db.Model):
             'payment_label': self.payment_label(),
             'prep_status': self.prep_status,
             'prep_label': self.prep_label(),
+            'fulfillment_type': self.fulfillment_type,
+            'fulfillment_date': self.fulfillment_date,
+            'fulfillment_slot': self.fulfillment_slot,
+            'card_message': self.card_message,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'items': [item.to_dict() for item in self.order_items]
         }
@@ -110,3 +118,13 @@ class OrderItem(db.Model):
             'price': float(self.price),  # prix unitaire figé au moment du paiement
             'product': self.product.to_dict() if self.product else None
         }
+
+
+class OrderTrackCode(db.Model):
+    """Code 6 chiffres pour le suivi sans compte (hash + expiry, comme la vérif email)."""
+    __tablename__ = 'order_track_codes'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.String(120), nullable=False, index=True)
+    code_hash = db.Column(db.String(255), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
