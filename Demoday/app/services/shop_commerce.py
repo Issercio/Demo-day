@@ -100,9 +100,8 @@ def ensure_commerce_schema():
     inspector = inspect(db.engine)
     tables = inspector.get_table_names()
     if 'products' in tables:
-        columns = {column['name'] for column in inspector.get_columns('products')}
-        if 'description' not in columns:
-            db.session.execute(text('ALTER TABLE products ADD COLUMN description TEXT'))
+        from app.services.demo_accounts import ensure_product_columns
+        ensure_product_columns()
     if 'orders' in tables:
         existing = {column['name'] for column in inspector.get_columns('orders')}
         for name, ddl in {
@@ -118,10 +117,6 @@ def ensure_commerce_schema():
             db.session.execute(text('ALTER TABLE contact_requests ADD COLUMN reply_text TEXT'))
         if 'kind' not in existing:
             db.session.execute(text("ALTER TABLE contact_requests ADD COLUMN kind VARCHAR(20) DEFAULT 'contact'"))
-    if 'products' in tables:
-        columns = {column['name'] for column in inspector.get_columns('products')}
-        if 'sale_price' not in columns:
-            db.session.execute(text('ALTER TABLE products ADD COLUMN sale_price NUMERIC(10, 2)'))
     if 'shop_settings' in tables:
         existing = {column['name'] for column in inspector.get_columns('shop_settings')}
         for name, ddl in {

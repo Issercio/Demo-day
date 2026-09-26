@@ -165,10 +165,12 @@ def create_app():
             from app.services.checkout_service import ensure_runtime_schema
             from app.services.shop_ops import ensure_ops_schema
             from app.services.shop_commerce import ensure_commerce_schema
-            # SQLite existante : d'abord les colonnes commerce, puis le catalogue.
+            from app.services.demo_accounts import ensure_product_columns
+            # Colonnes d'abord (stock_qty, etc.) : sinon le SELECT Product plante sur une SQLite ancienne.
+            ensure_product_columns()
             ensure_commerce_schema()
-            ensure_runtime_schema()
             ensure_ops_schema()
+            ensure_runtime_schema()
         except Exception as exc:
             app.logger.exception('Initialisation schéma ignorée: %s', exc)
         try:

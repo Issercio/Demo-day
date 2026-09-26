@@ -415,24 +415,52 @@ def ensure_demo_accounts():
     return created
 
 
-def ensure_product_color_column():
+PRODUCT_COLUMN_DDL = (
+    ('color', 'VARCHAR(7)'),
+    ('image', 'VARCHAR(255)'),
+    ('description', 'TEXT'),
+    ('is_on_sale', 'BOOLEAN DEFAULT 0'),
+    ('sale_price', 'NUMERIC(10, 2)'),
+    ('stock_qty', 'INTEGER DEFAULT 12'),
+)
+
+
+def _reflect_product_columns():
     inspector = inspect(db.engine)
-    if 'products' not in inspector.get_table_names():
+    if hasattr(inspector, 'clear_cache'):
+        inspector.clear_cache()
+    tables = inspector.get_table_names()
+    if 'products' not in tables:
+        return None
+    return {column['name'] for column in inspector.get_columns('products')}
+
+
+def ensure_product_columns():
+    """SQLite existante : create_all ne rajoute pas les colonnes, il faut ALTER avant tout SELECT Product."""
+    db.create_all()
+    columns = _reflect_product_columns()
+    if columns is None:
         return
-    columns = {column['name'] for column in inspector.get_columns('products')}
-    if 'color' not in columns:
-        db.session.execute(text('ALTER TABLE products ADD COLUMN color VARCHAR(7)'))
+    added = []
+    for name, ddl in PRODUCT_COLUMN_DDL:
+        if name in columns:
+            continue
+        db.session.execute(text(f'ALTER TABLE products ADD COLUMN {name} {ddl}'))
+        added.append(name)
+    if 'stock_qty' in added:
+        db.session.execute(text('UPDATE products SET stock_qty = 12 WHERE stock_qty IS NULL'))
+    if added:
         db.session.commit()
+        db.session.expire_all()
+        _reflect_product_columns()
+
+
+def ensure_product_color_column():
+    ensure_product_columns()
 
 
 def ensure_product_image_column():
-    inspector = inspect(db.engine)
-    if 'products' not in inspector.get_table_names():
-        return
-    columns = {column['name'] for column in inspector.get_columns('products')}
-    if 'image' not in columns:
-        db.session.execute(text('ALTER TABLE products ADD COLUMN image VARCHAR(255)'))
-        db.session.commit()
+    ensure_product_columns()
 
 
 def default_product_description(name):
@@ -541,8 +569,7 @@ def ensure_demo_catalog():
     from app.models import Category, Product
 
     db.create_all()
-    ensure_product_color_column()
-    ensure_product_image_column()
+    ensure_product_columns()
     for category_name, items in DEMO_CATALOG:
         category = Category.query.filter_by(name=category_name).first()
         if category is None:
@@ -579,6 +606,7 @@ def repair_shop_if_needed():
     from app.models import Product
     from app.models.shop_theme import ShopTheme
 
+    ensure_product_columns()
     try:
         has_catalog = Product.query.filter_by(name='Bouquet Pivoine').first() is not None
         has_themes = ShopTheme.query.filter_by(id='automne').first() is not None
