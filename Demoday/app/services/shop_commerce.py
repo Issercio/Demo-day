@@ -31,6 +31,24 @@ def parse_description(value):
     return text
 
 
+def parse_bool_flag(value):
+    if isinstance(value, bool):
+        return value
+    return str(value or '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def apply_sale_fields(product, data):
+    if 'is_on_sale' in data:
+        product.is_on_sale = parse_bool_flag(data.get('is_on_sale'))
+    if 'sale_price' in data:
+        raw = data.get('sale_price')
+        if raw in (None, ''):
+            product.sale_price = None
+        else:
+            from app.services.checkout_service import parse_money
+            product.sale_price = parse_money(raw)
+
+
 def _luhn_ok(number):
     digits = [int(char) for char in number]
     checksum = 0
@@ -98,6 +116,12 @@ def ensure_commerce_schema():
         existing = {column['name'] for column in inspector.get_columns('contact_requests')}
         if 'reply_text' not in existing:
             db.session.execute(text('ALTER TABLE contact_requests ADD COLUMN reply_text TEXT'))
+        if 'kind' not in existing:
+            db.session.execute(text("ALTER TABLE contact_requests ADD COLUMN kind VARCHAR(20) DEFAULT 'contact'"))
+    if 'products' in tables:
+        columns = {column['name'] for column in inspector.get_columns('products')}
+        if 'sale_price' not in columns:
+            db.session.execute(text('ALTER TABLE products ADD COLUMN sale_price NUMERIC(10, 2)'))
     if 'shop_settings' in tables:
         existing = {column['name'] for column in inspector.get_columns('shop_settings')}
         for name, ddl in {
@@ -109,6 +133,7 @@ def ensure_commerce_schema():
             'delivery_eta_metro': 'VARCHAR(80)',
             'delivery_eta_overseas': 'VARCHAR(80)',
             'delivery_fee_overseas': 'NUMERIC(10, 2)',
+            'tva_rate': 'NUMERIC(5, 2)',
         }.items():
             if name not in existing:
                 db.session.execute(text(f'ALTER TABLE shop_settings ADD COLUMN {name} {ddl}'))
@@ -147,6 +172,10 @@ def get_settings():
     if row.delivery_fee_overseas is None:
         row.delivery_fee_overseas = DEFAULT_OVERSEAS_FEE
         changed = True
+    if row.tva_rate is None:
+        from app.services.invoice_service import DEFAULT_TVA_RATE
+        row.tva_rate = DEFAULT_TVA_RATE
+        changed = True
     if changed:
         db.session.commit()
     return row
@@ -155,6 +184,10 @@ def get_settings():
 def public_settings():
     payload = get_settings().to_public_dict()
     payload['mail_configured'] = mail_configured()
+    from app.services.sms_service import sms_configured
+    from app.services.paypal_service import paypal_configured
+    payload['sms_configured'] = sms_configured()
+    payload['paypal_configured'] = paypal_configured()
     payload['delivery_nationwide'] = delivery_is_nationwide()
     payload['delivery_label'] = (
         'France entière' if payload['delivery_nationwide']
@@ -187,6 +220,11 @@ def update_settings(data):
     if 'tva_intra' in data:
         tva = str(data.get('tva_intra') or '').strip().upper().replace(' ', '')[:20]
         row.tva_intra = tva or None
+    if 'tva_rate' in data:
+        rate = _money_field(data.get('tva_rate'), 'Taux de TVA')
+        if rate < 0 or rate > Decimal('100'):
+            raise ValueError('Taux de TVA invalide.')
+        row.tva_rate = rate
     if 'pickup_note' in data:
         row.pickup_note = str(data.get('pickup_note') or '').strip()[:255] or None
     if 'delivery_fee' in data:
@@ -445,13 +483,36 @@ def notify_order(order):
         f'Votre commande #{order.id} chez {shop} est enregistrée '
         f'({order.payment_label()}, {order.total_amount} €).\n'
         f'{ship_line}'
-        f'Suivi : page Commandes, ou en invité avec cet email et le n° {order.id}.\n\n'
+        f'Suivi : page Commandes, ou en invité avec cet email et le n° {order.id}.\n'
+        f'La facture PDF est jointe.\n\n'
         f'{shop}\n'
     )
-    send_mail(order.email, f'{shop} — commande #{order.id}', body)
+    attachments = []
+    try:
+        from app.services.invoice_service import build_invoice_pdf, invoice_number
+        buffer, _payload = build_invoice_pdf(order, settings)
+        attachments.append((f'{invoice_number(order)}.pdf', buffer.getvalue(), 'application/pdf'))
+    except Exception:
+        attachments = []
+    send_mail(order.email, f'{shop} — commande #{order.id}', body, attachments=attachments or None)
     dest = florist_inbox() or settings.email
     if dest and dest.lower() != (order.email or '').lower():
-        send_mail(dest, f'Nouvelle commande #{order.id}', body)
+        send_mail(dest, f'Nouvelle commande #{order.id}', body, attachments=attachments or None)
+
+
+def notify_tracking(order):
+    settings = get_settings()
+    shop = settings.legal_name or 'FloraShop'
+    tracking = (order.tracking_number or '').strip()
+    if not tracking:
+        return
+    carrier = settings.delivery_carrier or 'transporteur'
+    body = (
+        f'Bonjour {order.customer_name or ""},\n\n'
+        f'Votre commande #{order.id} a un numéro de suivi {carrier} : {tracking}.\n\n'
+        f'{shop}\n'
+    )
+    send_mail(order.email, f'{shop} — suivi commande #{order.id}', body)
 
 
 def notify_contact(row):
@@ -459,7 +520,7 @@ def notify_contact(row):
     dest = florist_inbox() or settings.email
     send_mail(
         dest,
-        f'Nouveau message contact — {row.name}',
+        f'Nouveau {"devis" if (row.kind or "") == "devis" else "message contact"} — {row.name}',
         f'{row.name} <{row.email}>\n\n{row.message}',
     )
 

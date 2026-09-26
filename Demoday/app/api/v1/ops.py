@@ -198,3 +198,43 @@ def patch_promo_route(promo_id):
     except KeyError:
         return jsonify({'error': 'Code introuvable'}), 404
     return jsonify({'promo': row.to_dict()})
+
+
+@ops_bp.route('/subscriptions', methods=['GET'])
+def list_subscriptions_route():
+    user, error = load_current_user_optional()
+    if error:
+        body, status = error
+        return jsonify(body), status
+    if user is None:
+        return jsonify({'error': 'Authentification requise'}), 401
+    from app.services.subscription_ops import list_for_user
+    admin = bool(getattr(user, 'is_admin', False))
+    return jsonify({'subscriptions': list_for_user(user, include_all=admin)})
+
+
+@ops_bp.route('/subscriptions/<int:subscription_id>', methods=['PATCH'])
+def patch_subscription_route(subscription_id):
+    user, error = load_current_user_optional()
+    if error:
+        body, status = error
+        return jsonify(body), status
+    if user is None:
+        return jsonify({'error': 'Authentification requise'}), 401
+    data = request.get_json(silent=True) or {}
+    from app.services.subscription_ops import mark_delivered, set_status
+    admin = bool(getattr(user, 'is_admin', False))
+    try:
+        if data.get('deliver'):
+            if not admin:
+                return jsonify({'error': 'Réservé à l\'atelier'}), 403
+            row = mark_delivered(subscription_id)
+        elif 'status' in data:
+            row = set_status(subscription_id, data.get('status'), user=user, admin=admin)
+        else:
+            return jsonify({'error': 'Aucun champ à mettre à jour.'}), 400
+    except KeyError:
+        return jsonify({'error': 'Abonnement introuvable'}), 404
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    return jsonify({'subscription': row.to_dict()})

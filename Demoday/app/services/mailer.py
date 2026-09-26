@@ -16,7 +16,7 @@ def _truthy(name):
     return (os.environ.get(name) or '').strip().lower() in ('1', 'true', 'yes', 'on')
 
 
-def send_mail(to, subject, body):
+def send_mail(to, subject, body, attachments=None):
     dest = (to or '').strip()
     if not dest or '@' not in dest:
         return False
@@ -29,6 +29,15 @@ def send_mail(to, subject, body):
         msg['From'] = os.environ.get('MAIL_FROM') or 'noreply@localhost'
         msg['To'] = dest
         msg.set_content(body)
+        for item in attachments or []:
+            filename, blob, mime = item[0], item[1], (item[2] if len(item) > 2 else 'application/pdf')
+            maintype, _, subtype = mime.partition('/')
+            msg.add_attachment(
+                blob,
+                maintype=maintype or 'application',
+                subtype=subtype or 'pdf',
+                filename=filename,
+            )
         host = os.environ.get('MAIL_SERVER').strip()
         port = int(os.environ.get('MAIL_PORT') or '587')
         user = (os.environ.get('MAIL_USER') or '').strip()

@@ -281,6 +281,17 @@ def patch_order(order_id):
         else:
             return jsonify({'error': 'Impossible d\'encaisser une commande refusée ou annulée.'}), 400
 
+    if 'tracking_number' in data:
+        tracking = str(data.get('tracking_number') or '').strip()[:80]
+        order.tracking_number = tracking or None
+        changed = True
+        if tracking:
+            from app.services.shop_commerce import notify_tracking
+            try:
+                notify_tracking(order)
+            except Exception:
+                logger.exception('Mail suivi ignoré')
+
     if not changed:
         return jsonify({'error': 'Aucun champ à mettre à jour.'}), 400
 
@@ -356,3 +367,135 @@ def get_orders():
     except Exception as e:
         logger.exception('Erreur récupération commandes: %s', e)
         return jsonify({'error': 'Erreur interne du serveur'}), 500
+
+
+@payments_bp.route('/orders/<int:order_id>/invoice.pdf', methods=['GET'])
+def download_invoice(order_id):
+    """Facture PDF : propriétaire, fleuriste, ou invité (email + n°)."""
+    user, error = load_current_user_optional()
+    if error:
+        body, status = error
+        return jsonify(body), status
+    order = db.session.get(Order, order_id)
+    if not order:
+        return jsonify({'error': 'Commande non trouvée'}), 404
+    if user:
+        if not _user_owns_order(user, order):
+            return jsonify({'error': 'Commande non trouvée'}), 404
+    else:
+        email = (request.args.get('email') or '').strip().lower()
+        if not email or (order.email or '').strip().lower() != email:
+            return jsonify({'error': 'Commande non trouvée'}), 404
+    from flask import send_file
+    from app.services.invoice_service import build_invoice_pdf, invoice_number
+    buffer, _payload = build_invoice_pdf(order)
+    return send_file(
+        buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f'{invoice_number(order)}.pdf',
+    )
+
+
+@payments_bp.route('/orders/<int:order_id>/settle', methods=['POST'])
+def settle_order_route(order_id):
+    """Client : payer le solde d’un acompte (cartes de test / PayPal sandbox)."""
+    user, error = load_current_user_optional()
+    if error:
+        body, status = error
+        return jsonify(body), status
+    order = db.session.get(Order, order_id)
+    if not order:
+        return jsonify({'error': 'Commande non trouvée'}), 404
+    data = request.get_json() or {}
+    if user:
+        if not _user_owns_order(user, order):
+            return jsonify({'error': 'Commande non trouvée'}), 404
+    else:
+        email = (data.get('email') or '').strip().lower()
+        if not email or (order.email or '').strip().lower() != email:
+            return jsonify({'error': 'Commande non trouvée'}), 404
+    from app.services.checkout_service import PaymentDeclined, settle_deposit
+    try:
+        order = settle_deposit(order, data, user_id=user.id if user else None)
+    except PaymentDeclined as exc:
+        return jsonify({'error': str(exc)}), 402
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    return jsonify({'message': 'Solde encaissé', 'order': _serialize_order(user, order)}), 200
+
+
+@payments_bp.route('/orders/<int:order_id>/refund', methods=['POST'])
+def refund_order_route(order_id):
+    denied = admin_required_response()
+    if denied:
+        return denied
+    order = db.session.get(Order, order_id)
+    if not order:
+        return jsonify({'error': 'Commande non trouvée'}), 404
+    data = request.get_json(silent=True) or {}
+    from app.services.checkout_service import refund_order
+    try:
+        order = refund_order(order, data.get('amount'))
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    except Exception:
+        logger.exception('Remboursement Stripe')
+        return jsonify({'error': 'Remboursement impossible'}), 400
+    return jsonify({'order': order.to_dict(include_stripe=True)}), 200
+
+
+@payments_bp.route('/paypal/create', methods=['POST'])
+def paypal_create_route():
+    from app.services.paypal_service import create_paypal_order, paypal_configured
+    if not paypal_configured():
+        return jsonify({
+            'error': 'PayPal n\'est pas configuré. Utilisez POST /checkout en mode test.',
+        }), 503
+    user, error = load_current_user_optional()
+    if error:
+        body, status = error
+        return jsonify(body), status
+    data = request.get_json() or {}
+    if user:
+        data['email'] = user.email
+        data['user_id'] = user.id
+    from app.services.checkout_service import build_checkout_quote
+    try:
+        quote = build_checkout_quote(data, user_id=user.id if user else None)
+        result = create_paypal_order(quote['charge'])
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    return jsonify({
+        'paypal_order_id': result.get('id'),
+        'status': result.get('status'),
+        'charge_amount': float(quote['charge']),
+    }), 201
+
+
+@payments_bp.route('/paypal/capture', methods=['POST'])
+def paypal_capture_route():
+    from app.services.paypal_service import capture_paypal_order, paypal_configured
+    if not paypal_configured():
+        return jsonify({'error': 'PayPal n\'est pas configuré.'}), 503
+    user, error = load_current_user_optional()
+    if error:
+        body, status = error
+        return jsonify(body), status
+    data = request.get_json() or {}
+    paypal_order_id = data.get('paypal_order_id')
+    if not paypal_order_id:
+        return jsonify({'error': 'paypal_order_id requis'}), 400
+    if user:
+        data['email'] = user.email
+    data['payment_method'] = 'paypal'
+    try:
+        capture_paypal_order(paypal_order_id)
+        data['paypal_captured'] = True
+        order = checkout(data, user_id=user.id if user else None)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    return jsonify({
+        'message': 'Paiement PayPal confirmé',
+        'order': _serialize_order(user, order),
+    }), 201

@@ -68,6 +68,38 @@ class StripeService:
         try:
             if quote is None:
                 quote = build_checkout_quote(order_data, user_id=order_data.get('user_id'))
+            settle_id = order_data.get('settle_order_id')
+            if settle_id:
+                order = db.session.get(Order, int(settle_id))
+                if order is None or order.status != 'deposit':
+                    raise ValueError('Commande d\'acompte introuvable.')
+                remaining = order.remaining_amount()
+                if remaining is None or remaining <= 0:
+                    raise ValueError('Aucun solde à encaisser.')
+                intent = stripe.PaymentIntent.create(
+                    amount=to_cents(remaining),
+                    currency='eur',
+                    metadata={
+                        'order_id': str(order.id),
+                        'email': order.email,
+                        'settle': '1',
+                    },
+                    automatic_payment_methods={'enabled': True},
+                )
+                order.stripe_payment_intent_id = _intent_id(intent)
+                db.session.commit()
+                return {
+                    'client_secret': getattr(intent, 'client_secret', None) or intent['client_secret'],
+                    'payment_intent_id': order.stripe_payment_intent_id,
+                    'order_id': order.id,
+                    'total_amount': float(order.total_amount),
+                    'charge_amount': float(remaining),
+                    'shipping_amount': float(order.shipping_amount or 0),
+                    'discount_amount': float(order.discount_amount or 0),
+                    'carrier': '',
+                    'eta': '',
+                    'stripe_publishable_key': current_app.config['STRIPE_PUBLISHABLE_KEY'],
+                }
             charge = quote['charge']
             order = Order(
                 user_id=quote['user_id'],
@@ -141,8 +173,15 @@ class StripeService:
                 raise ValueError("Commande non trouvée")
 
             status = _intent_status(intent)
+            meta = {}
+            try:
+                raw = intent.to_dict() if hasattr(intent, 'to_dict') else intent
+                meta = (raw.get('metadata') or {}) if isinstance(raw, dict) else {}
+            except Exception:
+                meta = {}
+            settle = str(meta.get('settle') or '') == '1'
             if status == 'succeeded':
-                order = mark_order_succeeded(order, card_last4=_stripe_last4(intent))
+                order = mark_order_succeeded(order, card_last4=_stripe_last4(intent), settle=settle)
             elif status in ('canceled', 'payment_failed', 'requires_payment_method'):
                 if order.status == 'pending':
                     order = mark_order_failed(order)

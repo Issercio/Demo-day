@@ -9,6 +9,7 @@ PAYMENT_LABELS = {
     'deposit': 'Acompte versé',
     'failed': 'Paiement refusé',
     'cancelled': 'Annulée',
+    'refunded': 'Remboursée',
 }
 
 PREP_LABELS = {
@@ -46,6 +47,8 @@ class Order(db.Model):
     shipping_amount = db.Column(db.Numeric(10, 2), nullable=True)
     discount_amount = db.Column(db.Numeric(10, 2), nullable=True)
     promo_code = db.Column(db.String(40), nullable=True)
+    tracking_number = db.Column(db.String(80), nullable=True)
+    refunded_amount = db.Column(db.Numeric(10, 2), nullable=True)
     created_at = db.Column(db.DateTime, default=utc_now)
     
     # Relations
@@ -94,9 +97,23 @@ class Order(db.Model):
             'shipping_amount': float(self.shipping_amount) if self.shipping_amount is not None else None,
             'discount_amount': float(self.discount_amount) if self.discount_amount is not None else None,
             'promo_code': self.promo_code,
+            'tracking_number': self.tracking_number,
+            'refunded_amount': float(self.refunded_amount) if self.refunded_amount is not None else None,
+            'invoice_number': None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'items': [item.to_dict() for item in self.order_items]
         }
+        from app.services.invoice_service import invoice_number, invoice_payload
+        payload['invoice_number'] = invoice_number(self)
+        try:
+            invoice = invoice_payload(self)
+            payload['total_ht'] = invoice['total_ht']
+            payload['total_tva'] = invoice['total_tva']
+            payload['tva_rate'] = invoice['tva_rate']
+        except Exception:
+            payload['total_ht'] = None
+            payload['total_tva'] = None
+            payload['tva_rate'] = None
         # L'id Stripe reste côté fleuriste ; un client n'a pas à le voir.
         if include_stripe:
             payload['stripe_payment_intent_id'] = self.stripe_payment_intent_id

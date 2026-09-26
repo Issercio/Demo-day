@@ -5,6 +5,7 @@ from .shop_theme import ShopTheme, ShopVitrine, ThemeProduct
 from .contact import ContactRequest
 from .cart import Cart
 from .settings import ShopSettings, PromoCode
+from .subscription import ShopSubscription
 from app.extensions import db
 
 # Définition du modèle Product directement dans __init__.py
@@ -16,6 +17,7 @@ class Product(db.Model):
     price = db.Column(db.Numeric(10, 2), nullable=False)  # euros, jamais un float binaire
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id', ondelete='CASCADE'), nullable=True)
     is_on_sale = db.Column(db.Boolean, default=False)
+    sale_price = db.Column(db.Numeric(10, 2), nullable=True)
     color = db.Column(db.String(7), nullable=True)  # hex #rrggbb pour le filtre boutique
     image = db.Column(db.String(255), nullable=True)  # chemin /static/img/products/...
     stock_qty = db.Column(db.Integer, nullable=False, default=12)
@@ -29,13 +31,21 @@ class Product(db.Model):
         category = self.category
         color = str(self.color).lower() if self.color else None
         qty = int(self.stock_qty if self.stock_qty is not None else 12)
+        catalog_price = float(self.price)
+        on_sale = bool(self.is_on_sale) if hasattr(self, 'is_on_sale') else False
+        sale = None
+        if getattr(self, 'sale_price', None) is not None:
+            sale = float(self.sale_price)
+        effective = sale if on_sale and sale is not None and 0 < sale < catalog_price else catalog_price
         return {
             'id': int(self.id),
             'name': str(self.name),
             # JSON n'a pas de Decimal : on envoie un number, le stockage reste Numeric.
-            'price': float(self.price),
+            'price': catalog_price,
+            'sale_price': sale,
+            'effective_price': effective,
             'category_id': int(self.category_id) if self.category_id else None,
-            'is_on_sale': bool(self.is_on_sale) if hasattr(self, 'is_on_sale') else False,
+            'is_on_sale': on_sale,
             'color': color,
             'hex_color': color,
             'image': str(self.image) if self.image else None,

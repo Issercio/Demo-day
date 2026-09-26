@@ -906,6 +906,10 @@
                     <h3>Stock bas / rupture</h3>
                     <ul id="atelier-stock"><li>Chargement…</li></ul>
                 </div>
+                <div>
+                    <h3>Abonnements à livrer</h3>
+                    <ul id="atelier-subscriptions"><li>Chargement…</li></ul>
+                </div>
             </div>
         </div>
 
@@ -1007,6 +1011,13 @@
                     <input type="number" id="product-stock" placeholder="12" min="0" max="9999" value="12">
                 </div>
                 <div class="form-group">
+                    <label for="product-sale-price">Prix soldé (optionnel) :</label>
+                    <input type="number" id="product-sale-price" placeholder="Vide = pas de solde" step="0.01" min="0">
+                </div>
+                <div class="form-group" style="display:flex;align-items:flex-end;gap:8px;">
+                    <label><input type="checkbox" id="product-on-sale"> Mettre en solde</label>
+                </div>
+                <div class="form-group">
                     <label for="product-category">Catégorie :</label>
                     <select id="product-category">
                         <option value="">Choisir une catégorie</option>
@@ -1091,6 +1102,10 @@
                     <div class="form-group">
                         <label for="setting-tva">N° TVA intra</label>
                         <input type="text" id="setting-tva" maxlength="20" placeholder="FR…">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-tva-rate">Taux TVA (%) sur facture</label>
+                        <input type="number" id="setting-tva-rate" min="0" max="100" step="0.1" placeholder="10">
                     </div>
                     <div class="form-group" style="grid-column:1 / -1;">
                         <label for="setting-address">Adresse / siège</label>
@@ -1593,6 +1608,23 @@
                     const rows = [...(data.out_stock || []).map((row) => `<li><strong>Rupture</strong> ${escapeHtml(row.name)}</li>`), ...(data.low_stock || []).map((row) => `<li>${escapeHtml(row.name)} : ${row.stock_qty}</li>`)];
                     stock.innerHTML = rows.length ? rows.join('') : '<li>Stock OK</li>';
                 }
+                const subs = document.getElementById('atelier-subscriptions');
+                if (subs) {
+                    const due = data.subscriptions_due || [];
+                    subs.innerHTML = due.length
+                        ? due.map((row) => `<li>#${row.id} ${escapeHtml(row.plan_name)} — ${escapeHtml(row.email)} <button type="button" class="btn" data-sub-deliver="${row.id}">Livré</button></li>`).join('')
+                        : '<li>Aucun abonnement dû aujourd’hui.</li>';
+                    subs.querySelectorAll('[data-sub-deliver]').forEach((button) => {
+                        button.addEventListener('click', async () => {
+                            await fetch('/api/v1/subscriptions/' + button.getAttribute('data-sub-deliver'), {
+                                method: 'PATCH',
+                                headers: getAdminHeaders(),
+                                body: JSON.stringify({ deliver: true })
+                            });
+                            await loadAtelierToday();
+                        });
+                    });
+                }
             } catch (error) {
                 console.error(error);
             }
@@ -1618,7 +1650,7 @@
                 box.innerHTML = rows.map((row) => `
                     <article class="contact-card${row.status === 'nouveau' ? ' is-nouveau' : ''}" data-contact-id="${row.id}">
                         <strong>${escapeHtml(row.name)}</strong> · ${escapeHtml(row.email)}
-                        <small> · ${escapeHtml((row.created_at || '').replace('T', ' ').slice(0, 16))} · ${escapeHtml(row.status)}</small>
+                        <small> · ${escapeHtml((row.created_at || '').replace('T', ' ').slice(0, 16))} · ${escapeHtml(row.status)}${row.kind === 'devis' ? ' · Devis' : ''}</small>
                         <p>${escapeHtml(row.message)}</p>
                         ${row.reply_text ? `<p><em>Réponse : ${escapeHtml(row.reply_text)}</em></p>` : ''}
                         <textarea data-contact-reply placeholder="Répondre au client…"></textarea>
@@ -1687,6 +1719,7 @@
                 setVal('setting-capital', settings.capital);
                 setVal('setting-rcs', settings.rcs_city);
                 setVal('setting-tva', settings.tva_intra);
+                setVal('setting-tva-rate', settings.tva_rate);
                 setVal('setting-address', settings.address);
                 setVal('setting-pickup', settings.pickup_note);
                 setVal('setting-fee', settings.delivery_fee);
@@ -1728,6 +1761,7 @@
                         capital: document.getElementById('setting-capital').value,
                         rcs_city: document.getElementById('setting-rcs').value,
                         tva_intra: document.getElementById('setting-tva').value,
+                        tva_rate: document.getElementById('setting-tva-rate').value,
                         address: document.getElementById('setting-address').value,
                         pickup_note: document.getElementById('setting-pickup').value,
                         delivery_fee: document.getElementById('setting-fee').value,
@@ -2014,6 +2048,10 @@
             const discountRow = order.discount_amount
                 ? `<tr><th>Promo ${escapeHtml(order.promo_code || '')}</th><td>− ${formatOrderMoney(order.discount_amount)}</td></tr>`
                 : '';
+            const vatRows = order.total_ht != null
+                ? `<tr><th>Total HT</th><td>${formatOrderMoney(order.total_ht)}</td></tr>
+                   <tr><th>TVA ${escapeHtml(String(order.tva_rate || ''))} %</th><td>${formatOrderMoney(order.total_tva)}</td></tr>`
+                : '';
             const rawRef = String(order.payment_reference || '');
             const printRef = !rawRef || rawRef.indexOf('pi_') === 0 ? '—' : rawRef;
             return `
@@ -2064,15 +2102,17 @@
                     <table class="invoice-totals">
                         ${shippingRow}
                         ${discountRow}
+                        ${vatRows}
                         ${depositRows}
                         <tr class="is-grand"><th>Total TTC</th><td>${formatOrderMoney(order.total_amount)}</td></tr>
                     </table>
                     <p class="invoice-pay">
                         Paiement : ${escapeHtml(orderMethodLabel(order))}${last4}
                         · Réf. ${escapeHtml(printRef)}
+                        ${order.tracking_number ? ` · Suivi ${escapeHtml(order.tracking_number)}` : ''}
                     </p>
                     <p class="invoice-legal">
-                        Facture émise par ${shopName}. Prix TTC.
+                        Facture ${escapeHtml(order.invoice_number || '')} émise par ${shopName}. Prix TTC, TVA ${escapeHtml(String(order.tva_rate || 10))} %.
                     </p>
                 </div>
             `;
@@ -2143,7 +2183,12 @@
                             <select data-order-prep="${Number(order.id)}">${prepOptions}</select>
                         </label>` : ''}
                         ${status === 'deposit' ? `<button type="button" data-order-settle="${Number(order.id)}">Marquer le solde payé</button>` : ''}
+                        <label>Suivi colis
+                            <input type="text" data-order-tracking="${Number(order.id)}" value="${escapeHtml(order.tracking_number || '')}" maxlength="80" placeholder="N° transporteur">
+                        </label>
                         <button type="button" class="order-print-btn" data-order-print="${Number(order.id)}">Imprimer la facture</button>
+                        <a class="order-print-btn" href="/api/v1/payments/orders/${Number(order.id)}/invoice.pdf?email=${encodeURIComponent(order.email || '')}" target="_blank" rel="noopener">PDF</a>
+                        ${status === 'paid' || status === 'deposit' ? `<button type="button" data-order-refund="${Number(order.id)}">Rembourser</button>` : ''}
                         <button type="button" class="order-delete-btn" data-order-delete="${Number(order.id)}">Enlever</button>
                    </div>`;
             return `
@@ -2293,6 +2338,11 @@
                 if (color) {
                     formData.append('color', color);
                 }
+                const salePrice = (document.getElementById('product-sale-price') || {}).value;
+                formData.append('is_on_sale', document.getElementById('product-on-sale') && document.getElementById('product-on-sale').checked ? '1' : '0');
+                if (salePrice) {
+                    formData.append('sale_price', salePrice);
+                }
                 if (description.trim()) {
                     formData.append('description', description.trim());
                 }
@@ -2390,8 +2440,10 @@
                         <textarea class="edit-input product-desc-edit" style="display:none;" maxlength="800">${escapeHtml(prod.description || '')}</textarea>
                     </td>
                     <td>
-                        <span class="product-price">${prod.price}€</span>
+                        <span class="product-price">${prod.is_on_sale && prod.sale_price ? `<s>${prod.price}€</s> ${prod.sale_price}€` : `${prod.price}€`}</span>
                         <input type="number" class="edit-input product-price-edit" value="${prod.price}" step="0.01" style="display:none;">
+                        <input type="number" class="edit-input product-sale-edit" value="${prod.sale_price == null ? '' : prod.sale_price}" step="0.01" placeholder="Prix soldé" style="display:none;">
+                        <label class="edit-input product-on-sale-edit" style="display:none;"><input type="checkbox" ${prod.is_on_sale ? 'checked' : ''}> Solde</label>
                     </td>
                     <td>
                         <span class="product-category">${prod.category ? escapeHtml(prod.category.name) : 'Aucune'}</span>
@@ -2512,6 +2564,10 @@
             }
             row.querySelector('.product-price').style.display = 'none';
             row.querySelector('.product-price-edit').style.display = 'block';
+            const saleEdit = row.querySelector('.product-sale-edit');
+            const saleFlag = row.querySelector('.product-on-sale-edit');
+            if (saleEdit) saleEdit.style.display = 'block';
+            if (saleFlag) saleFlag.style.display = 'block';
             row.querySelector('.product-category').style.display = 'none';
             row.querySelector('.product-category-edit').style.display = 'block';
             row.querySelector('.product-stock').style.display = 'none';
@@ -2540,6 +2596,14 @@
                 formData.append('category_id', newCategoryId);
                 formData.append('stock_qty', newStock);
                 formData.append('description', newDesc);
+                const saleInput = row.querySelector('.product-sale-edit');
+                const saleFlag = row.querySelector('.product-on-sale-edit input');
+                if (saleInput) {
+                    formData.append('sale_price', saleInput.value);
+                }
+                if (saleFlag) {
+                    formData.append('is_on_sale', saleFlag.checked ? '1' : '0');
+                }
                 if (imageFile) {
                     formData.append('image', imageFile, imageFile.name);
                 }
@@ -2606,6 +2670,10 @@
             }
             row.querySelector('.product-price').style.display = 'block';
             row.querySelector('.product-price-edit').style.display = 'none';
+            const saleEdit = row.querySelector('.product-sale-edit');
+            const saleFlag = row.querySelector('.product-on-sale-edit');
+            if (saleEdit) saleEdit.style.display = 'none';
+            if (saleFlag) saleFlag.style.display = 'none';
             row.querySelector('.product-category').style.display = 'block';
             row.querySelector('.product-category-edit').style.display = 'none';
             row.querySelector('.product-stock').style.display = 'block';
@@ -2651,6 +2719,16 @@
 
             const ordersList = document.getElementById('orders-list');
             ordersList.addEventListener('change', async function(event) {
+                const trackingInput = event.target.closest('[data-order-tracking]');
+                if (trackingInput) {
+                    const updated = await patchOrder(trackingInput.getAttribute('data-order-tracking'), {
+                        tracking_number: trackingInput.value
+                    });
+                    if (updated) {
+                        showNotice('Numéro de suivi enregistré.', 'success');
+                    }
+                    return;
+                }
                 const select = event.target.closest('[data-order-prep]');
                 if (!select) {
                     return;
@@ -2688,6 +2766,39 @@
                         return;
                     }
                     showNotice(payload.message || 'Commande enlevée.', 'success');
+                    await loadOrders();
+                    return;
+                }
+                const trackingInput = event.target.closest('[data-order-tracking]');
+                if (trackingInput && event.type === 'change') {
+                    const updated = await patchOrder(trackingInput.getAttribute('data-order-tracking'), {
+                        tracking_number: trackingInput.value
+                    });
+                    if (updated) {
+                        showNotice('Numéro de suivi enregistré.', 'success');
+                        await loadOrders();
+                    }
+                    return;
+                }
+                const refundBtn = event.target.closest('[data-order-refund]');
+                if (refundBtn) {
+                    if (!confirm('Rembourser la commande #' + refundBtn.getAttribute('data-order-refund') + ' ?')) {
+                        return;
+                    }
+                    const response = await fetch('/api/v1/payments/orders/' + refundBtn.getAttribute('data-order-refund') + '/refund', {
+                        method: 'POST',
+                        headers: getAdminHeaders(),
+                        body: JSON.stringify({})
+                    });
+                    if (sessionBlocked(response)) {
+                        return;
+                    }
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        showNotice(apiErrorMessage(payload, 'Remboursement impossible'), 'error');
+                        return;
+                    }
+                    showNotice('Commande remboursée.', 'success');
                     await loadOrders();
                     return;
                 }

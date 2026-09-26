@@ -19,6 +19,7 @@ SUBSCRIPTION_PLANS = {
         'name': 'Abonnement Éclat Mensuel',
         'price': Decimal('19.99'),
         'duration': '1 mois',
+        'period_months': 1,
         'cart_id': 'subscription_monthly',
     },
     'semester': {
@@ -26,6 +27,7 @@ SUBSCRIPTION_PLANS = {
         'name': 'Abonnement Harmonie Semestrielle',
         'price': Decimal('17.99'),
         'duration': '6 mois',
+        'period_months': 6,
         'cart_id': 'subscription_semester',
     },
     'yearly': {
@@ -33,6 +35,7 @@ SUBSCRIPTION_PLANS = {
         'name': 'Abonnement Collection Annuelle',
         'price': Decimal('14.99'),
         'duration': '12 mois',
+        'period_months': 12,
         'cart_id': 'subscription_yearly',
     },
 }
@@ -86,11 +89,17 @@ def payment_config():
         'whsec_...',
         'whsec_VOTRE_WEBHOOK_SECRET',
     }
+    from app.services.paypal_service import paypal_client_id, paypal_configured
+    from app.services.sms_service import sms_configured
+    paypal_live = paypal_configured()
     return {
         'mode': 'stripe' if live else 'test',
         'publishable_key': current_app.config.get('STRIPE_PUBLISHABLE_KEY') if live else None,
         'currency': 'eur',
         'webhook_configured': webhook_ready if live else False,
+        'paypal_configured': paypal_live,
+        'paypal_client_id': paypal_client_id() if paypal_live else None,
+        'sms_configured': sms_configured(),
         'test_cards': [
             {'number': '4242 4242 4242 4242', 'result': 'Paiement accepté'},
             {'number': '4000 0000 0000 0002', 'result': 'Carte refusée'},
@@ -118,6 +127,12 @@ def ensure_runtime_schema():
         'address': 'VARCHAR(255)',
     }
     for name, ddl in additions.items():
+        if name not in existing:
+            db.session.execute(text(f'ALTER TABLE orders ADD COLUMN {name} {ddl}'))
+    for name, ddl in {
+        'tracking_number': 'VARCHAR(80)',
+        'refunded_amount': 'NUMERIC(10, 2)',
+    }.items():
         if name not in existing:
             db.session.execute(text(f'ALTER TABLE orders ADD COLUMN {name} {ddl}'))
     # Anciennes commandes payées : elles doivent apparaître « À préparer » à l'atelier.
@@ -279,6 +294,20 @@ def _wants_deposit(data):
     return bool(raw)
 
 
+def catalog_unit_price(product):
+    """Prix TTC encaissé : promo produit si le fleuriste a coché la solde."""
+    base = money(product.price)
+    if not getattr(product, 'is_on_sale', False):
+        return base
+    sale = getattr(product, 'sale_price', None)
+    if sale is None:
+        return base
+    sale_money = money(sale)
+    if sale_money <= 0 or sale_money >= base:
+        return base
+    return sale_money
+
+
 def build_order_lines(items):
     # Le prix du body JSON est ignoré : on relit Product.price (ou le plan d'abonnement).
     if not items:
@@ -311,7 +340,7 @@ def build_order_lines(items):
             if product.name in {plan['name'] for plan in SUBSCRIPTION_PLANS.values()}:
                 pass
 
-        unit_price = money(product.price)  # catalogue, pas item['price'] du panier
+        unit_price = catalog_unit_price(product)  # catalogue / solde, pas item['price'] du panier
         total += unit_price * quantity
         lines.append({
             'product': product,
@@ -418,12 +447,24 @@ def lines_from_order(order):
     return lines
 
 
-def mark_order_succeeded(order, card_last4=None):
+def mark_order_succeeded(order, card_last4=None, settle=False):
     """Idempotent : stock et promo seulement au passage pending → paid/deposit."""
     from app.services.shop_commerce import bump_promo, notify_order
     from app.models.settings import PromoCode
 
-    if order.status in ('paid', 'deposit'):
+    if order.status == 'paid':
+        return order
+    if order.status == 'deposit':
+        if not settle:
+            return order
+        order.status = 'paid'
+        if card_last4:
+            order.card_last4 = str(card_last4)[:4]
+        db.session.commit()
+        try:
+            notify_order(order)
+        except Exception:
+            current_app.logger.exception('Mail solde ignoré')
         return order
     was_pending = order.status == 'pending'
     if order.deposit_amount is not None:
@@ -449,6 +490,11 @@ def mark_order_succeeded(order, card_last4=None):
             notify_order(order)
         except Exception:
             current_app.logger.exception('Mail commande ignoré')
+        try:
+            from app.services.subscription_ops import activate_from_order
+            activate_from_order(order)
+        except Exception:
+            current_app.logger.exception('Abonnement ignoré commande #%s', order.id)
     else:
         db.session.commit()
     return order
@@ -515,6 +561,9 @@ def checkout(data, user_id=None):
         raise ValueError(
             'Paiement Stripe : utilisez Stripe.js puis /api/v1/payments/confirm-payment.'
         )
+    from app.services.paypal_service import paypal_configured
+    if quote['method'] == 'paypal' and paypal_configured() and not data.get('paypal_captured'):
+        raise ValueError('Paiement PayPal : confirmez via /api/v1/payments/paypal/capture.')
 
     email = quote['email']
     name = quote['name']
@@ -582,4 +631,65 @@ def checkout(data, user_id=None):
         notify_order(order)
     except Exception:
         current_app.logger.exception('Mail commande ignoré')
+    try:
+        from app.services.subscription_ops import activate_from_order
+        activate_from_order(order)
+    except Exception:
+        current_app.logger.exception('Abonnement ignoré commande #%s', order.id)
+    return order
+
+
+def settle_deposit(order, data, user_id=None):
+    """Le client règle le solde d’un acompte (carte de test / PayPal sandbox)."""
+    if order.status != 'deposit':
+        raise ValueError('Cette commande n\'a pas d\'acompte à solder.')
+    remaining = order.remaining_amount()
+    if remaining is None or remaining <= 0:
+        raise ValueError('Aucun solde à encaisser.')
+    method = (data.get('payment_method') or 'card').lower()
+    if method not in ('card', 'paypal', 'saved'):
+        raise ValueError('Méthode de paiement non supportée.')
+    if stripe_configured() and method == 'card' and not data.get('payment_intent_id'):
+        raise ValueError('Paiement Stripe : utilisez Stripe.js puis /api/v1/payments/confirm-payment.')
+    if method == 'card':
+        process_test_card(
+            data.get('card_number'),
+            data.get('card_expiry') or data.get('expiry'),
+            data.get('card_cvc') or data.get('cvc'),
+        )
+    order.status = 'paid'
+    if not order.prep_status:
+        order.prep_status = 'a_preparer'
+    order.payment_method = method
+    db.session.commit()
+    from app.services.shop_commerce import notify_order
+    try:
+        notify_order(order)
+    except Exception:
+        current_app.logger.exception('Mail solde ignoré')
+    return order
+
+
+def refund_order(order, amount=None):
+    """Remboursement fleuriste : stock rendu, statut refunded. Stripe si un PI existe."""
+    from app.services.shop_ops import restock
+
+    if order.status not in ('paid', 'deposit'):
+        raise ValueError('Seule une commande encaissée peut être remboursée.')
+    total = money(order.total_amount)
+    refund = money(amount) if amount is not None else total
+    if refund <= 0 or refund > total:
+        raise ValueError('Montant de remboursement invalide.')
+    if order.stripe_payment_intent_id and stripe_configured():
+        import stripe
+        stripe.api_key = current_app.config.get('STRIPE_SECRET_KEY')
+        stripe.Refund.create(
+            payment_intent=order.stripe_payment_intent_id,
+            amount=to_cents(refund),
+        )
+    restock(lines_from_order(order))
+    order.status = 'refunded'
+    order.refunded_amount = refund
+    order.prep_status = None
+    db.session.commit()
     return order

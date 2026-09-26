@@ -118,6 +118,9 @@ def _deliver(user, code, channel, purpose):
         channel,
     )
     host = (os.environ.get('MAIL_SERVER') or '').strip()
+    if channel == 'sms':
+        from app.services.sms_service import send_sms
+        send_sms(user.phone, f'FloraShop — votre code {purpose} est {code}. Il expire dans {CODE_MINUTES} minutes.')
     if channel == 'email' and host:
         try:
             msg = EmailMessage()

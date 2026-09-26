@@ -15,6 +15,7 @@ class ShopSettings(db.Model):
     capital = db.Column(db.String(40), nullable=True)
     rcs_city = db.Column(db.String(80), nullable=True)
     tva_intra = db.Column(db.String(20), nullable=True)
+    tva_rate = db.Column(db.Numeric(5, 2), nullable=True)  # % TTC → HT, défaut 10 (fleurs)
     pickup_note = db.Column(db.String(255), nullable=True)
     delivery_fee = db.Column(db.Numeric(10, 2), nullable=False, default=8.90)
     delivery_fee_overseas = db.Column(db.Numeric(10, 2), nullable=True)
@@ -36,6 +37,7 @@ class ShopSettings(db.Model):
             'capital': self.capital or '',
             'rcs_city': self.rcs_city or '',
             'tva_intra': self.tva_intra or '',
+            'tva_rate': float(self.tva_rate) if self.tva_rate is not None else 10.0,
             'pickup_note': self.pickup_note or 'Retrait à l’atelier aux horaires indiqués.',
             'delivery_fee': float(self.delivery_fee or 0),
             'delivery_fee_overseas': float(self.delivery_fee_overseas)
