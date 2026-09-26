@@ -28,7 +28,7 @@ Boutique florale en ligne : le client choisit un bouquet, paie, et suit sa comma
 - Vitrine du shop : une saison, un thème, ou les deux
 - Tableau du jour : à préparer, stock bas / rupture, prochains retraits
 - Demandes contact : nouveau → lu → traité, réponse au client
-- Identité boutique (SIREN / adresse légale saisis par l’exploitant, jamais inventés), transporteur, délais, jours fermés, codes promo
+- Identité légale sur une page à part (SIREN / adresse saisis par l’exploitant, jamais inventés), livraison et codes promo dans l’atelier
 - Commandes : statut de paiement, préparation (`À préparer` → `Remise`), facture imprimable / PDF, remboursement, n° de suivi
 - Accès admin réservé : un client ne peut pas ouvrir le back-office
 
@@ -63,6 +63,7 @@ Le shop écoute sur [http://localhost:5000](http://localhost:5000). HTTPS local 
 | Commandes | http://localhost:5000/commandes.html |
 | Contact | http://localhost:5000/contact.html |
 | Admin | http://localhost:5000/admin.html |
+| Identité (SIREN) | http://localhost:5000/identite.html |
 | API | http://localhost:5000/api/v1 |
 
 `./setup.sh` copie [`.env.example`](.env.example) vers `Demoday/.env` et génère `SECRET_KEY` / `JWT_SECRET_KEY` (`openssl rand -hex 32`). Ne jamais committer `.env`.
@@ -82,7 +83,7 @@ Les totaux viennent de la base, jamais du navigateur. Sans clés Stripe, le PAN 
 
 ## Mettre en ligne
 
-Le dépôt n’invente pas d’URL publique, de clés Stripe ni de SIREN. Brancher un hébergeur, coller les vraies clés, saisir l’identité légale en admin.
+Le dépôt n’invente pas d’URL publique, de clés Stripe ni de SIREN. Brancher un hébergeur, coller les vraies clés, saisir l’identité légale sur la page Identité.
 
 **Docker Compose** (Postgres + gunicorn)
 
@@ -110,7 +111,7 @@ Sans clés, le processeur de test (4242…) reste actif. PayPal sans `PAYPAL_CLI
 
 ### Identité légale et livraison
 
-Admin → Identité : SIREN (9 chiffres, Luhn, **vide par défaut**), adresse de siège, forme, capital, RCS, TVA. Transporteur, délai métropole (`24–48 h`), délai DOM (`3–5 jours ouvrés`), tarif DOM distinct du forfait métropole.
+Admin → page Identité (`identite.html`) : SIREN (9 chiffres, Luhn, **vide par défaut**), adresse de siège, forme, capital, RCS, TVA. L’atelier (`admin.html`, onglet Boutique) garde transporteur, délai métropole (`24–48 h`), délai DOM (`3–5 jours ouvrés`), tarif DOM distinct du forfait métropole.
 
 ## Technique
 

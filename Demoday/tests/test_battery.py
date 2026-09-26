@@ -436,6 +436,7 @@ class BatteryTestCase(unittest.TestCase):
             '/commandes.html',
             '/contact.html',
             '/admin.html',
+            '/identite.html',
             '/cgv.html',
             '/account.html',
         )

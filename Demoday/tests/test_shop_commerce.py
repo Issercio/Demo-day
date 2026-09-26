@@ -122,6 +122,14 @@ class ShopCommerceTestCase(unittest.TestCase):
         self.assertEqual(body.get('siren') or '', '')
         self.assertEqual(body.get('delivery_carrier') or '', '')
         self.assertEqual(body.get('legal_form') or '', '')
+        delivery_only = self.client.put(
+            '/api/v1/settings',
+            json={'delivery_carrier': 'Chronopost'},
+            headers={'Authorization': f'Bearer {token}'},
+        )
+        self.assertEqual(delivery_only.status_code, 200, delivery_only.get_json())
+        self.assertEqual(delivery_only.get_json()['legal_name'], 'Atelier Test')
+        self.assertEqual(delivery_only.get_json()['delivery_carrier'], 'Chronopost')
 
     def test_guest_can_track_own_order_only(self):
         paid = self.pay()
@@ -286,9 +294,16 @@ class ShopCommerceTestCase(unittest.TestCase):
         self.assertIn('product-description', admin)
         self.assertIn('toute la France', admin)
         self.assertIn('setting-carrier', admin)
-        self.assertIn('setting-siren', admin)
+        self.assertNotIn('setting-siren', admin)
+        self.assertIn('identite.html', admin)
+        self.assertIn('atelier-tabs', admin)
         self.assertIn('setting-fee-overseas', admin)
-        self.assertIn('setting-tva-rate', admin)
+        identite = self.client.get('/identite.html').get_data(as_text=True)
+        self.assertIn('setting-siren', identite)
+        self.assertIn('setting-tva-rate', identite)
+        self.assertIn('setting-legal-name', identite)
+        self.assertIn('guardAdminPage', identite)
+        self.assertNotIn('setting-carrier', identite)
         cgv = self.client.get('/cgv.html').get_data(as_text=True)
         self.assertIn('/api/v1/settings', cgv)
         self.assertIn('legal-name', cgv)

@@ -841,6 +841,72 @@
             padding: 10px 12px;
         }
         .contact-card textarea { width: 100%; margin-top: 8px; min-height: 64px; }
+
+        .atelier-head {
+            text-align: center;
+            margin: 0 0 14px 0;
+        }
+        .atelier-head h1 {
+            color: #bc6288;
+            margin: 0 0 6px 0;
+            font-size: 1.65rem;
+        }
+        .atelier-lead {
+            color: #6c4a58;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+        .atelier-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 0 0 18px 0;
+            padding: 8px;
+            background: #fff6f2;
+            border: 1px solid #e7d6d6;
+            border-radius: 12px;
+            position: sticky;
+            top: 8px;
+            z-index: 40;
+        }
+        .atelier-tabs a {
+            text-decoration: none;
+            color: #7f3f5a;
+            font-weight: 600;
+            font-size: 0.88rem;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+        }
+        .atelier-tabs a:hover,
+        .atelier-tabs a.is-active {
+            background: #bc6288;
+            color: #fff;
+        }
+        .admin-panel { display: none; }
+        .admin-panel.is-active { display: block; }
+        .admin-panel .admin-section { margin-bottom: 18px; }
+        .admin-panel .admin-section:last-child { margin-bottom: 0; }
+        .product-create-details,
+        .category-create-details {
+            background: #fff;
+            border: 1px solid #eadfe2;
+            border-radius: 10px;
+            padding: 4px 14px 12px;
+            margin-bottom: 12px;
+        }
+        .product-create-details summary,
+        .category-create-details summary {
+            cursor: pointer;
+            color: #bc6288;
+            font-weight: 700;
+            padding: 10px 0;
+        }
+        .identite-link {
+            color: #bc6288;
+            font-weight: 600;
+        }
+
         @media (max-width: 720px) {
             .settings-grid,
             .theme-create-fields,
@@ -885,9 +951,22 @@
     </header>
 
     <div class="admin-container">
-        <h1 style="text-align: center; color: #bc6288; margin-bottom: 18px;">Administration du catalogue</h1>
+        <div class="atelier-head">
+            <h1>Atelier</h1>
+            <p class="atelier-lead">Tableau du jour, vitrine, catalogue et commandes. L’identité légale (SIREN) est sur une page à part.</p>
+        </div>
         <p id="admin-notice" class="admin-notice" hidden></p>
+        <nav class="atelier-tabs" aria-label="Sections atelier">
+            <a href="#jour" data-atelier-tab="jour" class="is-active">Jour</a>
+            <a href="#vitrine" data-atelier-tab="vitrine">Vitrine</a>
+            <a href="#catalogue" data-atelier-tab="catalogue">Catalogue</a>
+            <a href="#commandes" data-atelier-tab="commandes">Commandes</a>
+            <a href="#messages" data-atelier-tab="messages">Messages</a>
+            <a href="#boutique" data-atelier-tab="boutique">Boutique</a>
+            <a href="identite.html">Identité</a>
+        </nav>
 
+        <div class="admin-panel is-active" data-atelier-panel="jour" id="panel-jour">
         <div class="admin-section" id="atelier-today">
             <h2>Tableau du jour</h2>
             <div class="atelier-board" id="atelier-board">
@@ -912,7 +991,9 @@
                 </div>
             </div>
         </div>
+        </div>
 
+        <div class="admin-panel" data-atelier-panel="vitrine" id="panel-vitrine">
         <div class="admin-section" id="vitrine-section">
             <h2>Vitrine du shop</h2>
             <p class="admin-vitrine-lead">Choisissez une saison, un thème, ou les deux ensemble. Le shop affiche le combo appliqué.</p>
@@ -962,17 +1043,20 @@
                 </div>
             </form>
         </div>
+        </div>
 
+        <div class="admin-panel" data-atelier-panel="catalogue" id="panel-catalogue">
         <!-- SECTION CATÉGORIES -->
-        <div class="admin-section">
-            <h2>Gestion des Catégories</h2>
-            
-            <!-- Formulaire de création -->
-            <div class="form-group">
-                <label for="category-name">Nom de la catégorie :</label>
-                <input type="text" id="category-name" placeholder="Nom de la catégorie">
-                <button id="create-category-btn" class="btn">Créer Catégorie</button>
-            </div>
+        <div class="admin-section" id="categories-section">
+            <h2>Catégories</h2>
+            <details class="category-create-details">
+                <summary>Ajouter une catégorie</summary>
+                <div class="form-group">
+                    <label for="category-name">Nom de la catégorie :</label>
+                    <input type="text" id="category-name" placeholder="Nom de la catégorie">
+                    <button id="create-category-btn" class="btn">Créer Catégorie</button>
+                </div>
+            </details>
 
             <!-- Tableau des catégories -->
             <table class="data-table" id="categories-table">
@@ -993,10 +1077,10 @@
         </div>
 
         <!-- SECTION PRODUITS -->
-        <div class="admin-section">
-            <h2>Gestion des Produits</h2>
-            
-            <!-- Formulaire de création -->
+        <div class="admin-section" id="products-section">
+            <h2>Produits</h2>
+            <details class="product-create-details">
+            <summary>Ajouter un produit</summary>
             <div class="product-create-form">
                 <div class="form-group">
                     <label for="product-name">Nom du produit :</label>
@@ -1042,6 +1126,7 @@
                     <button id="create-product-btn" class="btn">Créer Produit</button>
                 </div>
             </div>
+            </details>
 
             <!-- Tableau des produits -->
             <table class="data-table" id="products-table">
@@ -1063,54 +1148,14 @@
                 </tbody>
             </table>
         </div>
-
         </div>
 
+        <div class="admin-panel" data-atelier-panel="boutique" id="panel-boutique">
         <div class="admin-section" id="shop-settings">
-            <h2>Identité et livraison</h2>
-            <p class="admin-vitrine-lead">Nom, adresse, SIREN réel (si vous en avez un — ne pas inventer), forme juridique, tarif métropole / DOM, transporteur et délais. Ces infos apparaissent sur les CGV et le paiement.</p>
+            <h2>Livraison</h2>
+            <p class="admin-vitrine-lead">Tarifs métropole / DOM, transporteur, délais, zone et jours fermés. Le SIREN et les mentions légales sont sur <a class="identite-link" href="identite.html">la page Identité</a>.</p>
             <form id="settings-form">
                 <div class="settings-grid">
-                    <div class="form-group">
-                        <label for="setting-legal-name">Nom de la boutique</label>
-                        <input type="text" id="setting-legal-name" maxlength="120" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="setting-email">Email atelier</label>
-                        <input type="email" id="setting-email">
-                    </div>
-                    <div class="form-group">
-                        <label for="setting-phone">Téléphone</label>
-                        <input type="text" id="setting-phone">
-                    </div>
-                    <div class="form-group">
-                        <label for="setting-siren">SIREN (9 chiffres, optionnel)</label>
-                        <input type="text" id="setting-siren" maxlength="20" placeholder="À saisir par l’exploitant — laisser vide sinon" inputmode="numeric" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label for="setting-legal-form">Forme juridique</label>
-                        <input type="text" id="setting-legal-form" maxlength="40" placeholder="EI, SAS, SARL…">
-                    </div>
-                    <div class="form-group">
-                        <label for="setting-capital">Capital</label>
-                        <input type="text" id="setting-capital" maxlength="40" placeholder="ex. 1 000 €">
-                    </div>
-                    <div class="form-group">
-                        <label for="setting-rcs">RCS / ville</label>
-                        <input type="text" id="setting-rcs" maxlength="80" placeholder="ex. Paris">
-                    </div>
-                    <div class="form-group">
-                        <label for="setting-tva">N° TVA intra</label>
-                        <input type="text" id="setting-tva" maxlength="20" placeholder="FR…">
-                    </div>
-                    <div class="form-group">
-                        <label for="setting-tva-rate">Taux TVA (%) sur facture</label>
-                        <input type="number" id="setting-tva-rate" min="0" max="100" step="0.1" placeholder="10">
-                    </div>
-                    <div class="form-group" style="grid-column:1 / -1;">
-                        <label for="setting-address">Adresse / siège</label>
-                        <input type="text" id="setting-address" placeholder="Adresse légale réelle">
-                    </div>
                     <div class="form-group" style="grid-column:1 / -1;">
                         <label for="setting-pickup">Note de retrait</label>
                         <input type="text" id="setting-pickup">
@@ -1179,19 +1224,24 @@
             </form>
             <div id="promo-list" class="promo-list"><p class="order-empty">Chargement…</p></div>
         </div>
+        </div>
 
-        <div class="admin-section">
+        <div class="admin-panel" data-atelier-panel="messages" id="panel-messages">
+        <div class="admin-section" id="contact-section">
             <h2>Demandes contact</h2>
             <p style="margin-bottom: 12px; color: #6c4a58;">Les messages du formulaire Contact arrivent ici.</p>
             <div id="contact-inbox" class="contact-inbox"><p class="order-empty">Chargement…</p></div>
         </div>
+        </div>
 
-        <div class="admin-section">
+        <div class="admin-panel" data-atelier-panel="commandes" id="panel-commandes">
+        <div class="admin-section" id="orders-section">
             <h2>Commandes et factures</h2>
             <p style="margin-bottom: 16px; color: #6c4a58;">Chaque commande s’affiche comme une facture (n° FAC, client, lignes, total TTC). L’atelier (à préparer → remise) et l’encaissement restent au-dessus. Un acompte de 30 % laisse le solde à encaisser en boutique.</p>
             <div id="orders-list" class="orders-list">
                 <p class="order-empty">Chargement...</p>
             </div>
+        </div>
         </div>
     </div>
 
@@ -1746,16 +1796,6 @@
                         el.value = value || '';
                     }
                 };
-                setVal('setting-legal-name', settings.legal_name);
-                setVal('setting-email', settings.email);
-                setVal('setting-phone', settings.phone);
-                setVal('setting-siren', settings.siren);
-                setVal('setting-legal-form', settings.legal_form);
-                setVal('setting-capital', settings.capital);
-                setVal('setting-rcs', settings.rcs_city);
-                setVal('setting-tva', settings.tva_intra);
-                setVal('setting-tva-rate', settings.tva_rate);
-                setVal('setting-address', settings.address);
                 setVal('setting-pickup', settings.pickup_note);
                 setVal('setting-fee', settings.delivery_fee);
                 setVal('setting-fee-overseas', settings.delivery_fee_overseas);
@@ -1783,46 +1823,79 @@
             const closed = Array.from(document.querySelectorAll('#setting-closed input:checked'))
                 .map((box) => box.value)
                 .join(',');
+            const payload = {};
+            const fields = {
+                'setting-pickup': 'pickup_note',
+                'setting-fee': 'delivery_fee',
+                'setting-fee-overseas': 'delivery_fee_overseas',
+                'setting-carrier': 'delivery_carrier',
+                'setting-eta-metro': 'delivery_eta_metro',
+                'setting-eta-overseas': 'delivery_eta_overseas',
+                'setting-prefixes': 'delivery_prefixes'
+            };
+            Object.keys(fields).forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    payload[fields[id]] = el.value;
+                }
+            });
+            if (document.getElementById('setting-closed')) {
+                payload.closed_weekdays = closed;
+            }
             try {
                 const response = await fetch('/api/v1/settings', {
                     method: 'PUT',
                     headers: getAdminHeaders(),
-                    body: JSON.stringify({
-                        legal_name: document.getElementById('setting-legal-name').value,
-                        email: document.getElementById('setting-email').value,
-                        phone: document.getElementById('setting-phone').value,
-                        siren: document.getElementById('setting-siren').value,
-                        legal_form: document.getElementById('setting-legal-form').value,
-                        capital: document.getElementById('setting-capital').value,
-                        rcs_city: document.getElementById('setting-rcs').value,
-                        tva_intra: document.getElementById('setting-tva').value,
-                        tva_rate: document.getElementById('setting-tva-rate').value,
-                        address: document.getElementById('setting-address').value,
-                        pickup_note: document.getElementById('setting-pickup').value,
-                        delivery_fee: document.getElementById('setting-fee').value,
-                        delivery_fee_overseas: document.getElementById('setting-fee-overseas').value,
-                        delivery_carrier: document.getElementById('setting-carrier').value,
-                        delivery_eta_metro: document.getElementById('setting-eta-metro').value,
-                        delivery_eta_overseas: document.getElementById('setting-eta-overseas').value,
-                        delivery_prefixes: document.getElementById('setting-prefixes').value,
-                        closed_weekdays: closed
-                    })
+                    body: JSON.stringify(payload)
                 });
-                const payload = await response.json().catch(() => ({}));
+                const body = await response.json().catch(() => ({}));
                 if (sessionBlocked(response)) {
                     return;
                 }
                 if (!response.ok) {
-                    showNotice(apiErrorMessage(payload, 'Impossible d\'enregistrer'), 'error');
+                    showNotice(apiErrorMessage(body, 'Impossible d\'enregistrer'), 'error');
                     return;
                 }
-                shopIdentity = payload;
-                showNotice('Identité boutique enregistrée.', 'success');
+                shopIdentity = body;
+                showNotice('Livraison enregistrée.', 'success');
                 await loadShopSettings();
-                await loadOrders();
+                if (typeof loadOrders === 'function') {
+                    await loadOrders();
+                }
             } catch (error) {
                 showNotice('Erreur de communication: ' + error.message, 'error');
             }
+        }
+
+        function setupAtelierTabs() {
+            const tabs = Array.from(document.querySelectorAll('[data-atelier-tab]'));
+            const panels = Array.from(document.querySelectorAll('[data-atelier-panel]'));
+            if (!tabs.length || !panels.length) {
+                return;
+            }
+            const known = tabs.map((tab) => tab.getAttribute('data-atelier-tab'));
+            const show = (name) => {
+                if (!known.includes(name)) {
+                    name = known[0] || 'jour';
+                }
+                tabs.forEach((tab) => {
+                    tab.classList.toggle('is-active', tab.getAttribute('data-atelier-tab') === name);
+                });
+                panels.forEach((panel) => {
+                    panel.classList.toggle('is-active', panel.getAttribute('data-atelier-panel') === name);
+                });
+                if (location.hash !== '#' + name) {
+                    history.replaceState(null, '', '#' + name);
+                }
+            };
+            tabs.forEach((tab) => {
+                tab.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    show(tab.getAttribute('data-atelier-tab'));
+                });
+            });
+            window.addEventListener('hashchange', () => show((location.hash || '').slice(1)));
+            show((location.hash || '').slice(1) || 'jour');
         }
 
         async function loadPromos() {
@@ -2727,6 +2800,7 @@
                 return;
             }
             console.log('=== PAGE ADMIN CHARGÉE ===');
+            setupAtelierTabs();
             setupProductColorSwatches();
             setupProductImagePreview();
             setupAdminVitrine();
