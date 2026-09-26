@@ -357,8 +357,10 @@
         }
 
         .order-invoice {
-            padding: 22px 22px 16px;
+            padding: 28px 30px 22px;
             color: #3a2a30;
+            background: #fffdfb;
+            border-top: 6px solid #bc6288;
         }
 
         .invoice-head {
@@ -366,15 +368,30 @@
             flex-wrap: wrap;
             justify-content: space-between;
             gap: 16px 24px;
-            padding-bottom: 16px;
-            border-bottom: 2px solid #bc6288;
+            padding-bottom: 18px;
+            border-bottom: 1px solid #eadfe2;
+        }
+
+        .invoice-brand {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .invoice-logo {
+            width: 72px;
+            height: 60px;
+            object-fit: contain;
+            flex: 0 0 auto;
         }
 
         .invoice-shop strong {
             display: block;
             color: #bc6288;
-            font-size: 1.25rem;
-            letter-spacing: 0.02em;
+            font-size: 1.35rem;
+            letter-spacing: 0.04em;
+            font-family: Georgia, "Times New Roman", serif;
         }
 
         .invoice-shop small {
@@ -392,39 +409,56 @@
             display: block;
             font-style: normal;
             font-size: 0.72rem;
-            letter-spacing: 0.16em;
+            letter-spacing: 0.2em;
             text-transform: uppercase;
             color: #bc6288;
         }
 
         .invoice-title strong {
             display: block;
-            font-size: 1.35rem;
+            font-size: 1.55rem;
             margin-top: 2px;
+            letter-spacing: 0.02em;
+            font-family: Georgia, "Times New Roman", serif;
         }
 
         .invoice-title small {
+            display: block;
             color: #7a5a66;
+            margin-top: 4px;
         }
 
         .invoice-parties {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px 28px;
-            margin: 16px 0 8px;
+            gap: 0;
+            margin: 18px 0 8px;
+            border: 1px solid #eadfe2;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #f8f0f4;
+        }
+
+        .invoice-parties > div {
+            padding: 12px 16px;
+        }
+
+        .invoice-parties > div + div {
+            border-left: 1px solid #eadfe2;
         }
 
         .invoice-parties dt {
             color: #bc6288;
-            font-size: 0.72rem;
-            letter-spacing: 0.05em;
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+            font-weight: 700;
         }
 
         .invoice-parties dd {
             margin: 0;
-            line-height: 1.45;
+            line-height: 1.5;
         }
 
         .order-status {
@@ -474,11 +508,11 @@
         }
 
         .order-lines th {
-            background: #f8f0f4;
-            color: #bc6288;
-            font-size: 0.75rem;
+            background: #bc6288;
+            color: #fff;
+            font-size: 0.72rem;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.06em;
         }
 
         .order-lines td:nth-child(3),
@@ -513,14 +547,14 @@
         }
 
         .invoice-totals {
-            width: min(320px, 100%);
-            margin: 12px 0 0 auto;
+            width: min(280px, 100%);
+            margin: 16px 0 0 auto;
             border-collapse: collapse;
         }
 
         .invoice-totals th,
         .invoice-totals td {
-            padding: 6px 0 6px 12px;
+            padding: 5px 0 5px 12px;
             font-size: 0.92rem;
         }
 
@@ -539,23 +573,32 @@
         .invoice-totals .is-grand td {
             border-top: 2px solid #bc6288;
             color: #bc6288;
-            font-size: 1.05rem;
+            font-size: 1.08rem;
             padding-top: 10px;
         }
 
         .invoice-pay {
-            margin-top: 16px;
+            margin-top: 18px;
             padding-top: 12px;
-            border-top: 1px dashed #eadfe2;
+            border-top: 1px solid #eadfe2;
             color: #7a5a66;
             font-size: 0.88rem;
         }
 
+        .invoice-thanks {
+            margin: 16px 0 0;
+            text-align: center;
+            color: #bc6288;
+            font-style: italic;
+            font-size: 0.98rem;
+        }
+
         .invoice-legal {
-            margin-top: 14px;
+            margin-top: 8px;
+            text-align: center;
             color: #9a7a86;
-            font-size: 0.78rem;
-            line-height: 1.45;
+            font-size: 0.75rem;
+            line-height: 1.5;
         }
 
         .order-empty {
@@ -567,6 +610,10 @@
         @media (max-width: 720px) {
             .invoice-parties {
                 grid-template-columns: 1fr;
+            }
+            .invoice-parties > div + div {
+                border-left: 0;
+                border-top: 1px solid #eadfe2;
             }
             .invoice-title {
                 text-align: left;
@@ -2097,15 +2144,12 @@
             const items = order.items || [];
             const status = order.status || 'pending';
             const last4 = order.card_last4 ? ` •••• ${escapeHtml(order.card_last4)}` : '';
-            const account = order.user_id
-                ? `Compte client #${Number(order.user_id)}`
-                : 'Commande invitée';
+            const origin = window.location.origin;
             const contactBits = [
-                order.customer_name || '—',
-                order.email || '',
-                order.phone || '',
-                order.address || '',
-                account,
+                order.customer_name,
+                order.email,
+                order.phone,
+                order.address,
             ].filter(Boolean);
             const lines = items.map((item) => {
                 const name = (item.product && item.product.name) || `Produit #${item.product_id}`;
@@ -2115,8 +2159,9 @@
                 const unit = Number(item.price);
                 const unitCents = Math.round(unit * 100);
                 const lineTotal = Number.isFinite(unitCents) ? (unitCents * qty) / 100 : null;
-                const thumb = photo
-                    ? `<img class="order-line-thumb" src="${escapeHtml(photo)}" alt="" onerror="this.replaceWith(document.createTextNode('—'))">`
+                const absPhoto = photo && photo.startsWith('/') ? origin + photo : photo;
+                const thumb = absPhoto
+                    ? `<img class="order-line-thumb" src="${escapeHtml(absPhoto)}" alt="" onerror="this.replaceWith(document.createTextNode('—'))">`
                     : '<span style="color:#9a7a86;">—</span>';
                 return `
                     <tr>
@@ -2132,23 +2177,22 @@
                 `;
             }).join('') || '<tr><td colspan="5" class="order-empty">Aucun article</td></tr>';
             const paymentLabel = order.payment_label || orderStatusLabel(status);
-            const prepStatus = order.prep_status || '';
-            const prepBadge = prepStatus
-                ? `<span class="order-status is-${escapeHtml(prepStatus)}">${escapeHtml(order.prep_label || orderPrepLabel(prepStatus))}</span>`
-                : '';
             const depositRows = status === 'deposit' && order.deposit_amount != null
                 ? `<tr><th>Acompte versé</th><td>${formatOrderMoney(order.deposit_amount)}</td></tr>
                    <tr><th>Reste dû</th><td>${formatOrderMoney(order.remaining_amount)}</td></tr>`
                 : '';
             const shopName = escapeHtml(shopIdentity.legal_name || 'FloraShop');
             const shopBits = [
-                shopIdentity.address || 'Boutique florale en ligne',
-                shopIdentity.email || '',
-                shopIdentity.phone || '',
-                shopIdentity.legal_form || '',
+                shopIdentity.address,
+                shopIdentity.email,
+                shopIdentity.phone,
+            ].filter(Boolean);
+            const legalBits = [
+                shopIdentity.legal_form,
                 shopIdentity.siren ? 'SIREN ' + shopIdentity.siren : '',
                 shopIdentity.tva_intra ? 'TVA ' + shopIdentity.tva_intra : '',
                 shopIdentity.rcs_city ? 'RCS ' + shopIdentity.rcs_city : '',
+                shopIdentity.capital ? 'Capital ' + shopIdentity.capital : '',
             ].filter(Boolean);
             const shippingRow = order.shipping_amount
                 ? `<tr><th>Livraison</th><td>${formatOrderMoney(order.shipping_amount)}</td></tr>`
@@ -2161,37 +2205,44 @@
                    <tr><th>TVA ${escapeHtml(String(order.tva_rate || ''))} %</th><td>${formatOrderMoney(order.total_tva)}</td></tr>`
                 : '';
             const rawRef = String(order.payment_reference || '');
-            const printRef = !rawRef || rawRef.indexOf('pi_') === 0 ? '—' : rawRef;
+            const printRef = !rawRef || rawRef.indexOf('pi_') === 0 ? '' : rawRef;
+            const payBits = [
+                escapeHtml(orderMethodLabel(order)) + last4,
+                printRef ? 'Réf. ' + escapeHtml(printRef) : '',
+                order.tracking_number ? 'Suivi ' + escapeHtml(order.tracking_number) : '',
+            ].filter(Boolean);
+            const fulfill = order.fulfillment_date
+                ? `<div>
+                    <dt>${order.fulfillment_type === 'livraison' ? 'Livraison' : 'Retrait'}</dt>
+                    <dd>${escapeHtml(order.fulfillment_date)}${order.fulfillment_slot ? `<br>${escapeHtml(order.fulfillment_slot === 'apres-midi' ? 'Après-midi' : 'Matin')}` : ''}</dd>
+                   </div>`
+                : '';
             return `
                 <div class="order-invoice">
                     <div class="invoice-head">
-                        <div class="invoice-shop">
-                            <strong>${shopName}</strong>
-                            <small>${shopBits.map((line) => escapeHtml(line)).join('<br>') || 'Boutique florale en ligne'}</small>
+                        <div class="invoice-brand">
+                            <img class="invoice-logo" src="${escapeHtml(origin)}/static/img/logo.png" alt="">
+                            <div class="invoice-shop">
+                                <strong>${shopName}</strong>
+                                <small>${shopBits.length ? shopBits.map((line) => escapeHtml(line)).join('<br>') : 'Boutique florale en ligne'}</small>
+                            </div>
                         </div>
                         <div class="invoice-title">
                             <em>Facture</em>
                             <strong>${escapeHtml(invoiceNumber(order))}</strong>
                             <small>Commande #${Number(order.id)} · ${formatOrderDate(order.created_at)}</small>
-                            <div class="order-badges">
-                                <span class="order-status is-${escapeHtml(status)}">${escapeHtml(paymentLabel)}</span>
-                                ${prepBadge}
-                            </div>
+                            <small>${escapeHtml(paymentLabel)}</small>
                         </div>
                     </div>
                     <dl class="invoice-parties">
                         <div>
-                            <dt>Émetteur</dt>
-                            <dd>${shopName}<br>${shopBits.map((line) => escapeHtml(line)).join('<br>') || 'Boutique florale en ligne'}</dd>
-                        </div>
-                        <div>
                             <dt>Client</dt>
-                            <dd>${contactBits.map((line) => escapeHtml(line)).join('<br>')}</dd>
+                            <dd>${contactBits.length ? contactBits.map((line) => escapeHtml(line)).join('<br>') : '—'}</dd>
                         </div>
-                        ${order.fulfillment_date ? `<div>
-                            <dt>${order.fulfillment_type === 'livraison' ? 'Livraison' : 'Retrait'}</dt>
-                            <dd>${escapeHtml(order.fulfillment_date)}${order.fulfillment_slot ? `<br>${escapeHtml(order.fulfillment_slot === 'apres-midi' ? 'Après-midi' : 'Matin')}` : ''}</dd>
-                        </div>` : ''}
+                        ${fulfill || `<div>
+                            <dt>Paiement</dt>
+                            <dd>${payBits.join('<br>') || escapeHtml(paymentLabel)}</dd>
+                        </div>`}
                     </dl>
                     <div class="order-lines-wrap">
                     <table class="order-lines">
@@ -2214,13 +2265,11 @@
                         ${depositRows}
                         <tr class="is-grand"><th>Total TTC</th><td>${formatOrderMoney(order.total_amount)}</td></tr>
                     </table>
-                    <p class="invoice-pay">
-                        Paiement : ${escapeHtml(orderMethodLabel(order))}${last4}
-                        · Réf. ${escapeHtml(printRef)}
-                        ${order.tracking_number ? ` · Suivi ${escapeHtml(order.tracking_number)}` : ''}
-                    </p>
+                    <p class="invoice-pay">Paiement : ${payBits.join(' · ') || escapeHtml(paymentLabel)}</p>
+                    <p class="invoice-thanks">Merci de votre confiance.</p>
                     <p class="invoice-legal">
-                        Facture ${escapeHtml(order.invoice_number || '')} émise par ${shopName}. Prix TTC, TVA ${escapeHtml(String(order.tva_rate || 10))} %.
+                        Facture ${escapeHtml(order.invoice_number || invoiceNumber(order))} émise par ${shopName}. Prix TTC, TVA ${escapeHtml(String(order.tva_rate || 10))} %.
+                        ${legalBits.length ? '<br>' + legalBits.map((line) => escapeHtml(line)).join(' · ') : ''}
                     </p>
                 </div>
             `;
@@ -2239,35 +2288,36 @@
             }
             win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Facture</title>
                 <style>
-                    body { font-family: Georgia, "EB Garamond", serif; color: #3a2a30; margin: 24px; }
-                    .order-invoice { max-width: 720px; margin: 0 auto; }
-                    .invoice-head { display:flex; justify-content:space-between; gap:24px; padding-bottom:16px; border-bottom:2px solid #bc6288; }
-                    .invoice-shop strong { display:block; color:#bc6288; font-size:1.3rem; }
+                    @page { margin: 12mm; }
+                    body { font-family: Georgia, "Times New Roman", serif; color: #3a2a30; margin: 0; background: #fff; }
+                    .order-invoice { max-width: 720px; margin: 0 auto; padding: 8px 4px 12px; border-top: 6px solid #bc6288; }
+                    .invoice-head { display:flex; justify-content:space-between; gap:24px; padding-bottom:16px; border-bottom:1px solid #eadfe2; }
+                    .invoice-brand { display:flex; gap:14px; align-items:center; }
+                    .invoice-logo { width:72px; height:60px; object-fit:contain; }
+                    .invoice-shop strong { display:block; color:#bc6288; font-size:1.4rem; letter-spacing:.04em; }
                     .invoice-shop small, .invoice-title small, .invoice-legal, .invoice-pay { color:#7a5a66; }
                     .invoice-title { text-align:right; }
-                    .invoice-title em { display:block; font-style:normal; letter-spacing:.16em; text-transform:uppercase; color:#bc6288; font-size:.75rem; }
-                    .invoice-parties { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
-                    .invoice-parties dt { color:#bc6288; font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
-                    .invoice-parties dd { margin:0; }
+                    .invoice-title em { display:block; font-style:normal; letter-spacing:.2em; text-transform:uppercase; color:#bc6288; font-size:.72rem; }
+                    .invoice-title strong { display:block; font-size:1.55rem; margin-top:2px; }
+                    .invoice-parties { display:grid; grid-template-columns:1fr 1fr; margin:16px 0; border:1px solid #eadfe2; border-radius:10px; overflow:hidden; background:#f8f0f4; }
+                    .invoice-parties > div { padding:12px 16px; }
+                    .invoice-parties > div + div { border-left:1px solid #eadfe2; }
+                    .invoice-parties dt { color:#bc6288; font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; font-weight:700; }
+                    .invoice-parties dd { margin:0; line-height:1.5; }
                     table { width:100%; border-collapse:collapse; }
-                    th, td { padding:8px 10px; border-top:1px solid #f0e4e8; text-align:left; }
-                    th { background:#f8f0f4; color:#bc6288; font-size:.75rem; text-transform:uppercase; }
+                    th, td { padding:8px 10px; border-top:1px solid #f0e4e8; text-align:left; font-family: Arial, sans-serif; }
+                    th { background:#bc6288; color:#fff; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; }
                     .order-lines td:nth-child(3), .order-lines td:nth-child(4), .order-lines td:nth-child(5),
                     .order-lines th:nth-child(3), .order-lines th:nth-child(4), .order-lines th:nth-child(5) { text-align:right; }
-                    .invoice-totals { width:280px; margin:12px 0 0 auto; }
+                    .invoice-totals { width:280px; margin:16px 0 0 auto; }
                     .invoice-totals td { text-align:right; }
                     .invoice-totals .is-grand th, .invoice-totals .is-grand td { border-top:2px solid #bc6288; color:#bc6288; }
                     .order-line-thumb { width:40px; height:40px; object-fit:cover; border-radius:6px; }
                     .order-line-name { font-weight:600; display:block; }
                     .order-line-cat { display:block; color:#9a7a86; font-size:.8rem; }
-                    .order-status { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.75rem; font-weight:700; background:#eee; }
-                    .order-status.is-paid, .order-status.is-pret { background:#d4edda; color:#155724; }
-                    .order-status.is-deposit, .order-status.is-en_preparation { background:#cce5ff; color:#004085; }
-                    .order-status.is-failed { background:#f8d7da; color:#721c24; }
-                    .order-status.is-pending, .order-status.is-a_preparer { background:#fff3cd; color:#856404; }
-                    .order-status.is-cancelled, .order-status.is-remise { background:#e2e3e5; color:#383d41; }
-                    .order-badges { display:flex; gap:6px; justify-content:flex-end; margin-top:8px; }
-                    @media print { body { margin: 0; } }
+                    .invoice-thanks { text-align:center; color:#bc6288; font-style:italic; margin:16px 0 6px; }
+                    .invoice-legal { text-align:center; font-size:.75rem; line-height:1.5; }
+                    @media print { body { margin: 0; } .order-invoice { border-top-width: 5px; } }
                 </style></head><body>${invoice.outerHTML}</body></html>`);
             win.document.close();
             setTimeout(function() {
@@ -2295,7 +2345,6 @@
                             <input type="text" data-order-tracking="${Number(order.id)}" value="${escapeHtml(order.tracking_number || '')}" maxlength="80" placeholder="N° transporteur">
                         </label>
                         <button type="button" class="order-print-btn" data-order-print="${Number(order.id)}">Imprimer la facture</button>
-                        <a class="order-print-btn" href="/api/v1/payments/orders/${Number(order.id)}/invoice.pdf?email=${encodeURIComponent(order.email || '')}" target="_blank" rel="noopener">PDF</a>
                         ${status === 'paid' || status === 'deposit' ? `<button type="button" data-order-refund="${Number(order.id)}">Rembourser</button>` : ''}
                         <button type="button" class="order-delete-btn" data-order-delete="${Number(order.id)}">Enlever</button>
                    </div>`;
