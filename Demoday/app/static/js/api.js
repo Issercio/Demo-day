@@ -345,7 +345,7 @@ class ApiService {
 
     syncAdminControls() {
         const isAdmin = this.isAdmin();
-        const onAdminPage = /\/admin\.html$/i.test(window.location.pathname)
+        const onAdminPage = /\/(admin|identite)\.html$/i.test(window.location.pathname)
             || document.body.classList.contains('admin-page');
         document.body.classList.toggle('admin-session', isAdmin);
 

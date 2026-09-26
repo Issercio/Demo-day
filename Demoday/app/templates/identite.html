@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Identité légale - FloraShop</title>
+    <script>
+      (function guardAdminPage() {
+        try {
+          var user = JSON.parse(localStorage.getItem('user') || 'null');
+          var token = localStorage.getItem('auth_token');
+          if (!user || !user.is_admin || !token) {
+            window.location.replace('accueil.html');
+          }
+        } catch (e) {
+          window.location.replace('accueil.html');
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="../static/css/style.css?v=20260921-visual">
+    <style>
+        .admin-container {
+            max-width: 880px;
+            margin: 12px auto 40px auto;
+            padding: 24px 28px 32px 28px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(188,98,136,0.07);
+        }
+        .admin-notice {
+            margin: 0 0 20px 0;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.98rem;
+        }
+        .admin-notice-success {
+            background: #e8f6ed;
+            color: #1e5a32;
+            border: 1px solid #b7e0c2;
+        }
+        .admin-notice-error {
+            background: #fdecee;
+            color: #8a1f2b;
+            border: 1px solid #f3c1c7;
+        }
+        .admin-notice-info {
+            background: #f8f0f4;
+            color: #6c4a58;
+            border: 1px solid #e7d6d6;
+        }
+        body.admin-page #admin-btn,
+        body.admin-page #delete-btn {
+            display: none !important;
+        }
+        .atelier-head { text-align: center; margin: 0 0 14px 0; }
+        .atelier-head h1 { color: #bc6288; margin: 0 0 6px 0; font-size: 1.65rem; }
+        .atelier-lead { color: #6c4a58; margin: 0; font-size: 0.95rem; }
+        .atelier-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 0 0 18px 0;
+            padding: 8px;
+            background: #fff6f2;
+            border: 1px solid #e7d6d6;
+            border-radius: 12px;
+            position: sticky;
+            top: 8px;
+            z-index: 40;
+        }
+        .atelier-tabs a {
+            text-decoration: none;
+            color: #7f3f5a;
+            font-weight: 600;
+            font-size: 0.88rem;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+        }
+        .atelier-tabs a:hover,
+        .atelier-tabs a.is-active {
+            background: #bc6288;
+            color: #fff;
+        }
+        .admin-section {
+            margin-bottom: 0;
+            padding: 20px;
+            border: 1px solid #e7d6d6;
+            border-radius: 8px;
+            background: #f8f5f2;
+        }
+        .admin-section h2 { color: #bc6288; margin-bottom: 12px; font-size: 1.2rem; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #bc6288;
+            font-weight: 600;
+        }
+        .form-group input {
+            width: 100%;
+            max-width: none;
+            padding: 8px 12px;
+            border: 1.5px solid #bc6288;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 16px;
+        }
+        .btn {
+            background: #bc6288;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px 0 0 0;
+            font-size: 0.9rem;
+        }
+        .btn:hover { background: #ab597c; }
+        .admin-vitrine-lead { color: #6c4a58; margin: 0 0 12px 0; }
+        @media (max-width: 720px) {
+            .settings-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body class="admin-page identite-page">
+    <header class="admin-header">
+        <img class="logo" src="/static/img/logo.png" alt="Logo FloraShop, artisan fleuriste" width="120" height="100">
+        <nav>
+            <ul>
+                <li><a href="accueil.html">ACCUEIL</a></li>
+                <li><a href="shop.html">SHOP</a></li>
+                <li><a href="evenementiel.html">ÉVÈNEMENTIEL</a></li>
+                <li><a href="entreprises.html">ENTREPRISES</a></li>
+                <li><a href="portfolio.html">PORTFOLIO</a></li>
+                <li><a href="contact.html">CONTACT</a></li>
+                <li><a href="subscription.html">ABONNEMENT</a></li>
+                <li>
+                    <a href="panier.html" id="cart-link" style="position:relative;">
+                        <span style="font-size:22px;vertical-align:middle;">🛒</span>
+                        <span id="cart-count" style="position:absolute;top:0;right:-10px;background:#bc6288;color:#fff;font-size:13px;padding:1px 6px;border-radius:10px;display:none;">0</span>
+                    </a>
+                </li>
+                <li id="admin-access">
+                    <a href="admin.html" class="admin-nav-link active" title="Administration">ADMIN</a>
+                </li>
+                <li style="position:relative;">
+                    <button type="button" id="profile-link" class="profile-icon-btn" aria-label="Compte">👤</button>
+                    <div id="profile-panel" style="display:none;position:absolute;top:40px;right:0;background:#fff;border:1.5px solid #bc6288;border-radius:8px;box-shadow:0 2px 12px rgba(188,98,136,0.07);padding:12px 18px;z-index:2000;min-width:200px;">
+                        <div id="user-email" style="margin-bottom: 15px; color: #bc6288; font-size: 0.9em; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; display: none;"></div>
+                        <button id="login-btn" class="cta-btn" style="width:100%; margin-bottom: 8px;">Se connecter</button>
+                        <button id="logout-btn" class="cta-btn" style="width:100%; margin-bottom: 8px; display: none;">Déconnexion</button>
+                        <button id="profile-btn" class="cta-btn" style="width:100%; margin-bottom: 8px; display: none;">Modifier le profil</button>
+                        <button id="password-btn" class="cta-btn" style="width:100%; margin-bottom: 8px; display: none;">Changer le mot de passe</button>
+                        <button id="delete-btn" class="cta-btn" style="width:100%; background: #fff; color: #bc6288; border: 1.5px solid #bc6288; display: none;">Supprimer le compte</button>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="admin-container">
+        <div class="atelier-head">
+            <h1>Identité légale</h1>
+            <p class="atelier-lead">Mentions à faire figurer sur les CGV et les factures. Laissez le SIREN vide si vous n’en avez pas — n’inventez pas de numéro.</p>
+        </div>
+        <p id="admin-notice" class="admin-notice" hidden></p>
+        <nav class="atelier-tabs" aria-label="Sections atelier">
+            <a href="admin.html#jour">Jour</a>
+            <a href="admin.html#vitrine">Vitrine</a>
+            <a href="admin.html#catalogue">Catalogue</a>
+            <a href="admin.html#commandes">Commandes</a>
+            <a href="admin.html#messages">Messages</a>
+            <a href="admin.html#boutique">Boutique</a>
+            <a href="identite.html" class="is-active">Identité</a>
+        </nav>
+
+        <div class="admin-section" id="shop-identity">
+            <h2>SIREN et mentions</h2>
+            <form id="settings-form">
+                <div class="settings-grid">
+                    <div class="form-group">
+                        <label for="setting-legal-name">Nom de la boutique</label>
+                        <input type="text" id="setting-legal-name" maxlength="120" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-email">Email atelier</label>
+                        <input type="email" id="setting-email">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-phone">Téléphone</label>
+                        <input type="text" id="setting-phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-siren">SIREN (9 chiffres, optionnel)</label>
+                        <input type="text" id="setting-siren" maxlength="20" placeholder="À saisir par l’exploitant — laisser vide sinon" inputmode="numeric" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-legal-form">Forme juridique</label>
+                        <input type="text" id="setting-legal-form" maxlength="40" placeholder="EI, SAS, SARL…">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-capital">Capital</label>
+                        <input type="text" id="setting-capital" maxlength="40" placeholder="ex. 1 000 €">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-rcs">RCS / ville</label>
+                        <input type="text" id="setting-rcs" maxlength="80" placeholder="ex. Paris">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-tva">N° TVA intra</label>
+                        <input type="text" id="setting-tva" maxlength="20" placeholder="FR…">
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-tva-rate">Taux TVA (%) sur facture</label>
+                        <input type="number" id="setting-tva-rate" min="0" max="100" step="0.1" placeholder="10">
+                    </div>
+                    <div class="form-group" style="grid-column:1 / -1;">
+                        <label for="setting-address">Adresse / siège</label>
+                        <input type="text" id="setting-address" placeholder="Adresse légale réelle">
+                    </div>
+                </div>
+                <p class="admin-vitrine-lead">Ces champs restent vides tant que l’exploitant ne les a pas saisis. Un SIREN fictif n’est pas accepté.</p>
+                <button type="submit" class="btn">Enregistrer l’identité</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../static/js/api.js?v=20260925-ops"></script>
+    <script>
+        let shopIdentity = { legal_name: 'FloraShop', email: 'atelier@florashop.demo', address: '' };
+
+        function showNotice(message, type) {
+            const el = document.getElementById('admin-notice');
+            if (!el) {
+                return;
+            }
+            el.hidden = !message;
+            if (!message) {
+                return;
+            }
+            el.textContent = message;
+            el.className = 'admin-notice admin-notice-' + (type || 'info');
+        }
+
+        function getAdminHeaders() {
+            const token = localStorage.getItem('auth_token') || '';
+            return {
+                'Authorization': token ? `Bearer ${token}` : '',
+                'Content-Type': 'application/json'
+            };
+        }
+
+        function apiErrorMessage(payload, fallback) {
+            if (!payload) {
+                return fallback;
+            }
+            return payload.error || payload.message || fallback;
+        }
+
+        function sessionBlocked(response) {
+            if (response.status !== 401 && response.status !== 403) {
+                return false;
+            }
+            showNotice(
+                response.status === 401
+                    ? 'Session expirée. Reconnectez-vous pour modifier l’identité.'
+                    : 'Ce compte ne peut pas modifier l’identité.',
+                'error'
+            );
+            return true;
+        }
+
+        function isAdminSession() {
+            try {
+                const user = JSON.parse(localStorage.getItem('user') || 'null');
+                const token = localStorage.getItem('auth_token');
+                return !!(user && user.is_admin && token);
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function loadShopSettings() {
+            try {
+                const response = await fetch('/api/v1/settings');
+                if (!response.ok) {
+                    return;
+                }
+                const settings = await response.json();
+                shopIdentity = settings;
+                const setVal = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.value = value || '';
+                    }
+                };
+                setVal('setting-legal-name', settings.legal_name);
+                setVal('setting-email', settings.email);
+                setVal('setting-phone', settings.phone);
+                setVal('setting-siren', settings.siren);
+                setVal('setting-legal-form', settings.legal_form);
+                setVal('setting-capital', settings.capital);
+                setVal('setting-rcs', settings.rcs_city);
+                setVal('setting-tva', settings.tva_intra);
+                setVal('setting-tva-rate', settings.tva_rate);
+                setVal('setting-address', settings.address);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function saveShopSettings(event) {
+            event.preventDefault();
+            try {
+                const response = await fetch('/api/v1/settings', {
+                    method: 'PUT',
+                    headers: getAdminHeaders(),
+                    body: JSON.stringify({
+                        legal_name: document.getElementById('setting-legal-name').value,
+                        email: document.getElementById('setting-email').value,
+                        phone: document.getElementById('setting-phone').value,
+                        siren: document.getElementById('setting-siren').value,
+                        legal_form: document.getElementById('setting-legal-form').value,
+                        capital: document.getElementById('setting-capital').value,
+                        rcs_city: document.getElementById('setting-rcs').value,
+                        tva_intra: document.getElementById('setting-tva').value,
+                        tva_rate: document.getElementById('setting-tva-rate').value,
+                        address: document.getElementById('setting-address').value
+                    })
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (sessionBlocked(response)) {
+                    return;
+                }
+                if (!response.ok) {
+                    showNotice(apiErrorMessage(payload, 'Impossible d\'enregistrer'), 'error');
+                    return;
+                }
+                shopIdentity = payload;
+                showNotice('Identité boutique enregistrée.', 'success');
+                await loadShopSettings();
+            } catch (error) {
+                showNotice('Erreur de communication: ' + error.message, 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!isAdminSession()) {
+                window.location.replace('accueil.html');
+                return;
+            }
+            const settingsForm = document.getElementById('settings-form');
+            if (settingsForm) {
+                settingsForm.addEventListener('submit', saveShopSettings);
+            }
+            loadShopSettings();
+        });
+    </script>
+    <footer class="site-footer">
+      &copy; 2026 FloraShop —
+      <a href="cgv.html">Conditions générales de vente</a>
+    </footer>
+</body>
+</html>

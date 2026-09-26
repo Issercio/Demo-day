@@ -64,7 +64,7 @@ def _luhn_ok(number):
 
 
 def normalize_siren(value):
-    """SIREN réel saisi en admin : 9 chiffres + Luhn. Jamais de numéro inventé par défaut."""
+    """SIREN réel saisi sur la page Identité : 9 chiffres + Luhn. Jamais de numéro inventé par défaut."""
     raw = str(value or '').strip()
     if not raw:
         return None

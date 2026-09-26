@@ -222,7 +222,10 @@ class AdminGuardTestCase(unittest.TestCase):
     def test_admin_page_stays_clean_without_popup(self):
         html = self.client.get('/admin.html').get_data(as_text=True)
         self.assertEqual(self.client.get('/admin.html').status_code, 200)
-        self.assertIn('Administration du catalogue', html)
+        self.assertEqual(self.client.get('/identite.html').status_code, 200)
+        self.assertIn('atelier-tabs', html)
+        self.assertIn('identite.html', html)
+        self.assertIn('Atelier', html)
         self.assertIn('id="admin-notice"', html)
         self.assertNotIn("alert('Accès réservé aux administrateurs')", html)
         self.assertIn('ACCUEIL', html)
