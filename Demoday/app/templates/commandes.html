@@ -384,6 +384,25 @@
       return rows || '<tr><td colspan="5">Aucun article</td></tr>';
     }
 
+    function invoiceHref(order) {
+      let url = '/api/v1/payments/orders/' + Number(order.id) + '/invoice.pdf';
+      if (order.email) {
+        url += '?email=' + encodeURIComponent(order.email);
+      }
+      return url;
+    }
+
+    function settleForm(order) {
+      return `<form class="settle-form" data-settle-order="${Number(order.id)}" data-settle-email="${escapeHtml(order.email || '')}">
+        <p>Régler le solde de ${money(order.remaining_amount)} (carte de test 4242…).</p>
+        <input name="card_number" placeholder="4242 4242 4242 4242" required>
+        <input name="card_expiry" placeholder="12/34" required>
+        <input name="card_cvc" placeholder="123" required>
+        <button type="submit">Payer le solde</button>
+        <p class="settle-error" hidden></p>
+      </form>`;
+    }
+
     function renderDetail(order) {
       const last4 = order.card_last4 ? ` •••• ${escapeHtml(order.card_last4)}` : '';  // jamais le PAN complet
       const deposit = order.status === 'deposit' && order.deposit_amount != null
@@ -412,7 +431,19 @@
             <dt>Code promo${order.promo_code ? ` ${escapeHtml(order.promo_code)}` : ''}</dt>
             <dd>− ${money(order.discount_amount)}</dd>
           </div>` : ''}
+          ${order.tracking_number ? `<div>
+            <dt>Suivi colis</dt>
+            <dd>${escapeHtml(order.tracking_number)}</dd>
+          </div>` : ''}
+          ${order.total_ht != null ? `<div>
+            <dt>TVA</dt>
+            <dd>HT ${money(order.total_ht)} · TVA ${escapeHtml(String(order.tva_rate))} % ${money(order.total_tva)}</dd>
+          </div>` : ''}
         </dl>
+        <p class="track-invoice">
+          <a href="${invoiceHref(order)}" target="_blank" rel="noopener">Télécharger la facture PDF</a>
+        </p>
+        ${order.status === 'deposit' ? settleForm(order) : ''}
         <table class="track-items">
           <thead>
             <tr><th>Photo</th><th>Article</th><th>Qté</th><th>Prix unit.</th><th>Total ligne</th></tr>
@@ -582,6 +613,41 @@
         body.querySelectorAll('.track-card.is-open').forEach(closeOrder);  // une seule commande dépliée
         await openOrder(card, orderId, true);
         card.scrollIntoView({ block: 'start' });
+      });
+      body.addEventListener('submit', async (event) => {
+        const form = event.target.closest('[data-settle-order]');
+        if (!form || !body.contains(form)) {
+          return;
+        }
+        event.preventDefault();
+        const orderId = form.getAttribute('data-settle-order');
+        const email = form.getAttribute('data-settle-email');
+        const errorEl = form.querySelector('.settle-error');
+        const token = localStorage.getItem('auth_token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+          headers.Authorization = 'Bearer ' + token;
+        }
+        const response = await fetch('/api/v1/payments/orders/' + orderId + '/settle', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            email,
+            payment_method: 'card',
+            card_number: form.card_number.value,
+            card_expiry: form.card_expiry.value,
+            card_cvc: form.card_cvc.value
+          })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          if (errorEl) {
+            errorEl.hidden = false;
+            errorEl.textContent = payload.error || 'Paiement refusé.';
+          }
+          return;
+        }
+        window.location.reload();
       });
     }
 

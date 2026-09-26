@@ -469,6 +469,7 @@
         let cartItems = [];
         let selectedPaymentMethod = 'card';
         let paymentMode = 'test';
+        let paymentConfig = {};
         let stripePublishableKey = null;
         let stripe = null;
         let stripeCard = null;
@@ -582,7 +583,9 @@
                 }
                 cardFields.style.display = 'block';
             } else if (selectedPaymentMethod === 'paypal') {
-                note.innerHTML = 'Mode sélectionné : <strong>PayPal</strong> (sandbox). La commande est créée côté serveur.';
+                note.innerHTML = paymentConfig && paymentConfig.paypal_configured
+                    ? 'Mode sélectionné : <strong>PayPal</strong> — capture via l’API PayPal (CLIENT_ID du Dashboard).'
+                    : 'Mode sélectionné : <strong>PayPal</strong> (sandbox local, sans CLIENT_ID). La commande est créée côté serveur.';
                 cardFields.style.display = 'none';
             } else {
                 note.innerHTML = 'Mode sélectionné : <strong>Carte enregistrée</strong> (sandbox, se termine par 4242).';
@@ -1299,6 +1302,7 @@
                 const configResponse = await fetch('/api/v1/payments/config');
                 if (configResponse.ok) {
                     const config = await configResponse.json();
+                    paymentConfig = config;
                     paymentMode = config.mode || 'test';
                     stripePublishableKey = config.publishable_key || null;
                     if (paymentMode === 'stripe') {

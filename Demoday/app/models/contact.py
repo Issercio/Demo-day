@@ -11,6 +11,7 @@ class ContactRequest(db.Model):
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), nullable=False)
     message = db.Column(db.Text, nullable=False)
+    kind = db.Column(db.String(20), nullable=False, default='contact')  # contact | devis
     status = db.Column(db.String(20), nullable=False, default='nouveau')
     reply_text = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=utc_now)
@@ -21,6 +22,7 @@ class ContactRequest(db.Model):
             'name': self.name,
             'email': self.email,
             'message': self.message,
+            'kind': self.kind or 'contact',
             'status': self.status,
             'reply_text': self.reply_text,
             'created_at': self.created_at.isoformat() if self.created_at else None,

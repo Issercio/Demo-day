@@ -288,6 +288,7 @@ class ShopCommerceTestCase(unittest.TestCase):
         self.assertIn('setting-carrier', admin)
         self.assertIn('setting-siren', admin)
         self.assertIn('setting-fee-overseas', admin)
+        self.assertIn('setting-tva-rate', admin)
         cgv = self.client.get('/cgv.html').get_data(as_text=True)
         self.assertIn('/api/v1/settings', cgv)
         self.assertIn('legal-name', cgv)

@@ -73,6 +73,16 @@ def assert_stock_available(lines):
             raise ValueError(f'« {product.name} » n’est plus en stock.')
 
 
+def restock(lines):
+    for line in lines:
+        product = line['product']
+        if str(product.name or '').startswith('Abonnement '):
+            continue
+        qty = int(line['quantity'])
+        current = int(product.stock_qty if product.stock_qty is not None else 12)
+        product.stock_qty = current + qty
+
+
 def consume_stock(lines):
     assert_stock_available(lines)
     for line in lines:
@@ -278,6 +288,21 @@ def create_contact(data):
     name = str(data.get('name') or data.get('nom') or '').strip()
     email = str(data.get('email') or '').strip().lower()
     message = str(data.get('message') or '').strip()
+    kind = str(data.get('kind') or data.get('type') or 'contact').strip().lower()
+    if kind not in ('contact', 'devis'):
+        kind = 'contact'
+    event_date = str(data.get('event_date') or '').strip()
+    event_place = str(data.get('event_place') or data.get('lieu') or '').strip()
+    budget = str(data.get('budget') or '').strip()
+    extras = []
+    if event_date:
+        extras.append(f'Date : {event_date}')
+    if event_place:
+        extras.append(f'Lieu : {event_place}')
+    if budget:
+        extras.append(f'Budget : {budget}')
+    if extras:
+        message = message + '\n\n' + '\n'.join(extras)
     if len(name) < 2:
         raise ValueError('Indiquez votre nom.')
     if '@' not in email or len(email) < 5:
@@ -286,7 +311,13 @@ def create_contact(data):
         raise ValueError('Le message est trop court.')
     if len(message) > 2000:
         raise ValueError('Le message est trop long.')
-    row = ContactRequest(name=name[:120], email=email[:120], message=message, status='nouveau')
+    row = ContactRequest(
+        name=name[:120],
+        email=email[:120],
+        message=message,
+        kind=kind,
+        status='nouveau',
+    )
     db.session.add(row)
     db.session.commit()
     try:
@@ -366,6 +397,8 @@ def today_dashboard():
         elif status == 'low':
             low.append({'id': product.id, 'name': product.name, 'stock_qty': qty})
     new_contacts = ContactRequest.query.filter_by(status='nouveau').count()
+    from app.services.subscription_ops import due_subscriptions
+    due = due_subscriptions(today)
     return {
         'date': today.isoformat(),
         'to_prep': to_prep,
@@ -376,4 +409,5 @@ def today_dashboard():
         'low_stock': low,
         'out_stock': out,
         'upcoming_pickups': pickups[:12],
+        'subscriptions_due': due,
     }

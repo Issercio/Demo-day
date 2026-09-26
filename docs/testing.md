@@ -29,6 +29,7 @@ Dernière exécution enregistrée : **150 tests, OK** (118 s, couverture 68 %).
 | `tests/test_admin_guard.py` | Rôles, photos produits, page admin, facture, fuites JSON |
 | `tests/test_checkout.py` | Paiement, acompte, atelier, IDOR, suivi commandes |
 | `tests/test_go_live.py` | Stripe.js (mock), webhook idempotent, SMTP SSL, SIREN, zones DOM |
+| `tests/test_shop_ready.py` | Facture PDF, solde acompte, suivi colis, remboursement, abonnements, devis, TVA |
 | `tests/test_shop_ops.py` | Contact, panier serveur, stock, tableau du jour, marque FloraShop |
 | `tests/test_shop_commerce.py` | Suivi invité, livraison, jours fermés, codes promo, identité boutique, descriptions |
 | `tests/test_battery.py` | Batterie fuites / IDOR / auth / France / paniers / pages |
@@ -37,5 +38,6 @@ Dernière exécution enregistrée : **150 tests, OK** (118 s, couverture 68 %).
 
 - E2E navigateur (Cypress / Playwright)
 - Stripe réel (clés vides en test ; PaymentIntent / webhook mockés)
+- PayPal Dashboard / Twilio (hooks présents, identifiants vides)
 - SMTP production (connexion réelle ; STARTTLS/SSL mockés)
 - PostgreSQL spécifique

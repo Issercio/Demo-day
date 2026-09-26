@@ -12,13 +12,16 @@ Boutique florale en ligne : le client choisit un bouquet, paie, et suit sa comma
 - Filtres par catégorie, couleur et prix
 - Panier serveur, fusionné au compte à la connexion
 - Paiement en ligne (cartes de test, ou Stripe.js + webhook si les clés Dashboard sont renseignées)
-- Acompte 30 % ou règlement intégral
+- Acompte 30 % (solde en boutique, par le client, ou marqué payé par le fleuriste)
 - Date de retrait ou de livraison au paiement
-- Abonnements mensuel, semestriel et annuel
-- Suivi de commande (compte, ou invité avec email + n°) et facture
-- Formulaire Contact : le message arrive dans l’inbox du fleuriste, qui peut répondre
+- Abonnements : contrat atelier (prochaine livraison), sans Stripe Billing
+- Suivi de commande (compte, ou invité avec email + n°)
+- Facture PDF (HT / TVA / TTC), mail de commande, téléchargement client
+- Formulaire Contact et devis évènementiel (inbox atelier)
+- N° de suivi transporteur
 - Livraison en France : tarif et délai métropole / DOM, transporteur saisi en admin, ou retrait atelier
 - Code promo au paiement
+- Prix soldés si le fleuriste les active
 
 **Côté fleuriste**
 - Catalogue : créer, modifier, supprimer, photo produit, stock
@@ -26,7 +29,7 @@ Boutique florale en ligne : le client choisit un bouquet, paie, et suit sa comma
 - Tableau du jour : à préparer, stock bas / rupture, prochains retraits
 - Demandes contact : nouveau → lu → traité, réponse au client
 - Identité boutique (SIREN / adresse légale saisis par l’exploitant, jamais inventés), transporteur, délais, jours fermés, codes promo
-- Commandes : statut de paiement, préparation (`À préparer` → `Remise`), facture imprimable
+- Commandes : statut de paiement, préparation (`À préparer` → `Remise`), facture imprimable / PDF, remboursement, n° de suivi
 - Accès admin réservé : un client ne peut pas ouvrir le back-office
 
 ![Boutique](docs/screenshots/shop.jpg)
@@ -99,7 +102,7 @@ Le shop écoute sur [http://localhost:5000](http://localhost:5000). `SECRET_KEY`
 3. HTTPS public (Render le force). En local : `./run-https.sh` + Stripe CLI si besoin.
 4. Checkout charge alors Stripe.js (Card Element). Le montant PI = devis serveur (catalogue + livraison + promo + acompte). Le stock n’est consommé qu’au passage `pending` → `paid`.
 
-Sans clés, le processeur de test (4242…) reste actif.
+Sans clés, le processeur de test (4242…) reste actif. PayPal sans `PAYPAL_CLIENT_ID` : sandbox local. SMS sans Twilio : le code est journalisé.
 
 ### SMTP (`MAIL_*`)
 
@@ -124,7 +127,7 @@ Le navigateur affiche les pages et appelle `/api/v1`. La vitrine lue par le shop
 
 ## Tests
 
-La suite reste dans `Demoday/tests/` (`test_accounts.py`, `test_admin_guard.py`, `test_checkout.py`, `test_shop_ops.py`, `test_shop_commerce.py`).
+La suite reste dans `Demoday/tests/` (`test_accounts.py`, `test_admin_guard.py`, `test_checkout.py`, `test_shop_ops.py`, `test_shop_commerce.py`, `test_go_live.py`, `test_shop_ready.py`).
 
 ```bash
 ./run-tests.sh

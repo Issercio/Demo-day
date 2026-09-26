@@ -8,7 +8,7 @@ from app.services.checkout_service import parse_money
 from app.services.demo_accounts import normalize_hex_color
 from app.services.product_images import payload_from_request, save_product_image
 from app.services.shop_ops import parse_stock_qty
-from app.services.shop_commerce import parse_description
+from app.services.shop_commerce import apply_sale_fields, parse_description
 from app.services.shop_themes import (
     create_custom_theme,
     delete_custom_theme,
@@ -399,6 +399,7 @@ def products():
                 stock_qty=stock_qty,
                 description=description,
             )
+            apply_sale_fields(product, data)
             db.session.add(product)
             db.session.flush()
             
@@ -474,6 +475,10 @@ def update_product(product_id):
                 product.description = parse_description(data.get('description'))
             except ValueError as exc:
                 return jsonify({'error': str(exc)}), 400
+        try:
+            apply_sale_fields(product, data)
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
         if 'color' in data or 'hex_color' in data:
             product.color = normalize_hex_color(data.get('color') or data.get('hex_color'))
         if image_file and image_file.filename:
