@@ -94,10 +94,31 @@ class ShopReadyTestCase(unittest.TestCase):
         )
         self.assertEqual(pdf.status_code, 200)
         self.assertEqual(pdf.mimetype, 'application/pdf')
+        self.assertTrue(pdf.data.startswith(b'%PDF'))
         other = self.client.get(
             f'/api/v1/payments/orders/{order_id}/invoice.pdf?email=other@test.com'
         )
         self.assertEqual(other.status_code, 404)
+
+    def test_invoice_pdf_without_reportlab(self):
+        from unittest.mock import patch
+
+        created = self.pay()
+        order_id = created.get_json()['order']['id']
+        order = db.session.get(Order, order_id)
+        with patch('app.services.invoice_service._build_reportlab_pdf', side_effect=ImportError('no reportlab')):
+            buffer, payload = build_invoice_pdf(order)
+            pdf = self.client.get(
+                f'/api/v1/payments/orders/{order_id}/invoice.pdf?email=marie@test.com'
+            )
+        data = buffer.getvalue()
+        self.assertTrue(data.startswith(b'%PDF-1.4'))
+        self.assertGreater(len(data), 200)
+        self.assertIn(payload['number'].encode('ascii'), data)
+        self.assertIn(b'Total TTC', data)
+        self.assertEqual(pdf.status_code, 200)
+        self.assertEqual(pdf.mimetype, 'application/pdf')
+        self.assertTrue(pdf.data.startswith(b'%PDF'))
 
     def test_sale_price_is_charged(self):
         self.product.is_on_sale = True

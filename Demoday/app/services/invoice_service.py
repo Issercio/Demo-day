@@ -103,64 +103,128 @@ def _pdf_text(value):
     return raw.translate(table)
 
 
-def build_invoice_pdf(order, settings=None):
+def _pdf_escape(value):
+    return _pdf_text(value).replace('\\', '\\\\').replace('(', '\\(').replace(')', '\\)')
+
+
+def _invoice_lines(payload):
+    rows = [
+        (16, True, payload['shop_name']),
+        (12, False, f"Facture {payload['number']}"),
+    ]
+    if payload['shop_address']:
+        rows.append((9, False, payload['shop_address']))
+    if payload['siren']:
+        rows.append((9, False, f"SIREN {payload['siren']}"))
+    if payload['tva_intra']:
+        rows.append((9, False, f"TVA {payload['tva_intra']}"))
+    rows.append((11, False, f"Client : {payload['customer_name'] or payload['customer_email']}"))
+    if payload['customer_address']:
+        rows.append((9, False, payload['customer_address']))
+    rows.append((9, False, payload['customer_email']))
+    rows.append((11, False, 'Articles (prix TTC)'))
+    for item in payload['lines']:
+        rows.append((9, False, f"{item['quantity']} x {item['name']}  {item['line_ttc']:.2f} EUR"))
+    if payload['shipping_ttc']:
+        rows.append((10, False, f"Livraison : {payload['shipping_ttc']:.2f} EUR"))
+    if payload['discount_ttc']:
+        rows.append((10, False, f"Remise : -{payload['discount_ttc']:.2f} EUR"))
+    rows.append((10, False, f"Total HT : {payload['total_ht']:.2f} EUR"))
+    rows.append((10, False, f"TVA {payload['tva_rate']:.2f} % : {payload['total_tva']:.2f} EUR"))
+    rows.append((12, True, f"Total TTC : {payload['total_ttc']:.2f} EUR"))
+    rows.append((10, False, f"Paiement : {payload['payment_label']}"))
+    if payload['deposit_amount'] is not None:
+        rows.append((10, False, f"Acompte : {payload['deposit_amount']:.2f} EUR"))
+        if payload['remaining_amount'] is not None:
+            rows.append((10, False, f"Reste du : {payload['remaining_amount']:.2f} EUR"))
+    if payload['tracking_number']:
+        rows.append((10, False, f"Suivi colis : {payload['tracking_number']}"))
+    return rows
+
+
+def _build_reportlab_pdf(payload):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.pdfgen import canvas
 
-    payload = invoice_payload(order, settings)
     buffer = BytesIO()
     page = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     y = height - 20 * mm
 
-    def line(text, size=11, gap=6):
+    def line(text, size=11, gap=6, bold=False):
         nonlocal y
-        page.setFont('Helvetica', size)
+        page.setFont('Helvetica-Bold' if bold else 'Helvetica', size)
         page.drawString(18 * mm, y, _pdf_text(text)[:110])
         y -= gap * mm
 
-    page.setFont('Helvetica-Bold', 16)
-    page.drawString(18 * mm, y, _pdf_text(payload['shop_name']))
-    y -= 8 * mm
-    line(f"Facture {payload['number']}", 12, 6)
-    if payload['shop_address']:
-        line(payload['shop_address'], 9, 5)
-    if payload['siren']:
-        line(f"SIREN {payload['siren']}", 9, 5)
-    if payload['tva_intra']:
-        line(f"TVA {payload['tva_intra']}", 9, 5)
-    y -= 3 * mm
-    line(f"Client : {payload['customer_name'] or payload['customer_email']}", 11, 5)
-    if payload['customer_address']:
-        line(payload['customer_address'], 9, 5)
-    line(payload['customer_email'], 9, 6)
-    y -= 2 * mm
-    line('Articles (prix TTC)', 11, 6)
-    for item in payload['lines']:
-        line(
-            f"{item['quantity']} x {item['name']}  {item['line_ttc']:.2f} EUR",
-            9,
-            5,
-        )
-    y -= 2 * mm
-    if payload['shipping_ttc']:
-        line(f"Livraison : {payload['shipping_ttc']:.2f} EUR", 10, 5)
-    if payload['discount_ttc']:
-        line(f"Remise : -{payload['discount_ttc']:.2f} EUR", 10, 5)
-    line(f"Total HT : {payload['total_ht']:.2f} EUR", 10, 5)
-    line(f"TVA {payload['tva_rate']:.2f} % : {payload['total_tva']:.2f} EUR", 10, 5)
-    page.setFont('Helvetica-Bold', 12)
-    page.drawString(18 * mm, y, _pdf_text(f"Total TTC : {payload['total_ttc']:.2f} EUR"))
-    y -= 8 * mm
-    line(f"Paiement : {payload['payment_label']}", 10, 5)
-    if payload['deposit_amount'] is not None:
-        line(f"Acompte : {payload['deposit_amount']:.2f} EUR", 10, 5)
-        if payload['remaining_amount'] is not None:
-            line(f"Reste du : {payload['remaining_amount']:.2f} EUR", 10, 5)
-    if payload['tracking_number']:
-        line(f"Suivi colis : {payload['tracking_number']}", 10, 5)
+    for size, bold, text in _invoice_lines(payload):
+        line(text, size, 6 if size >= 12 else 5, bold=bold)
     page.showPage()
     page.save()
     buffer.seek(0)
+    return buffer
+
+
+def _build_stdlib_pdf(payload):
+    """PDF minimal (Helvetica) si reportlab n'est pas installé sur le serveur."""
+    ops = ['BT']
+    y = 800
+    first = True
+    for size, bold, text in _invoice_lines(payload):
+        font = 'F2' if bold else 'F1'
+        ops.append(f'/{font} {int(size)} Tf')
+        if first:
+            ops.append(f'50 {y} Td')
+            first = False
+        else:
+            gap = 16 if size >= 12 else 14
+            ops.append(f'0 -{gap} Td')
+        ops.append(f'({_pdf_escape(text)[:110]}) Tj')
+    ops.append('ET')
+    stream = '\n'.join(ops).encode('latin-1', 'replace')
+
+    buffer = BytesIO()
+    buffer.write(b'%PDF-1.4\n')
+    offsets = [0]
+
+    def write_obj(body):
+        offsets.append(buffer.tell())
+        num = len(offsets) - 1
+        buffer.write(f'{num} 0 obj\n'.encode('ascii'))
+        buffer.write(body)
+        if not body.endswith(b'\n'):
+            buffer.write(b'\n')
+        buffer.write(b'endobj\n')
+        return num
+
+    write_obj(b'<< /Type /Catalog /Pages 2 0 R >>')
+    write_obj(b'<< /Type /Pages /Kids [3 0 R] /Count 1 >>')
+    write_obj(
+        b'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] '
+        b'/Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>'
+    )
+    write_obj(
+        f'<< /Length {len(stream)} >>\nstream\n'.encode('ascii') + stream + b'\nendstream'
+    )
+    write_obj(b'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>')
+    write_obj(b'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>')
+    xref_pos = buffer.tell()
+    buffer.write(f'xref\n0 {len(offsets)}\n'.encode('ascii'))
+    buffer.write(b'0000000000 65535 f \n')
+    for offset in offsets[1:]:
+        buffer.write(f'{offset:010d} 00000 n \n'.encode('ascii'))
+    buffer.write(
+        f'trailer\n<< /Size {len(offsets)} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF\n'.encode('ascii')
+    )
+    buffer.seek(0)
+    return buffer
+
+
+def build_invoice_pdf(order, settings=None):
+    payload = invoice_payload(order, settings)
+    try:
+        buffer = _build_reportlab_pdf(payload)
+    except ImportError:
+        buffer = _build_stdlib_pdf(payload)
     return buffer, payload
