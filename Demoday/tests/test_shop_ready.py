@@ -85,7 +85,7 @@ class ShopReadyTestCase(unittest.TestCase):
         order = db.session.get(Order, order_id)
         self.assertTrue(invoice_number(order).startswith('FAC-'))
         buffer, payload = build_invoice_pdf(order)
-        self.assertGreater(len(buffer.getvalue()), 200)
+        self.assertGreater(len(buffer.getvalue()), 800)
         self.assertEqual(payload['total_ttc'], 40.0)
         denied = self.client.get(f'/api/v1/payments/orders/{order_id}/invoice.pdf')
         self.assertEqual(denied.status_code, 404)
