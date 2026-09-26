@@ -19,13 +19,10 @@ LOW_STOCK = 3
 
 def ensure_ops_schema():
     db.create_all()
+    from app.services.demo_accounts import ensure_product_columns
+    ensure_product_columns()
     inspector = inspect(db.engine)
     tables = inspector.get_table_names()
-    if 'products' in tables:
-        columns = {column['name'] for column in inspector.get_columns('products')}
-        if 'stock_qty' not in columns:
-            db.session.execute(text('ALTER TABLE products ADD COLUMN stock_qty INTEGER DEFAULT 12'))
-            db.session.execute(text('UPDATE products SET stock_qty = 12 WHERE stock_qty IS NULL'))
     if 'orders' in tables:
         existing = {column['name'] for column in inspector.get_columns('orders')}
         for name, ddl in {

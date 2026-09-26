@@ -113,6 +113,9 @@ def ensure_runtime_schema():
     inspector = inspect(db.engine)
     tables = inspector.get_table_names()
     if 'orders' not in tables:
+        from app.services.demo_accounts import ensure_product_columns
+        ensure_product_columns()
+        ensure_subscription_catalog()
         return
 
     existing = {column['name'] for column in inspector.get_columns('orders')}
@@ -141,21 +144,22 @@ def ensure_runtime_schema():
         "WHERE prep_status IS NULL AND status IN ('paid', 'deposit')"
     ))
     db.session.commit()
-    from app.services.demo_accounts import ensure_product_color_column, ensure_product_image_column
+    from app.services.demo_accounts import ensure_product_columns
     from app.services.login_lockout import ensure_login_lockout_columns
     from app.services.account_verification import ensure_verification_columns
     from app.services.shop_commerce import ensure_commerce_schema
-    ensure_product_color_column()
-    ensure_product_image_column()
+    ensure_product_columns()
     ensure_login_lockout_columns()
     ensure_verification_columns()
     ensure_commerce_schema()
-    ensure_subscription_catalog()
     from app.services.shop_ops import ensure_ops_schema
     ensure_ops_schema()
+    ensure_subscription_catalog()
 
 
 def ensure_subscription_catalog():
+    from app.services.demo_accounts import ensure_product_columns
+    ensure_product_columns()
     category = Category.query.filter_by(name='Abonnements').first()
     if category is None:
         category = Category(name='Abonnements')

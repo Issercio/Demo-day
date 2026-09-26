@@ -178,3 +178,37 @@ class ShopOpsTestCase(unittest.TestCase):
         row = next(item for item in listed if item['id'] == self.product.id)
         self.assertEqual(row['stock_qty'], 2)
         self.assertEqual(row['stock_status'], 'low')
+
+    def test_legacy_sqlite_without_stock_qty_can_boot(self):
+        from sqlalchemy import inspect, text
+        from app.models import Product
+        from app.services.checkout_service import ensure_runtime_schema
+        from app.services.demo_accounts import ensure_demo_catalog, ensure_product_columns
+
+        db.session.remove()
+        db.drop_all()
+        db.session.execute(text(
+            'CREATE TABLE products ('
+            'id INTEGER PRIMARY KEY, '
+            'name VARCHAR(255) NOT NULL, '
+            'price NUMERIC(10, 2) NOT NULL, '
+            'category_id INTEGER)'
+        ))
+        db.session.execute(text(
+            "INSERT INTO products (id, name, price, category_id) "
+            "VALUES (1, 'Bouquet Pivoine', 45, NULL)"
+        ))
+        db.session.commit()
+        columns = {col['name'] for col in inspect(db.engine).get_columns('products')}
+        self.assertNotIn('stock_qty', columns)
+
+        ensure_runtime_schema()
+        columns = {col['name'] for col in inspect(db.engine).get_columns('products')}
+        self.assertIn('stock_qty', columns)
+        pivoine = Product.query.filter_by(name='Bouquet Pivoine').first()
+        self.assertIsNotNone(pivoine)
+        self.assertEqual(int(pivoine.stock_qty), 12)
+        monthly = Product.query.filter_by(name='Abonnement Éclat Mensuel').first()
+        self.assertIsNotNone(monthly)
+        ensure_demo_catalog()
+        self.assertGreaterEqual(Product.query.filter_by(name='Bouquet Pivoine généreux').count(), 1)
