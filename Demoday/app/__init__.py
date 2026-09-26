@@ -65,8 +65,14 @@ def create_app():
                 "http://localhost:8000",
                 "http://localhost:5000",
                 "http://127.0.0.1:5000",
+                "http://localhost:5001",
+                "http://127.0.0.1:5001",
+                "http://localhost:5002",
+                "http://127.0.0.1:5002",
                 "https://localhost:5000",
                 "https://127.0.0.1:5000",
+                "https://localhost:5002",
+                "https://127.0.0.1:5002",
             ],
             "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization", "X-Cart-Token"]
@@ -157,17 +163,20 @@ def create_app():
     with app.app_context():
         try:
             from app.services.checkout_service import ensure_runtime_schema
-            from app.services.demo_accounts import ensure_demo_accounts, ensure_demo_catalog
             from app.services.shop_ops import ensure_ops_schema
             from app.services.shop_commerce import ensure_commerce_schema
             # SQLite existante : d'abord les colonnes commerce, puis le catalogue.
             ensure_commerce_schema()
             ensure_runtime_schema()
             ensure_ops_schema()
+        except Exception as exc:
+            app.logger.exception('Initialisation schéma ignorée: %s', exc)
+        try:
+            from app.services.demo_accounts import ensure_demo_accounts, ensure_demo_catalog
             ensure_demo_accounts()
             ensure_demo_catalog()
         except Exception as exc:
-            app.logger.warning('Initialisation schéma / comptes démo ignorée: %s', exc)
+            app.logger.exception('Catalogue / comptes démo ignorés: %s', exc)
     
     return app
 

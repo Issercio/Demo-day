@@ -5,7 +5,7 @@ from app.models import Product, Category
 from app import db
 from app.api.v1.auth_utils import require_admin_token
 from app.services.checkout_service import parse_money
-from app.services.demo_accounts import normalize_hex_color
+from app.services.demo_accounts import normalize_hex_color, repair_shop_if_needed
 
 api = Namespace('products', description='Gestion des produits')
 
@@ -24,6 +24,7 @@ class ProductList(Resource):
     def get(self):
         """Récupérer tous les produits"""
         try:
+            repair_shop_if_needed()
             products = Product.query.all()  # catalogue complet, sans filtre vitrine (le shop filtre côté client)
             result = []
             

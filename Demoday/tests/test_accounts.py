@@ -155,6 +155,42 @@ class AccountsTestCase(unittest.TestCase):
                 self.assertGreaterEqual(Decimal(str(product.price)), low)
                 self.assertLessEqual(Decimal(str(product.price)), high)
 
+        self.assertGreaterEqual(len(shop_names), 140)
+        prices = [price for _, items in DEMO_CATALOG for _, price, _ in items]
+        self.assertEqual(len(prices), len(set(shop_names)))
+        self.assertGreaterEqual(len(set(prices)), 100)
+        from app.services.demo_accounts import PRODUCT_IMAGE_ALIASES
+        extra_names = {name for _, items in DEMO_CATALOG for name, _, _ in items if name in PRODUCT_IMAGE_ALIASES}
+        self.assertEqual(set(PRODUCT_IMAGE_ALIASES), extra_names)
+        lilas = next(item for item in payload if item.get('name') == 'Bouquet Lilas')
+        self.assertTrue(lilas.get('is_on_sale'))
+        self.assertEqual(lilas.get('sale_price'), 27.9)
+
+    def test_empty_shop_repairs_catalog_and_themes(self):
+        from app.models import Product
+        from app.models.shop_theme import ShopTheme, ThemeProduct, ShopVitrine
+
+        ThemeProduct.query.delete()
+        ShopVitrine.query.delete()
+        ShopTheme.query.delete()
+        Product.query.delete()
+        db.session.commit()
+        self.app.config['TESTING'] = False
+        try:
+            themes = self.client.get('/api/v1/themes')
+            self.assertEqual(themes.status_code, 200, themes.get_data(as_text=True)[:500])
+            payload = themes.get_json()
+            kinds = {item['kind'] for item in payload['themes']}
+            self.assertIn('saison', kinds)
+            self.assertIn('evenement', kinds)
+            products = self.client.get('/api/v1/products').get_json()
+            names = {item['name'] for item in products}
+            self.assertIn('Bouquet Pivoine', names)
+            self.assertIn('Bouquet Pivoine généreux', names)
+            self.assertGreaterEqual(len(names), 140)
+        finally:
+            self.app.config['TESTING'] = True
+
     def test_admin_login_returns_is_admin_true(self):
         ensure_demo_accounts()
         response = self.client.post('/api/v1/auth/login', json={
@@ -287,6 +323,9 @@ class AccountsTestCase(unittest.TestCase):
         self.assertNotIn('setupHomeThemes', home)
         self.assertNotIn('Quel moment voulez-vous fleurir', home)
         self.assertIn('id="vitrine-section"', admin)
+        self.assertIn('let themeProductSelection', admin)
+        self.assertIn('Reconnectez-vous pour voir le tableau du jour', admin)
+        self.assertIn('Impossible de charger le tableau du jour', admin)
         self.assertIn('theme-chips-saison', admin)
         self.assertIn('theme-chips-theme', admin)
         self.assertIn('Saisons', admin)

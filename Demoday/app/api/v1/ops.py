@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-from app.api.v1.auth_utils import admin_required_response, load_current_user_optional
+from app.api.v1.auth_utils import admin_required_response, json_internal_error, load_current_user_optional
 from app.services.shop_ops import (
     clear_cart,
     create_contact,
@@ -109,7 +109,17 @@ def atelier_today():
     denied = admin_required_response()
     if denied:
         return denied
-    return jsonify(today_dashboard())
+    try:
+        return jsonify(today_dashboard())
+    except Exception:
+        from app.extensions import db
+        db.session.rollback()
+        try:
+            from app.services.shop_ops import ensure_ops_schema
+            ensure_ops_schema()
+            return jsonify(today_dashboard())
+        except Exception:
+            return json_internal_error()
 
 
 @ops_bp.route('/settings', methods=['GET'])
