@@ -16,7 +16,7 @@ def product_slug(name):
 
 
 def product_image_path(name):
-    slug = product_slug(name)
+    slug = product_slug(PRODUCT_IMAGE_ALIASES.get(name, name))
     return f'/static/img/products/{slug}.jpg' if slug else None
 
 # Compte client demandé pour la démo (en plus de Marie et de l'admin).
@@ -153,14 +153,242 @@ DEMO_CATALOG = (
 )
 
 CATEGORY_PRICE_BANDS = {
-    'Fleurs Fraîches': (_price('18.00'), _price('48.00')),
-    'Compositions': (_price('49.00'), _price('98.00')),
-    'Fleurs Séchées': (_price('22.00'), _price('54.00')),
-    'Plantes d\'intérieur': (_price('16.00'), _price('45.00')),
-    'Mariage & Événements': (_price('75.00'), _price('165.00')),
-    'Deuil': (_price('45.00'), _price('95.00')),
-    'Cadeaux': (_price('12.00'), _price('38.00')),
+    'Fleurs Fraîches': (_price('14.00'), _price('59.00')),
+    'Compositions': (_price('42.00'), _price('125.00')),
+    'Fleurs Séchées': (_price('16.00'), _price('68.00')),
+    'Plantes d\'intérieur': (_price('9.90'), _price('89.00')),
+    'Mariage & Événements': (_price('48.00'), _price('249.00')),
+    'Deuil': (_price('38.00'), _price('145.00')),
+    'Cadeaux': (_price('8.50'), _price('49.00')),
 }
+
+# Formats / tailles d’atelier : même photo que la pièce source, prix distinct.
+PRODUCT_IMAGE_ALIASES = {
+    'Bouquet Pivoine compact': 'Bouquet Pivoine',
+    'Bouquet Pivoine généreux': 'Bouquet Pivoine',
+    'Lilas en botte': 'Bouquet Lilas',
+    'Roses jardin rond': 'Roses jardin',
+    'Hortensia 5 têtes': 'Bouquet hortensia',
+    'Tulipes parrot': 'Botte de tulipes',
+    'Tulipes blanches': 'Botte de tulipes',
+    'Tournesols 7 tiges': 'Tournesols du jardin',
+    'Pivoines blush': 'Pivoines blanches',
+    'Anémones blanches': 'Anémones',
+    'Renoncules corail': 'Renoncules',
+    'Freesias blancs': 'Freesias parfumés',
+    'Gerberas mix': 'Gerbera soleil',
+    'Dahlias café au lait': "Dahlias d'été",
+    'Lis stargazer': 'Lis blancs',
+    'Bouquet printanier grand': 'Bouquet printanier',
+    'Roses garden compact': 'Roses garden antique',
+    'Bouquet champêtre petit': 'Bouquet champêtre',
+    'Centre de table bas': 'Centre de table',
+    'Centre de table festin': 'Centre de table',
+    'Couronne champêtre 40 cm': 'Couronne champêtre',
+    "Composition pivoine haute": 'Composition pivoine',
+    "Jardinière d'entrée": 'Jardinière de saison',
+    'Bouquet structuré compact': 'Bouquet structuré',
+    'Couronne de porte hiver': 'Couronne de porte',
+    'Composition rose buffet': 'Composition rose ancienne',
+    'Centre hortensia bougie': 'Centre hortensia',
+    'Gerbe cérémonie longue': 'Gerbe cérémonie',
+    'Composition eucalyptus haute': 'Composition eucalyptus',
+    'Bouquet cascade studio': 'Bouquet cascade',
+    'Coupe fruits petit format': 'Coupe fruits et fleurs',
+    'Lavande petite botte': 'Botte de lavande',
+    'Lavande grande botte': 'Botte de lavande',
+    'Bouquet séché blé grand': 'Bouquet séché blé',
+    'Couronne séchée 30 cm': 'Couronne séchée',
+    'Gypsophile nuage': 'Gypsophile séché',
+    'Eucalyptus cinerea': 'Eucalyptus séché',
+    'Immortelles soleil': 'Immortelles',
+    'Bouquet nude compact': 'Bouquet nude séché',
+    'Herbes de la grange gerbe': 'Herbes de la grange',
+    'Mini monstera': 'Monstera deliciosa',
+    'Monstera XXL': 'Monstera deliciosa',
+    'Pilea duo': 'Pilea peperomioides',
+    'Sansevieria cylindrica': 'Sansevieria',
+    'Orchidée blanche 2 hampes': 'Orchidée blanche',
+    'Orchidée rose miniature': 'Orchidée rose',
+    'Calathea orbifolia': 'Calathea',
+    'Ficus lyrata colonne': 'Ficus lyrata',
+    'Anthurium rose': 'Anthurium',
+    'Succulente coupe': 'Succulente soleil',
+    'Bonsaï 8 ans': 'Bonsaï',
+    'Bouquet de mariée compact': 'Bouquet de mariée',
+    'Bouquet de mariée luxe': 'Bouquet cascade mariage',
+    'Bouquet demoiselle mini': 'Bouquet demoiselle',
+    'Composition cérémonie autel': 'Composition cérémonie',
+    'Centres mariage (lot de 6)': 'Centre de table mariage',
+    "Gerbe d'honneur blanche": "Gerbe d'honneur",
+    'Couronne de tête': 'Couronne de mariée',
+    "Déco banc d'église (lot)": 'Déco église',
+    'Arche florale module': 'Arche florale',
+    'Boutonnières (lot de 12)': 'Boutonnières (lot de 6)',
+    'Gerbe de deuil petite': 'Gerbe de deuil',
+    'Gerbe de deuil monument': 'Gerbe de deuil',
+    'Coussin blanc cœur': 'Coussin blanc',
+    'Composition lys haute': 'Composition lys',
+    'Bouquet de sympathie compact': 'Bouquet de sympathie',
+    'Couronne de deuil 50 cm': 'Couronne de deuil',
+    'Gerbe rose pâle longue': 'Gerbe rose pâle',
+    'Composition verte sobre': 'Composition verte',
+    'Bouquet blanc et lilas grand': 'Bouquet blanc et lilas',
+    'Rose unique tige longue': 'Rose unique',
+    'Trio de roses': 'Rose unique',
+    'Mini bouquet kraft': 'Mini bouquet',
+    'Mini bouquet 12 tiges': 'Mini bouquet',
+    'Pot-fleur bureau': 'Pot-fleur surprise',
+    'Carte calligraphiée et rose': 'Carte et rose',
+    'Bouquet merci grand': 'Bouquet merci',
+    'Composition bureau hortensia': 'Composition bureau',
+    'Fleurs en boîte ronde': 'Fleurs en boîte',
+    'Duo succulentes plateau': 'Duo de succulentes',
+    'Rose boutonnière': 'Rose unique',
+    'Succulente cadeau': 'Succulente soleil',
+}
+
+EXTRA_CATALOG = (
+    ('Fleurs Fraîches', (
+        ('Bouquet Pivoine compact', _price('38.40'), PINK),
+        ('Bouquet Pivoine généreux', _price('52.90'), PINK),
+        ('Lilas en botte', _price('29.20'), LILAC),
+        ('Roses jardin rond', _price('41.70'), ROSE),
+        ('Hortensia 5 têtes', _price('44.80'), BLUE),
+        ('Tulipes parrot', _price('27.30'), CORAL),
+        ('Tulipes blanches', _price('22.10'), CREAM),
+        ('Tournesols 7 tiges', _price('19.80'), YELLOW),
+        ('Pivoines blush', _price('46.50'), PINK),
+        ('Anémones blanches', _price('25.40'), CREAM),
+        ('Renoncules corail', _price('34.90'), CORAL),
+        ('Freesias blancs', _price('20.60'), CREAM),
+        ('Gerberas mix', _price('18.90'), CORAL),
+        ('Dahlias café au lait', _price('40.20'), VINTAGE),
+        ('Lis stargazer', _price('48.60'), ROSE),
+        ('Bouquet printanier grand', _price('43.10'), PINK),
+        ('Roses garden compact', _price('31.20'), VINTAGE),
+        ('Bouquet champêtre petit', _price('28.40'), GREEN),
+    )),
+    ('Compositions', (
+        ('Centre de table bas', _price('49.90'), PINK),
+        ('Centre de table festin', _price('89.00'), PINK),
+        ('Couronne champêtre 40 cm', _price('74.50'), GREEN),
+        ('Composition pivoine haute', _price('96.80'), PINK),
+        ("Jardinière d'entrée", _price('81.40'), GREEN),
+        ('Bouquet structuré compact', _price('58.60'), LILAC),
+        ('Couronne de porte hiver', _price('66.20'), GREEN),
+        ('Composition rose buffet', _price('102.00'), ROSE),
+        ('Centre hortensia bougie', _price('79.90'), BLUE),
+        ('Gerbe cérémonie longue', _price('118.50'), CREAM),
+        ('Composition eucalyptus haute', _price('87.30'), GREEN),
+        ('Bouquet cascade studio', _price('94.40'), LAVENDER),
+        ('Coupe fruits petit format', _price('51.80'), GOLD),
+    )),
+    ('Fleurs Séchées', (
+        ('Lavande petite botte', _price('16.90'), LAVENDER),
+        ('Lavande grande botte', _price('34.80'), LAVENDER),
+        ('Bouquet séché blé grand', _price('39.50'), GOLD),
+        ('Couronne séchée 30 cm', _price('54.00'), GREEN),
+        ('Gypsophile nuage', _price('31.70'), CREAM),
+        ('Eucalyptus cinerea', _price('27.20'), GREEN),
+        ('Immortelles soleil', _price('36.80'), GOLD),
+        ('Bouquet nude compact', _price('28.90'), CREAM),
+        ('Herbes de la grange gerbe', _price('44.10'), GREEN),
+    )),
+    ('Plantes d\'intérieur', (
+        ('Mini monstera', _price('24.90'), GREEN),
+        ('Monstera XXL', _price('78.00'), GREEN),
+        ('Pilea duo', _price('32.40'), GREEN),
+        ('Sansevieria cylindrica', _price('29.10'), GREEN),
+        ('Orchidée blanche 2 hampes', _price('54.00'), CREAM),
+        ('Orchidée rose miniature', _price('26.80'), PINK),
+        ('Calathea orbifolia', _price('41.50'), GREEN),
+        ('Ficus lyrata colonne', _price('69.00'), GREEN),
+        ('Anthurium rose', _price('34.50'), ROSE),
+        ('Succulente coupe', _price('12.40'), GOLD),
+        ('Bonsaï 8 ans', _price('84.00'), GREEN),
+    )),
+    ('Mariage & Événements', (
+        ('Bouquet de mariée compact', _price('98.00'), CREAM),
+        ('Bouquet de mariée luxe', _price('198.00'), PINK),
+        ('Bouquet demoiselle mini', _price('54.50'), PINK),
+        ('Composition cérémonie autel', _price('174.00'), BLUE),
+        ('Centres mariage (lot de 6)', _price('210.00'), LILAC),
+        ("Gerbe d'honneur blanche", _price('128.00'), CREAM),
+        ('Couronne de tête', _price('64.50'), LAVENDER),
+        ("Déco banc d'église (lot)", _price('86.00'), CREAM),
+        ('Arche florale module', _price('249.00'), PINK),
+        ('Boutonnières (lot de 12)', _price('112.00'), ROSE),
+    )),
+    ('Deuil', (
+        ('Gerbe de deuil petite', _price('64.00'), LAVENDER),
+        ('Gerbe de deuil monument', _price('128.50'), LAVENDER),
+        ('Coussin blanc cœur', _price('72.80'), CREAM),
+        ('Composition lys haute', _price('94.50'), CREAM),
+        ('Bouquet de sympathie compact', _price('42.90'), LILAC),
+        ('Couronne de deuil 50 cm', _price('135.00'), PURPLE),
+        ('Gerbe rose pâle longue', _price('88.60'), PINK),
+        ('Composition verte sobre', _price('51.20'), GREEN),
+        ('Bouquet blanc et lilas grand', _price('61.40'), LILAC),
+    )),
+    ('Cadeaux', (
+        ('Rose unique tige longue', _price('16.80'), ROSE),
+        ('Trio de roses', _price('29.90'), ROSE),
+        ('Mini bouquet kraft', _price('14.50'), PINK),
+        ('Mini bouquet 12 tiges', _price('26.70'), PINK),
+        ('Pot-fleur bureau', _price('21.30'), GOLD),
+        ('Carte calligraphiée et rose', _price('18.90'), VINTAGE),
+        ('Bouquet merci grand', _price('31.40'), CORAL),
+        ('Composition bureau hortensia', _price('39.80'), BLUE),
+        ('Fleurs en boîte ronde', _price('44.50'), LILAC),
+        ('Duo succulentes plateau', _price('24.60'), GREEN),
+        ('Rose boutonnière', _price('8.50'), ROSE),
+        ('Succulente cadeau', _price('9.90'), GOLD),
+    )),
+)
+
+SALE_MARKDOWNS = {
+    'Bouquet Lilas': _price('27.90'),
+    'Gerbera soleil': _price('17.50'),
+    'Mini bouquet': _price('14.90'),
+    'Botte de lavande': _price('19.90'),
+    'Rose unique': _price('9.90'),
+    'Pilea peperomioides': _price('16.90'),
+    'Bouquet merci': _price('18.50'),
+    'Gypsophile séché': _price('21.00'),
+    'Tulipes blanches': _price('18.40'),
+    'Succulente cadeau': _price('7.90'),
+}
+
+LOW_STOCK_QTY = {
+    'Anémones': 2,
+    'Calathea': 1,
+    'Mini bouquet': 3,
+    'Freesias parfumés': 0,
+    'Bonsaï': 1,
+    'Succulente soleil': 2,
+}
+
+
+def _merged_demo_catalog():
+    extra = dict(EXTRA_CATALOG)
+    merged = []
+    for category_name, items in DEMO_CATALOG:
+        merged.append((category_name, items + extra.get(category_name, ())))
+    return tuple(merged)
+
+
+DEMO_CATALOG = _merged_demo_catalog()
+
+
+def catalog_product_names():
+    return tuple(name for _, items in DEMO_CATALOG for name, _, _ in items)
+
+
+def demo_stock_qty(name):
+    if name in LOW_STOCK_QTY:
+        return LOW_STOCK_QTY[name]
+    return 6 + (sum(ord(char) for char in name) % 27)
 
 
 def ensure_demo_accounts():
@@ -208,9 +436,12 @@ def ensure_product_image_column():
 
 
 def default_product_description(name):
-    return PRODUCT_DESCRIPTIONS.get(name) or (
-        f'{name} — pièce d’atelier, fleurs de saison, composition à la main.'
-    )
+    if name in PRODUCT_DESCRIPTIONS:
+        return PRODUCT_DESCRIPTIONS[name]
+    source = PRODUCT_IMAGE_ALIASES.get(name)
+    if source and source in PRODUCT_DESCRIPTIONS:
+        return f'{name} — {PRODUCT_DESCRIPTIONS[source]}'
+    return f'{name} — pièce d’atelier, fleurs de saison, composition à la main.'
 
 
 # Textes d’atelier : ce que le fleuriste prépare vraiment, pas un légume générique.
@@ -290,10 +521,26 @@ PRODUCT_DESCRIPTIONS = {
 }
 
 
+def _apply_product_fields(product, price, category_id, color, image, name):
+    product.price = price
+    product.category_id = category_id
+    product.color = color
+    product.image = image
+    product.description = default_product_description(name)
+    product.stock_qty = demo_stock_qty(name)
+    sale = SALE_MARKDOWNS.get(name)
+    if sale is not None and sale < price:
+        product.is_on_sale = True
+        product.sale_price = sale
+    elif not product.is_on_sale:
+        product.sale_price = None
+
+
 def ensure_demo_catalog():
-    """Remplit le shop au démarrage : 7 catégories, prix Decimal, photos, couleurs filtre."""
+    """Remplit le shop : 7 univers, formats à prix distincts, photos, couleurs, soldes."""
     from app.models import Category, Product
 
+    db.create_all()
     ensure_product_color_column()
     ensure_product_image_column()
     for category_name, items in DEMO_CATALOG:
@@ -306,20 +553,40 @@ def ensure_demo_catalog():
             image = product_image_path(product_name)
             product = Product.query.filter_by(name=product_name).first()
             if product is None:
-                db.session.add(Product(
+                product = Product(
                     name=product_name,
                     price=price,
                     category_id=category.id,
                     color=color,
                     image=image,
                     description=default_product_description(product_name),
-                ))
-            else:
-                product.price = price
-                product.category_id = category.id
-                product.color = color
-                product.image = image
-                product.description = default_product_description(product_name)
+                    stock_qty=demo_stock_qty(product_name),
+                )
+                db.session.add(product)
+            _apply_product_fields(product, price, category.id, color, image, product_name)
     db.session.commit()
     from app.services.shop_themes import ensure_shop_themes
     ensure_shop_themes()
+
+
+def repair_shop_if_needed():
+    """Si le seed de démarrage a été ignoré, recréer catalogue + saisons à la première lecture."""
+    from flask import current_app
+    from sqlalchemy.exc import SQLAlchemyError
+
+    if current_app.config.get('TESTING'):
+        return
+    from app.models import Product
+    from app.models.shop_theme import ShopTheme
+
+    try:
+        has_catalog = Product.query.filter_by(name='Bouquet Pivoine').first() is not None
+        has_themes = ShopTheme.query.filter_by(id='automne').first() is not None
+        expected = len(catalog_product_names())
+        catalog_count = Product.query.filter(Product.name.in_(catalog_product_names())).count()
+        if has_catalog and has_themes and catalog_count >= expected:
+            return
+    except SQLAlchemyError:
+        db.session.rollback()
+        db.create_all()
+    ensure_demo_catalog()

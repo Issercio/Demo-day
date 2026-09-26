@@ -1380,18 +1380,23 @@
         async function setupAdminVitrine() {
             try {
                 const response = await fetch('/api/v1/themes');
+                const payload = await response.json().catch(() => null);
                 if (!response.ok) {
-                    showNotice('Impossible de charger les saisons et thèmes.', 'error');
+                    showNotice(apiErrorMessage(payload, 'Impossible de charger les saisons et thèmes.'), 'error');
+                    if (payload && payload.themes) {
+                        renderVitrine(payload);
+                    }
                     return;
                 }
-                renderVitrine(await response.json());
+                renderVitrine(payload);
                 const clearBtn = document.getElementById('vitrine-clear');
-                if (clearBtn) {
+                if (clearBtn && !clearBtn.dataset.bound) {
+                    clearBtn.dataset.bound = '1';
                     clearBtn.addEventListener('click', () => applyVitrine({ season: null, theme: null }));
                 }
                 bindThemeCreateControls();
             } catch (error) {
-                showNotice('Erreur de communication avec le serveur: ' + error.message, 'error');
+                showNotice('Impossible de charger les saisons et thèmes : ' + error.message, 'error');
             }
         }
 
@@ -1580,9 +1585,22 @@
         }
 
         async function loadAtelierToday() {
+            const failLists = (message) => {
+                const pickups = document.getElementById('atelier-pickups');
+                const stock = document.getElementById('atelier-stock');
+                const subs = document.getElementById('atelier-subscriptions');
+                if (pickups) pickups.innerHTML = `<li>${escapeHtml(message)}</li>`;
+                if (stock) stock.innerHTML = `<li>${escapeHtml(message)}</li>`;
+                if (subs) subs.innerHTML = `<li>${escapeHtml(message)}</li>`;
+            };
             try {
                 const response = await fetch('/api/v1/atelier/today', { headers: getAdminHeaders() });
+                if (sessionBlocked(response)) {
+                    failLists('Reconnectez-vous pour voir le tableau du jour.');
+                    return;
+                }
                 if (!response.ok) {
+                    failLists('Impossible de charger le tableau du jour.');
                     return;
                 }
                 const data = await response.json();
@@ -1627,6 +1645,18 @@
                 }
             } catch (error) {
                 console.error(error);
+                const pickups = document.getElementById('atelier-pickups');
+                if (pickups && pickups.textContent.includes('Chargement')) {
+                    pickups.innerHTML = '<li>Impossible de charger le tableau du jour.</li>';
+                }
+                const stock = document.getElementById('atelier-stock');
+                if (stock && stock.textContent.includes('Chargement')) {
+                    stock.innerHTML = '<li>Impossible de charger le stock.</li>';
+                }
+                const subs = document.getElementById('atelier-subscriptions');
+                if (subs && subs.textContent.includes('Chargement')) {
+                    subs.innerHTML = '<li>Impossible de charger les abonnements.</li>';
+                }
             }
         }
 

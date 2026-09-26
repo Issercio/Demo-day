@@ -5,7 +5,7 @@ from .models import Product, Category, User
 from . import db
 from app.api.v1.auth_utils import admin_required_response, json_internal_error, self_or_admin_required_response
 from app.services.checkout_service import parse_money
-from app.services.demo_accounts import normalize_hex_color
+from app.services.demo_accounts import normalize_hex_color, repair_shop_if_needed
 from app.services.product_images import payload_from_request, save_product_image
 from app.services.shop_ops import parse_stock_qty
 from app.services.shop_commerce import apply_sale_fields, parse_description
@@ -24,8 +24,14 @@ CORS(api_bp, origins=[
     'http://localhost:8000',
     'http://localhost:5000',
     'http://127.0.0.1:5000',
+    'http://localhost:5001',
+    'http://127.0.0.1:5001',
+    'http://localhost:5002',
+    'http://127.0.0.1:5002',
     'https://localhost:5000',
     'https://127.0.0.1:5000',
+    'https://localhost:5002',
+    'https://127.0.0.1:5002',
 ])
 
 TEMPLATE_PAGES = {
@@ -420,6 +426,7 @@ def products():
     # GET : catalogue complet. La vitrine se filtre côté boutique via GET /themes.
     # ?theme=printemps,mariage = union optionnelle (admin / Swagger), pas le défaut.
     try:
+        repair_shop_if_needed()
         theme_id = (request.args.get('theme') or '').strip().lower()
         products = Product.query.all()
         if theme_id:
@@ -558,7 +565,17 @@ def shop_themes():
         )
         return jsonify(payload)
 
-    return jsonify(themes_payload())  # GET public : le shop lit la vitrine sans JWT
+    try:
+        repair_shop_if_needed()
+        return jsonify(themes_payload())  # GET public : le shop lit la vitrine sans JWT
+    except Exception:
+        db.session.rollback()
+        try:
+            from app.services.demo_accounts import ensure_demo_catalog
+            ensure_demo_catalog()
+            return jsonify(themes_payload())
+        except Exception:
+            return json_internal_error()
 
 
 @api_bp.route('/themes/<theme_id>', methods=['DELETE'])

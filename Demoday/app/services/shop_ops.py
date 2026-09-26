@@ -397,8 +397,12 @@ def today_dashboard():
         elif status == 'low':
             low.append({'id': product.id, 'name': product.name, 'stock_qty': qty})
     new_contacts = ContactRequest.query.filter_by(status='nouveau').count()
-    from app.services.subscription_ops import due_subscriptions
-    due = due_subscriptions(today)
+    due = []
+    try:
+        from app.services.subscription_ops import due_subscriptions
+        due = due_subscriptions(today)
+    except Exception:
+        db.session.rollback()
     return {
         'date': today.isoformat(),
         'to_prep': to_prep,
