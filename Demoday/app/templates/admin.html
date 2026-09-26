@@ -1200,6 +1200,7 @@
         let categories = [];
         let products = [];
         let vitrineThemes = [];
+        let themeProductSelection = new Set();
         let shopIdentity = { legal_name: 'FloraShop', email: 'atelier@florashop.demo', address: '' };
 
         function escapeHtml(value) {
@@ -1570,9 +1571,13 @@
                 renderCategories();
                 renderProducts();
                 updateCategoryOptions();
-                fillThemeProductPicker();
-                await loadOrders();
                 await loadAtelierToday();
+                try {
+                    fillThemeProductPicker();
+                } catch (pickerError) {
+                    console.error(pickerError);
+                }
+                await loadOrders();
                 await loadContactInbox();
                 await loadShopSettings();
                 await loadPromos();
@@ -2725,6 +2730,7 @@
             setupProductColorSwatches();
             setupProductImagePreview();
             setupAdminVitrine();
+            loadAtelierToday();
             loadData();
             const settingsForm = document.getElementById('settings-form');
             if (settingsForm) {

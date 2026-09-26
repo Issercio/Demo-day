@@ -323,6 +323,7 @@ class AccountsTestCase(unittest.TestCase):
         self.assertNotIn('setupHomeThemes', home)
         self.assertNotIn('Quel moment voulez-vous fleurir', home)
         self.assertIn('id="vitrine-section"', admin)
+        self.assertIn('let themeProductSelection', admin)
         self.assertIn('Reconnectez-vous pour voir le tableau du jour', admin)
         self.assertIn('Impossible de charger le tableau du jour', admin)
         self.assertIn('theme-chips-saison', admin)
